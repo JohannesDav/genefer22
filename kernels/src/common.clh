@@ -1,0 +1,609 @@
+/*
+Copyright 2022, Yves Gallot
+
+Derived from genefer22's OpenCL kernels. Distributed under the MIT license
+in the repository's LICENSE file.
+*/
+
+// Fixed GFN-19 dimensions and Montgomery constants.
+#define N_SZ 524288u
+#define LN_SZ 19
+#define VSIZE 4
+#define LVSIZE 2
+#define CHUNK256 4
+#define NORM_WG_SZ 64
+#define BLK1024 1
+#define STAIR_CONCURRENT 0
+#define P1 1056440321u
+#define Q1 3238526977u
+#define P2 1053818881u
+#define Q2 3241148417u
+#define P3 1051721729u
+#define Q3 3243245569u
+#define NORM1 1056436291u
+#define NORM2 1053814861u
+#define RSQ1 596300470u
+#define IM1 160598537u
+#define MFIM1 350572486u
+#define SQRTI1 574280268u
+#define ISQRTI1 986507723u
+#define RSQ2 159648582u
+#define IM2 882957072u
+#define MFIM2 676445185u
+#define SQRTI2 516220135u
+#define ISQRTI2 182280430u
+#define RSQ3 748646691u
+#define IM3 467413740u
+#define MFIM3 410649836u
+#define SQRTI3 414819672u
+#define ISQRTI3 201694522u
+#define INVP2_P1 422574490u
+#define W_SHFT 524288u
+/*
+Copyright 2022, Yves Gallot
+
+genefer is free source code, under the MIT license (see LICENSE). You can redistribute, use and/or
+modify it. Please give feedback to the authors if improvement is realized. It is distributed in the
+hope that it will be useful.
+*/
+
+#define INLINE static inline
+
+#define PTX_ASM 1
+
+typedef uint sz_t;
+typedef uint uint_32;
+typedef int int_32;
+typedef ulong uint_64;
+typedef long int_64;
+typedef uint2 uint2_32;
+typedef uint4 uint4_32;
+typedef int4 int4_32;
+typedef long4 int4_64;
+
+// --- modular arithmetic
+
+#define PQ1 (uint2_32)(P1, Q1)
+#define PQ2 (uint2_32)(P2, Q2)
+#define PQ3 (uint2_32)(P3, Q3)
+
+__constant uint2_32 g_pq[3] = {PQ1, PQ2, PQ3};
+__constant uint4_32 g_f0[3] = {(uint4_32)(RSQ1, MFIM1, SQRTI1, ISQRTI1),
+                               (uint4_32)(RSQ2, MFIM2, SQRTI2, ISQRTI2),
+                               (uint4_32)(RSQ3, MFIM3, SQRTI3, ISQRTI3)};
+__constant uint4_32 g_b0[3] = {(uint4_32)(ISQRTI1, SQRTI1, IM1, 0),
+                               (uint4_32)(ISQRTI2, SQRTI2, IM2, 0),
+                               (uint4_32)(ISQRTI3, SQRTI3, IM3, 0)};
+
+INLINE uint_32 submod(const uint_32 lhs, const uint_32 rhs, const uint_32 p)
+{
+    const uint_32 t = lhs - rhs;
+    return t + (((int_32)(t) < 0) ? p : 0);
+}
+
+// 2 mul + 2 mul_hi
+INLINE uint_32 mulmod(const uint_32 lhs, const uint_32 rhs, const uint2_32 pq)
+{
+    const uint_64 t = lhs * (uint_64)(rhs);
+    const uint_32 lo = (uint_32)(t), hi = (uint_32)(t >> 32);
+    const uint_32 mp = mul_hi(lo * pq.s1, pq.s0);
+    return submod(hi, mp, pq.s0);
+}
+
+INLINE int_32 get_int(const uint_32 n, const uint_32 p)
+{
+    return (int_32)(n - ((n >= p / 2) ? p : 0));
+}
+INLINE uint_32 set_int(const int_32 i, const uint_32 p)
+{
+    return (uint_32)(i + ((i < 0) ? p : 0));
+}
+
+// --- v2
+
+INLINE uint2_32 mulmod2(const uint2_32 lhs, const uint2_32 rhs, const uint2_32 pq)
+{
+    return (uint2_32)(mulmod(lhs.s0, rhs.s0, pq), mulmod(lhs.s1, rhs.s1, pq));
+}
+
+// --- v4
+
+INLINE uint4_32 mulmod4(const uint4_32 lhs, const uint4_32 rhs, const uint2_32 pq)
+{
+    return (uint4_32)(mulmod2(lhs.s01, rhs.s01, pq), mulmod2(lhs.s23, rhs.s23, pq));
+}
+
+INLINE uint_32 fold2(uint_32 a, uint_32 p)
+{
+    return a - ((a >= 2 * p) ? 2 * p : 0);
+}
+INLINE uint_32 iadd(uint_32 a, uint_32 b, uint_32 p)
+{
+    uint_32 t = a + b;
+    return t - ((t >= 2 * p) ? 2 * p : 0);
+}
+INLINE uint_32 ladd(uint_32 a, uint_32 b, uint_32 p)
+{
+    return iadd(fold2(a, p), fold2(b, p), p);
+}
+INLINE uint_32 lsub(uint_32 a, uint_32 b, uint_32 p)
+{
+    a = fold2(a, p);
+    b = fold2(b, p);
+    uint_32 t = a + 2 * p - b;
+    return t - ((t >= 2 * p) ? 2 * p : 0);
+}
+INLINE uint_32 lscalar(uint_32 a, uint_32 b, uint2_32 pq)
+{
+    ulong t = a * (ulong)b;
+    uint_32 lo = (uint_32)t, hi = (uint_32)(t >> 32), mp = mul_hi(lo * pq.s1, pq.s0);
+    return hi + pq.s0 - mp;
+}
+INLINE uint_32 lmul(uint_32 a, uint_32 b, uint2_32 pq)
+{
+    return lscalar(fold2(a, pq.s0), fold2(b, pq.s0), pq);
+}
+
+INLINE uint2_32 fold22(uint2_32 a, uint_32 p)
+{
+    return (uint2_32)(fold2(a.s0, p), fold2(a.s1, p));
+}
+INLINE uint2_32 iadd2(uint2_32 a, uint2_32 b, uint_32 p)
+{
+    return (uint2_32)(iadd(a.s0, b.s0, p), iadd(a.s1, b.s1, p));
+}
+
+INLINE uint2_32 lscalar2(uint2_32 a, uint_32 b, uint2_32 pq)
+{
+    return (uint2_32)(lscalar(a.s0, b, pq), lscalar(a.s1, b, pq));
+}
+INLINE uint4_32 fold24(uint4_32 a, uint_32 p)
+{
+    return (uint4_32)(fold2(a.s0, p), fold2(a.s1, p), fold2(a.s2, p), fold2(a.s3, p));
+}
+INLINE uint4_32 iadd4(uint4_32 a, uint4_32 b, uint_32 p)
+{
+    return (uint4_32)(iadd(a.s0, b.s0, p), iadd(a.s1, b.s1, p), iadd(a.s2, b.s2, p),
+                      iadd(a.s3, b.s3, p));
+}
+
+INLINE uint4_32 lmul4(uint4_32 a, uint4_32 b, uint2_32 pq)
+{
+    return (uint4_32)(lmul(a.s0, b.s0, pq), lmul(a.s1, b.s1, pq), lmul(a.s2, b.s2, pq),
+                      lmul(a.s3, b.s3, pq));
+}
+INLINE uint4_32 lscalar4(uint4_32 a, uint_32 b, uint2_32 pq)
+{
+    return (uint4_32)(lscalar(a.s0, b, pq), lscalar(a.s1, b, pq), lscalar(a.s2, b, pq),
+                      lscalar(a.s3, b, pq));
+}
+
+INLINE uint_32 shoup_root(uint_32 a, ulong root, uint2_32 pq)
+{
+    uint_32 rq = (uint_32)root, w = mul_hi(rq, pq.s0) + (rq != 0), q = mul_hi(a, rq);
+    uint_32 r = a * w - q * pq.s0;
+    return r;
+}
+INLINE uint2_32 shoup_root2(uint2_32 a, ulong root, uint2_32 pq)
+{
+    return (uint2_32)(shoup_root(a.s0, root, pq), shoup_root(a.s1, root, pq));
+}
+INLINE uint4_32 shoup_root4(uint4_32 a, ulong root, uint2_32 pq)
+{
+    return (uint4_32)(shoup_root2(a.s01, root, pq), shoup_root2(a.s23, root, pq));
+}
+#define ROOTMUL(a, w, pq)                                                                          \
+    ((sizeof(w) == 4) ? lscalar(a, (uint_32)(w), pq) : shoup_root(a, (ulong)(w), pq))
+#define ROOTMUL2(a, w, pq)                                                                         \
+    ((sizeof(w) == 4) ? lscalar2(a, (uint_32)(w), pq) : shoup_root2(a, (ulong)(w), pq))
+#define ROOTMUL4(a, w, pq)                                                                         \
+    ((sizeof(w) == 4) ? lscalar4(a, (uint_32)(w), pq) : shoup_root4(a, (ulong)(w), pq))
+
+// --- uint96/int96 ---
+
+typedef struct
+{
+    uint_32 s0;
+    uint_64 s1;
+} uint96;
+typedef struct
+{
+    uint_32 s0;
+    int_64 s1;
+} int96;
+
+// --- transform/macro ---
+
+#define MUL2(z0, z1, zp0, zp1, w)                                                                  \
+    {                                                                                              \
+        const uint_32 t = ROOTMUL(lmul(z1, zp1, pq), w, pq);                                       \
+        z1 = ladd(lmul(z0, zp1, pq), lmul(zp0, z1, pq), pq.s0);                                    \
+        z0 = ladd(lmul(z0, zp0, pq), t, pq.s0);                                                    \
+    }
+
+#define MUL2N(z0, z1, zp0, zp1, w)                                                                 \
+    {                                                                                              \
+        const uint_32 t = ROOTMUL(lmul(z1, zp1, pq), w, pq);                                       \
+        z1 = ladd(lmul(z0, zp1, pq), lmul(zp0, z1, pq), pq.s0);                                    \
+        z0 = lsub(lmul(z0, zp0, pq), t, pq.s0);                                                    \
+    }
+
+#define FWD2v2(z0, z1, w)                                                                          \
+    {                                                                                              \
+        const uint2_32 t = ROOTMUL2(z1, w, pq);                                                    \
+        z0 = fold22(z0, pq.s0);                                                                    \
+        z1 = z0 + 2 * pq.s0 - t;                                                                   \
+        z0 = z0 + t;                                                                               \
+    }
+
+#define BCK2v2(z0, z1, win)                                                                        \
+    {                                                                                              \
+        const uint2_32 t = z1 + 2 * pq.s0 - z0;                                                    \
+        z0 = iadd2(z0, z1, pq.s0);                                                                 \
+        z1 = ROOTMUL2(t, win, pq);                                                                 \
+    }
+
+#define FWD2v4(z0, z1, w)                                                                          \
+    {                                                                                              \
+        const uint4_32 t = ROOTMUL4(z1, w, pq);                                                    \
+        z0 = fold24(z0, pq.s0);                                                                    \
+        z1 = z0 + 2 * pq.s0 - t;                                                                   \
+        z0 = z0 + t;                                                                               \
+    }
+
+#define BCK2v4(z0, z1, win)                                                                        \
+    {                                                                                              \
+        const uint4_32 t = z1 + 2 * pq.s0 - z0;                                                    \
+        z0 = iadd4(z0, z1, pq.s0);                                                                 \
+        z1 = ROOTMUL4(t, win, pq);                                                                 \
+    }
+
+INLINE void _loadg4(const sz_t n, uint4_32 *const zl, __global const uint4_32 *restrict const z,
+                    const sz_t s)
+{
+    for (sz_t l = 0; l < n; ++l)
+        zl[l] = z[l * s];
+}
+INLINE void _loadl4(const sz_t n, uint4_32 *const zl, __local const uint4_32 *restrict const Z,
+                    const sz_t s)
+{
+    for (sz_t l = 0; l < n; ++l)
+        zl[l] = Z[l * s];
+}
+INLINE void _storeg4(const sz_t n, __global uint4_32 *restrict const z, const sz_t s,
+                     const uint4_32 *const zl)
+{
+    for (sz_t l = 0; l < n; ++l)
+        z[l * s] = zl[l];
+}
+INLINE void _storel4(const sz_t n, __local uint4_32 *restrict const Z, const sz_t s,
+                     const uint4_32 *const zl)
+{
+    for (sz_t l = 0; l < n; ++l)
+        Z[l * s] = zl[l];
+}
+
+// ---
+
+// --- v2
+
+// --- v4
+
+INLINE void _forward4x4(const uint2_32 pq, uint4_32 z[4], const ulong w1, const ulong w2[2])
+{
+    FWD2v4(z[0], z[2], w1);
+    FWD2v4(z[1], z[3], w1);
+    FWD2v4(z[0], z[1], w2[0]);
+    FWD2v4(z[2], z[3], w2[1]);
+}
+
+INLINE void _backward4x4(const uint2_32 pq, uint4_32 z[4], const ulong win1, const ulong win2[2])
+{
+    BCK2v4(z[0], z[1], win2[0]);
+    BCK2v4(z[2], z[3], win2[1]);
+    BCK2v4(z[0], z[2], win1);
+    BCK2v4(z[1], z[3], win1);
+}
+
+INLINE void _forward4x4_0(const uint2_32 pq, const uint4_32 f0, uint4_32 z[4])
+{
+    const uint_32 rsq = f0.s0, mfim = f0.s1, sqrti = f0.s2, isqrti = f0.s3;
+    z[0] = lmul4(z[0], rsq, pq);
+    z[1] = lmul4(z[1], rsq, pq);
+    FWD2v4(z[0], z[2], mfim);
+    FWD2v4(z[1], z[3], mfim);
+    FWD2v4(z[0], z[1], sqrti);
+    FWD2v4(z[2], z[3], isqrti);
+}
+
+INLINE void _backward4x4_0(const uint2_32 pq, const uint4_32 b0, uint4_32 z[4])
+{
+    const uint_32 isqrti = b0.s0, sqrti = b0.s1, im = b0.s2;
+    BCK2v4(z[0], z[1], isqrti);
+    BCK2v4(z[2], z[3], sqrti);
+    BCK2v4(z[0], z[2], im);
+    BCK2v4(z[1], z[3], im);
+}
+
+INLINE void _fwd4x2v4(const uint2_32 pq, uint4_32 z[2], const ulong w2[2])
+{
+    for (sz_t i = 0; i < 2; ++i)
+        FWD2v2(z[i].s01, z[i].s23, w2[i]);
+}
+
+INLINE void _fwd8v4(const uint2_32 pq, uint4_32 z[2], const ulong w1, const ulong w2[2])
+{
+    FWD2v4(z[0], z[1], w1);
+    _fwd4x2v4(pq, z, w2);
+}
+
+INLINE void _mul4x2v4(const uint2_32 pq, uint4_32 z[2], const uint4_32 zp[2], const ulong w2[2],
+                      const ulong win2[2])
+{
+    for (sz_t i = 0; i < 2; ++i)
+    {
+        FWD2v2(z[i].s01, z[i].s23, w2[i]);
+        MUL2(z[i].s0, z[i].s1, zp[i].s0, zp[i].s1, w2[i]);
+        MUL2N(z[i].s2, z[i].s3, zp[i].s2, zp[i].s3, w2[i]);
+        BCK2v2(z[i].s01, z[i].s23, win2[i]);
+    }
+}
+
+INLINE void _mul8v4(const uint2_32 pq, uint4_32 z[2], const uint4_32 zp[2], const ulong w1,
+                    const ulong win1, const ulong w2[2], const ulong win2[2])
+{
+    FWD2v4(z[0], z[1], w1);
+    _mul4x2v4(pq, z, zp, w2, win2);
+    BCK2v4(z[0], z[1], win1);
+}
+
+// --- inverse of roots is wi[s + j] or w[s + s - j - 1] ---
+
+#define DECLARE_W1(sj) const ulong w1 = w[sj];
+#define DECLARE_W2(sj)                                                                             \
+    ulong w2[2];                                                                                   \
+    {                                                                                              \
+        const uint2_32 t = ((__global const uint2_32 *)w)[sj];                                     \
+        w2[0] = t.s0;                                                                              \
+        w2[1] = t.s1;                                                                              \
+    }
+#define DECLARE_W12(sj)                                                                            \
+    DECLARE_W1(sj);                                                                                \
+    DECLARE_W2(sj);
+#define DECLARE_W1_2(sj)                                                                           \
+    ulong w1[2];                                                                                   \
+    {                                                                                              \
+        const uint2_32 t = ((__global const uint2_32 *)w)[sj];                                     \
+        w1[0] = t.s0;                                                                              \
+        w1[1] = t.s1;                                                                              \
+    }
+#define DECLARE_W2_4(sj)                                                                           \
+    ulong w2[4];                                                                                   \
+    {                                                                                              \
+        const uint4_32 t = ((__global const uint4_32 *)w)[sj];                                     \
+        w2[0] = t.s0;                                                                              \
+        w2[1] = t.s1;                                                                              \
+        w2[2] = t.s2;                                                                              \
+        w2[3] = t.s3;                                                                              \
+    }
+#define DECLARE_W12_24(sj)                                                                         \
+    DECLARE_W1_2(sj);                                                                              \
+    DECLARE_W2_4(sj);
+
+#define DECLARE_WIN1(sji) const ulong win1 = wi[sji];
+#define DECLARE_IVAR(s, j)                                                                         \
+    const sz_t sji = s + s - j - 1;                                                                \
+    __global const uint_32 *restrict const wi = w;
+#define DECLARE_WIN2(sji)                                                                          \
+    ulong win2[2];                                                                                 \
+    {                                                                                              \
+        const uint2_32 t = ((__global const uint2_32 *)wi)[sji];                                   \
+        win2[0] = t.s1;                                                                            \
+        win2[1] = t.s0;                                                                            \
+    }
+#define DECLARE_WIN1_2(sji)                                                                        \
+    ulong win1[2];                                                                                 \
+    {                                                                                              \
+        const uint2_32 t = ((__global const uint2_32 *)wi)[sji];                                   \
+        win1[0] = t.s1;                                                                            \
+        win1[1] = t.s0;                                                                            \
+    }
+#define DECLARE_WIN2_4(sji)                                                                        \
+    ulong win2[4];                                                                                 \
+    {                                                                                              \
+        const uint4_32 t = ((__global const uint4_32 *)wi)[sji];                                   \
+        win2[0] = t.s3;                                                                            \
+        win2[1] = t.s2;                                                                            \
+        win2[2] = t.s1;                                                                            \
+        win2[3] = t.s0;                                                                            \
+    }
+#define DECLARE_WIN12(sj)                                                                          \
+    DECLARE_WIN1(sj);                                                                              \
+    DECLARE_WIN2(sj);
+#define DECLARE_WIN12_24(sj)                                                                       \
+    DECLARE_WIN1_2(sj);                                                                            \
+    DECLARE_WIN2_4(sj);
+
+// --- vector size (1, 2 or 4) ---
+
+#define VTYPE uint4_32
+#define _loadg _loadg4
+#define _loadl _loadl4
+#define _storeg _storeg4
+#define _storel _storel4
+#define _forward4 _forward4x4
+#define _backward4 _backward4x4
+#define _forward4_0 _forward4x4_0
+#define _backward4_0 _backward4x4_0
+
+// --- transform/inline global mem ---
+
+// --- transform/inline local & global mem ---
+
+INLINE void forward_4(const uint2_32 pq, const sz_t m, __local VTYPE *restrict const Z,
+                      __global const uint_32 *restrict const w, const sz_t sj)
+{
+    DECLARE_W12(sj);
+    barrier(CLK_LOCAL_MEM_FENCE);
+    VTYPE zl[4];
+    _loadl(4, zl, Z, m);
+    _forward4(pq, zl, w1, w2);
+    _storel(4, Z, m, zl);
+}
+
+INLINE void forward_4i(const uint2_32 pq, const sz_t ml, __local VTYPE *restrict const Z,
+                       const sz_t mg, __global const VTYPE *restrict const z,
+                       __global const uint_32 *restrict const w, const sz_t sj)
+{
+    DECLARE_W12(sj);
+    VTYPE zl[4];
+    _loadg(4, zl, z, mg);
+    _forward4(pq, zl, w1, w2);
+    _storel(4, Z, ml, zl);
+}
+
+__constant uint4_32 g_f0_ordinary[2] = {(uint4_32)(0, IM1, SQRTI1, ISQRTI1),
+                                        (uint4_32)(0, IM2, SQRTI2, ISQRTI2)};
+INLINE void forward4_ordinary(const uint2_32 pq, const uint4_32 f0, uint4_32 z[4])
+{
+    FWD2v4(z[0], z[2], f0.s1);
+    FWD2v4(z[1], z[3], f0.s1);
+    FWD2v4(z[0], z[1], f0.s2);
+    FWD2v4(z[2], z[3], f0.s3);
+}
+INLINE void forward_4i_parity(const uint2_32 pq, const uint4_32 f0, const sz_t ml,
+                              __local VTYPE *restrict const Z, const sz_t mg,
+                              __global const VTYPE *restrict const z,
+                              __global const VTYPE *const base, __global uchar *par)
+{
+    VTYPE zl[4];
+    _loadg(4, zl, z, mg);
+    if (pq.s0 == P1)
+    {
+        const size_t first = ((__global const uint_32 *)z) - ((__global const uint_32 *)base);
+        for (int j = 0; j < 4; ++j)
+        {
+            __private uint_32 *a = (__private uint_32 *)(&zl[j]);
+            uint packed = 0;
+            for (int k = 0; k < VSIZE; ++k)
+                packed |= ((a[k] & 1) ^ (a[k] >= P1 / 2)) << k;
+            par[(first + j * mg * VSIZE) / 4] = (uchar)packed;
+        }
+    }
+    _forward4_0(pq, f0, zl);
+    _storel(4, Z, ml, zl);
+}
+
+INLINE void forward_4i_parity_ordinary(const uint2_32 pq, const uint4_32 f0, const sz_t ml,
+                                       __local VTYPE *restrict const Z, const sz_t mg,
+                                       __global const VTYPE *restrict const z,
+                                       __global const VTYPE *const base, __global uchar *par)
+{
+    VTYPE zl[4];
+    _loadg(4, zl, z, mg);
+    if (pq.s0 == P1)
+    {
+        const size_t first = ((__global const uint_32 *)z) - ((__global const uint_32 *)base);
+        for (int j = 0; j < 4; ++j)
+        {
+            __private uint_32 *a = (__private uint_32 *)(&zl[j]);
+            uint packed = 0;
+            for (int k = 0; k < VSIZE; ++k)
+                packed |= ((a[k] & 1) ^ (a[k] >= P1 / 2)) << k;
+            par[(first + j * mg * VSIZE) / 4] = (uchar)packed;
+        }
+    }
+    forward4_ordinary(pq, f0, zl);
+    _storel(4, Z, ml, zl);
+}
+
+INLINE void forward_4o(const uint2_32 pq, const sz_t mg, __global VTYPE *restrict const z,
+                       const sz_t ml, __local const VTYPE *restrict const Z,
+                       __global const uint_32 *restrict const w, const sz_t sj)
+{
+    DECLARE_W12(sj);
+    barrier(CLK_LOCAL_MEM_FENCE);
+    VTYPE zl[4];
+    _loadl(4, zl, Z, ml);
+    _forward4(pq, zl, w1, w2);
+    _storeg(4, z, mg, zl);
+}
+
+INLINE void backward_4(const uint2_32 pq, const sz_t m, __local VTYPE *restrict const Z,
+                       __global const uint_32 *restrict const wi, const sz_t sji)
+{
+    DECLARE_WIN12(sji);
+    barrier(CLK_LOCAL_MEM_FENCE);
+    VTYPE zl[4];
+    _loadl(4, zl, Z, m);
+    _backward4(pq, zl, win1, win2);
+    _storel(4, Z, m, zl);
+}
+
+INLINE void backward_4i(const uint2_32 pq, const sz_t ml, __local VTYPE *restrict const Z,
+                        const sz_t mg, __global const VTYPE *restrict const z,
+                        __global const uint_32 *restrict const wi, const sz_t sji)
+{
+    DECLARE_WIN12(sji);
+    VTYPE zl[4];
+    _loadg(4, zl, z, mg);
+    _backward4(pq, zl, win1, win2);
+    _storel(4, Z, ml, zl);
+}
+
+INLINE void backward_4o(const uint2_32 pq, const sz_t mg, __global VTYPE *restrict const z,
+                        const sz_t ml, __local const VTYPE *restrict const Z,
+                        __global const uint_32 *restrict const wi, const sz_t sji)
+{
+    DECLARE_WIN12(sji);
+    barrier(CLK_LOCAL_MEM_FENCE);
+    VTYPE zl[4];
+    _loadl(4, zl, Z, ml);
+    _backward4(pq, zl, win1, win2);
+    _storeg(4, z, mg, zl);
+}
+
+INLINE void backward_4o_0(const uint2_32 pq, const uint4_32 b0, const sz_t mg,
+                          __global VTYPE *restrict const z, const sz_t ml,
+                          __local const VTYPE *restrict const Z)
+{
+    barrier(CLK_LOCAL_MEM_FENCE);
+    VTYPE zl[4];
+    _loadl(4, zl, Z, ml);
+    _backward4_0(pq, b0, zl);
+    _storeg(4, z, mg, zl);
+}
+
+// --- v1
+
+// --- v2
+
+// --- v4
+
+// The quartic leaf uses a 1/R Montgomery scale. Its dot products satisfy
+// T <= 4*(p-1)^2 < R*p, so the REDC result is already below 2*p.
+INLINE uint_32 quartic_redc(const ulong t, const uint2_32 pq)
+{
+    const uint_32 h = (uint_32)(t >> 32), m = mul_hi((uint_32)t * pq.s1, pq.s0);
+    return h + pq.s0 - m; // 1/R dots are below R*p: result already below2p.
+}
+INLINE uint4_32 quartic_dot(const uint2_32 pq, const uint4_32 input, const uint_32 gamma,
+                            const uint_32 qgamma)
+{
+    const uint_32 p = pq.s0;
+    uint4_32 a = fold24(input, p);
+    a.s0 -= a.s0 >= p ? p : 0;
+    a.s1 -= a.s1 >= p ? p : 0;
+    a.s2 -= a.s2 >= p ? p : 0;
+    a.s3 -= a.s3 >= p ? p : 0;
+    uint_32 u2 = a.s2 * gamma - mul_hi(a.s2, qgamma) * p,
+            u3 = a.s3 * gamma - mul_hi(a.s3, qgamma) * p;
+    u2 -= u2 >= p ? p : 0;
+    u3 -= u3 >= p ? p : 0;
+    const ulong t0 = (ulong)a.s0 * a.s0 + (ulong)(2 * a.s1) * u3 + (ulong)a.s2 * u2;
+    const ulong t1 = (ulong)(2 * a.s0) * a.s1 + (ulong)(2 * a.s2) * u3;
+    const ulong t2 = (ulong)(2 * a.s0) * a.s2 + (ulong)a.s1 * a.s1 + (ulong)a.s3 * u3;
+    const ulong t3 = (ulong)(2 * a.s0) * a.s3 + (ulong)(2 * a.s1) * a.s2;
+    return (uint4_32)(quartic_redc(t0, pq), quartic_redc(t1, pq), quartic_redc(t2, pq),
+                      quartic_redc(t3, pq));
+}

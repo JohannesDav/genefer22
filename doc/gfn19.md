@@ -52,6 +52,8 @@ When the build finishes, the output directory contains the optimized programs, t
 
 Keep this whole directory together. Copying just an executable is insufficient: the supplied launchers need its companion programs, kernels and configuration files. The rest of this guide calls this directory the **build directory**.
 
+These commands use the GPU kernels included in the repository. If you also want to compile the GPU kernels yourself, follow [Rebuilding the GPU kernels](#rebuilding-the-gpu-kernels) below. The resulting PTX file can be passed to the application builder with `--kernel`.
+
 ## 3. Run a candidate without BOINC
 
 For the RTX 3090 build above, this command tests base 28,000,000:
@@ -66,7 +68,7 @@ For a 4060 Ti build, change the script path to `build/4060/run_checked.py`. The 
 
 ### What the script does
 
-`run_checked.py` first starts the optimized prover. When that calculation finishes, the script starts a separate executable, `bin/genefer-conservative`, built from Gallot's original OpenCL implementation. It uses Genefer's server mode to generate a verification certificate from the proof, then Genefer's certificate-checking mode to check that certificate. These are local calculations; they do not contact PrimeGrid.
+`run_checked.py` first starts the optimized prover. When that calculation finishes, the script starts a separate executable, `bin/genefer-conservative`, built from Gallot's original OpenCL implementation. It uses Genefer's server mode to generate a verification certificate from the proof, then Genefer's certificate-checking mode to check that certificate. These are additional local calculations performed by the script. Upstream Genefer provides the `-s` and `-c` modes, but its ordinary `-p` proof-generation command does not run them automatically. The local checks do not contact PrimeGrid.
 
 If the optimized calculation fails or its proof does not pass verification, the script retries the candidate with the original OpenCL prover. That retry can take much longer. The JSON report records whether the accepted result came from the optimized calculation (`fast`) or the original prover (`conservative-fallback`).
 
@@ -150,12 +152,45 @@ This generates a full proof for base 1,026 and compares the proof and result wit
 
 For the 4060 Ti, use `build/4060` in place of `build/3090` and choose separate test-output directories.
 
-## Implementation and measurement notes
+## Rebuilding the GPU kernels
 
-The optimized C++ transform and CUDA driver interface live in `src/cuda/`. The GPU kernels are supplied in `kernels/` as PTX, NVIDIA's intermediate assembly language. The NVIDIA driver compiles that assembly for the GPU when the application loads it.
+The GPU source is in `kernels/src/`. `common.clh` contains shared modular arithmetic, while `gfn19-3090.cl` and `gfn19-4060.cl` contain the kernels for the two cards. Both versions use the same arithmetic scale. Their differences concern root-table access and the GPU-specific implementation choices used by each card.
 
-`build.py` rebuilds the C++ executables and copies the matching PTX file into the build directory. It does not regenerate the PTX from higher-level GPU source: a generator that reproduces those final assembly files is not included in this repository. The original `ocl/kernel.cl` belongs to Gallot's OpenCL implementation and cannot be substituted for the optimized kernels. Changes to the optimized assembly require new arithmetic and proof validation.
+The source is OpenCL C, with a few NVIDIA-specific inline assembly instructions. To compile it, the builder uses the OpenCL compiler supplied by the NVIDIA driver on your machine. It then exports PTX, NVIDIA's intermediate assembly format, for the CUDA driver backend used by this fork. The application still requires CUDA after this step.
 
-The RTX 3090 kernels require a driver supporting PTX 9.0; the 4060 Ti kernels require PTX 8.7. Their different root-table layouts and GPU cache settings are the reason for selecting a card explicitly when building.
+Kernel generation needs Python, the OpenCL loader (`libOpenCL.so.1`), NVIDIA's OpenCL runtime, and the matching GPU. It does not invoke `nvcc`. The driver versions in the setup table above are the versions used to reproduce the bundled kernels exactly.
 
-The performance figures in the README include proof generation and the local verification steps for one candidate. Each comparison ran both versions on the same machine, with warmed driver caches and variable GPU clocks. The reference executable was compiled from upstream commit `56905b2`; it was not the binary distributed by PrimeGrid.
+For the RTX 3090, run:
+
+```sh
+python3 kernels/build.py --gpu 3090 --output build/gfn19-3090.ptx --verify
+```
+
+For the RTX 4060 Ti 16GB, run:
+
+```sh
+python3 kernels/build.py --gpu 4060 --output build/gfn19-4060.ptx --verify
+```
+
+The builder compiles the selected source, exports its PTX, and applies the register limits measured for that card. It also creates two versions of the carry kernel for a flag that selects whether a square is doubled. Making that flag constant lets the application select the appropriate version when constructing its CUDA graphs.
+
+Compilation takes its inputs from `kernels/src/` and the configuration identifier in `src/cuda/profiles.h`. With `--verify`, the finished output is then compared byte for byte with the bundled PTX. The build fails if they differ. This allows you to check that your toolchain reproduces the supplied kernels before using its output.
+
+Choose a new filename for `--output`; the script refuses to overwrite an existing file. Alongside the PTX, it writes a `.ptx.json` record containing the GPU, driver and compiler information, source hashes, and the output hash.
+
+To build the application using your regenerated kernels, pass the file to `build.py`:
+
+```sh
+python3 build.py --gpu 3090 --kernel build/gfn19-3090.ptx \
+    --output build/3090-rebuilt
+```
+
+You can then use `build/3090-rebuilt/run_checked.py` as described in the standalone section. For a 4060 Ti, use `--gpu 4060`, the corresponding PTX file, and a separate build directory.
+
+A different NVIDIA driver may generate different PTX even from identical source. In that case, `--verify` will fail. You can omit that option to generate kernels for testing, but those kernels need fresh arithmetic, full-proof and performance checks before you rely on them. The tests earlier in this guide can be run against a build made with `--kernel`.
+
+The optimized CUDA module contains only the kernels used by GFN-19, including the operations needed for general multiplication, checkpoints and verification-related calculations. The original OpenCL implementation remains separate and is used by the BOINC launcher for requests outside the optimized range.
+
+## Measurement notes
+
+The performance figures in the README include proof generation followed by the same additional local certificate generation and checking steps for both executables. A reference run therefore includes the original prover plus those checks; a modified run includes the optimized prover plus those checks. Each comparison ran both versions on the same machine, with warmed driver caches and variable GPU clocks. The reference executable was compiled from upstream commit `56905b2`; it was not the binary distributed by PrimeGrid.

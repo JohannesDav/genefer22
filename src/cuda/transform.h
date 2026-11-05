@@ -285,8 +285,6 @@ template <size_t RNS_SIZE, bool is32> class engines : public device
 
   private:
     const size_t _n;
-    const int _ln;
-    const bool _isBoinc;
     const size_t _num_regs;
     const int _lnormWGsize;
     cl_mem _bridgeAux = nullptr;
@@ -295,18 +293,9 @@ template <size_t RNS_SIZE, bool is32> class engines : public device
     bool _squareParity = false;
     bool _ordinaryProduct = false;
     cl_mem _z = nullptr, _zp = nullptr, _w = nullptr, _c = nullptr;
-    cl_kernel _forward64_0 = nullptr, _forward64_9 = nullptr, _forward64_11 = nullptr;
-    cl_kernel _backward64_0 = nullptr, _backward64_9 = nullptr, _backward64_11 = nullptr;
     cl_kernel _forward256_ordinary = nullptr;
-    cl_kernel _forward256_0 = nullptr, _backward256_0 = nullptr, _forward1024_0 = nullptr,
-              _backward1024_0 = nullptr;
-    cl_kernel _square32 = nullptr, _square64 = nullptr, _square128 = nullptr, _square256 = nullptr;
-    cl_kernel _square512 = nullptr, _square1024 = nullptr, _square2048 = nullptr,
-              _square4096 = nullptr;
-    cl_kernel _fwd32p = nullptr, _fwd64p = nullptr, _fwd128p = nullptr, _fwd256p = nullptr;
-    cl_kernel _fwd512p = nullptr, _fwd1024p = nullptr, _fwd2048p = nullptr, _fwd4096p = nullptr;
-    cl_kernel _mul32 = nullptr, _mul64 = nullptr, _mul128 = nullptr, _mul256 = nullptr;
-    cl_kernel _mul512 = nullptr, _mul1024 = nullptr, _mul2048 = nullptr, _mul4096 = nullptr;
+    cl_kernel _forward256_0 = nullptr, _backward256_0 = nullptr;
+    cl_kernel _square2048 = nullptr, _fwd2048p = nullptr, _mul2048 = nullptr;
     cl_kernel _normalize1 = nullptr, _normalize2 = nullptr, _mulscalar = nullptr;
     cl_kernel _set = nullptr, _copy = nullptr, _copyp = nullptr;
 
@@ -318,8 +307,7 @@ template <size_t RNS_SIZE, bool is32> class engines : public device
   public:
     engines(const platform &platform, const size_t d, const int ln, const bool isBoinc,
             const size_t num_regs, const bool verbose)
-        : device(platform, d, verbose), _n(size_t(1) << ln), _ln(ln), _isBoinc(isBoinc),
-          _num_regs(num_regs),
+        : device(platform, d, verbose), _n(size_t(1) << ln), _num_regs(num_regs),
           _lnormWGsize(std::min(std::max(5, ln / 2 - 3), ilog2_32(uint32_t(getMaxWorkGroupSize()))))
     {
     }
@@ -421,44 +409,12 @@ template <size_t RNS_SIZE, bool is32> class engines : public device
   public:
     void createKernels(const uint32_t b)
     {
-
-        CREATE_TRANSFORM_KERNEL(forward64_0);
-        CREATE_TRANSFORM_KERNEL(forward64_9);
-        CREATE_TRANSFORM_KERNEL(forward64_11);
-        CREATE_TRANSFORM_KERNEL(backward64_0);
-        CREATE_TRANSFORM_KERNEL(backward64_9);
-        CREATE_TRANSFORM_KERNEL(backward64_11);
         CREATE_TRANSFORM_KERNEL(forward256_ordinary);
         CREATE_TRANSFORM_KERNEL(forward256_0);
         CREATE_TRANSFORM_KERNEL(backward256_0);
-        CREATE_TRANSFORM_KERNEL(forward1024_0);
-        CREATE_TRANSFORM_KERNEL(backward1024_0);
-        CREATE_TRANSFORM_KERNEL(square32);
-        CREATE_TRANSFORM_KERNEL(square64);
-        CREATE_TRANSFORM_KERNEL(square128);
-        CREATE_TRANSFORM_KERNEL(square256);
-        CREATE_TRANSFORM_KERNEL(square512);
-        CREATE_TRANSFORM_KERNEL(square1024);
         CREATE_TRANSFORM_KERNEL(square2048);
-        CREATE_TRANSFORM_KERNEL(square4096);
-
-        CREATE_TRANSFORM_KERNELP(fwd32p);
-        CREATE_TRANSFORM_KERNELP(fwd64p);
-        CREATE_TRANSFORM_KERNELP(fwd128p);
-        CREATE_TRANSFORM_KERNELP(fwd256p);
-        CREATE_TRANSFORM_KERNELP(fwd512p);
-        CREATE_TRANSFORM_KERNELP(fwd1024p);
         CREATE_TRANSFORM_KERNELP(fwd2048p);
-        CREATE_TRANSFORM_KERNELP(fwd4096p);
-
-        CREATE_MUL_KERNEL(mul32);
-        CREATE_MUL_KERNEL(mul64);
-        CREATE_MUL_KERNEL(mul128);
-        CREATE_MUL_KERNEL(mul256);
-        CREATE_MUL_KERNEL(mul512);
-        CREATE_MUL_KERNEL(mul1024);
         CREATE_MUL_KERNEL(mul2048);
-        CREATE_MUL_KERNEL(mul4096);
         const uint32 b_ui = static_cast<uint32>(b);
         const int32 b_s = static_cast<int32>(31 - __builtin_clz(b) - 1);
         const uint32 b_inv = static_cast<uint32>((static_cast<uint64_t>(1) << (b_s + 32)) / b);
@@ -535,41 +491,12 @@ template <size_t RNS_SIZE, bool is32> class engines : public device
 
     void releaseKernels()
     {
-        _releaseKernel(_forward64_0);
-        _releaseKernel(_forward64_9);
-        _releaseKernel(_forward64_11);
-        _releaseKernel(_backward64_0);
-        _releaseKernel(_backward64_9);
-        _releaseKernel(_backward64_11);
         _releaseKernel(_forward256_ordinary);
         _releaseKernel(_forward256_0);
         _releaseKernel(_backward256_0);
-        _releaseKernel(_forward1024_0);
-        _releaseKernel(_backward1024_0);
-        _releaseKernel(_square32);
-        _releaseKernel(_square64);
-        _releaseKernel(_square128);
-        _releaseKernel(_square256);
-        _releaseKernel(_square512);
-        _releaseKernel(_square1024);
         _releaseKernel(_square2048);
-        _releaseKernel(_square4096);
-        _releaseKernel(_fwd32p);
-        _releaseKernel(_fwd64p);
-        _releaseKernel(_fwd128p);
-        _releaseKernel(_fwd256p);
-        _releaseKernel(_fwd512p);
-        _releaseKernel(_fwd1024p);
         _releaseKernel(_fwd2048p);
-        _releaseKernel(_fwd4096p);
-        _releaseKernel(_mul32);
-        _releaseKernel(_mul64);
-        _releaseKernel(_mul128);
-        _releaseKernel(_mul256);
-        _releaseKernel(_mul512);
-        _releaseKernel(_mul1024);
         _releaseKernel(_mul2048);
-        _releaseKernel(_mul4096);
 
         _releaseKernel(_stairMaterialize);
         _releaseKernel(_bridge);
@@ -665,232 +592,35 @@ template <size_t RNS_SIZE, bool is32> class engines : public device
         _executeKernel(kernel, RNS_SIZE * n_s, localWorkSize);
     }
 
-    DEFINE_FORWARDn(64, 0);
-    DEFINE_BACKWARDn(64, 0);
-    DEFINE_FORWARDn(64, 9);
-    DEFINE_BACKWARDn(64, 9);
-    DEFINE_FORWARDn(64, 11);
-    DEFINE_BACKWARDn(64, 11);
     DEFINE_FORWARDn(256, ordinary);
     DEFINE_FORWARDn(256, 0);
     DEFINE_BACKWARDn(256, 0);
-    DEFINE_FORWARDn(1024, 0);
-    DEFINE_BACKWARDn(1024, 0);
-    DEFINE_SQUARE(32);
-    DEFINE_SQUARE(64);
-    DEFINE_SQUARE(128);
-    DEFINE_SQUARE(256);
-    DEFINE_SQUARE(512);
-    DEFINE_SQUARE(1024);
     DEFINE_SQUARE(2048);
-    DEFINE_SQUARE(4096);
-
-    DEFINE_FWDP(32);
-    DEFINE_FWDP(64);
-    DEFINE_FWDP(128);
-    DEFINE_FWDP(256);
-    DEFINE_FWDP(512);
-    DEFINE_FWDP(1024);
     DEFINE_FWDP(2048);
-    DEFINE_FWDP(4096);
-
-    DEFINE_MUL(32);
-    DEFINE_MUL(64);
-    DEFINE_MUL(128);
-    DEFINE_MUL(256);
-    DEFINE_MUL(512);
-    DEFINE_MUL(1024);
     DEFINE_MUL(2048);
-    DEFINE_MUL(4096);
 
     void setTransformArgs(cl_kernel &kernel, const bool isMultiplier = true)
     {
         _setKernelArg(kernel, 0, sizeof(cl_mem), isMultiplier ? &_z : &_zp);
     }
 
-    DEFINE_FORWARDPn(64, 0);
-    DEFINE_FORWARDPn(64, 9);
-    DEFINE_FORWARDPn(64, 11);
     DEFINE_FORWARDPn(256, 0);
-    DEFINE_FORWARDPn(1024, 0);
 
   public:
     void square()
     {
         _squareParity = true;
-
-        const int ln = _ln;
-        if (ln == 11)
-        {
-            forward64_0();
-            square32();
-            backward64_0();
-        }
-        else if (ln == 12)
-        {
-            forward64_0();
-            square64();
-            backward64_0();
-        }
-        else if (ln == 13)
-        {
-            forward64_0();
-            square128();
-            backward64_0();
-        }
-        else if (ln == 14)
-        {
-            forward64_0();
-            square256();
-            backward64_0();
-        }
-        else if (ln == 15)
-        {
-            forward64_0();
-            square512();
-            backward64_0();
-        }
-        else if (ln == 16)
-        {
-            forward64_0();
-            square1024();
-            backward64_0();
-        }
-        else if (ln == 17)
-        {
-            forward64_0();
-            square2048();
-            backward64_0();
-        }
-        else if (ln == 18)
-        {
-            forward256_0();
-            square1024();
-            backward256_0();
-        }
-        else if (ln == 19)
-        {
-            square2048();
-        }
-        else if (ln == 20)
-        {
-            forward256_0();
-            square4096();
-            backward256_0();
-        }
-        else if (ln == 21)
-        {
-            forward64_0();
-            forward64_9();
-            square512();
-            backward64_9();
-            backward64_0();
-        }
-        else if (ln == 22)
-        {
-            forward1024_0();
-            square4096();
-            backward1024_0();
-        }
-        else
-        {
-            forward64_0();
-            forward64_11();
-            square2048();
-            backward64_11();
-            backward64_0();
-        }
+        square2048();
     }
 
     void mul()
     {
         materializeZero();
         _ordinaryProduct = true;
-
         _squareParity = false;
-        const int ln = _ln;
-        if (ln == 11)
-        {
-            forward64_0();
-            mul32();
-            backward64_0();
-        }
-        else if (ln == 12)
-        {
-            forward64_0();
-            mul64();
-            backward64_0();
-        }
-        else if (ln == 13)
-        {
-            forward64_0();
-            mul128();
-            backward64_0();
-        }
-        else if (ln == 14)
-        {
-            forward64_0();
-            mul256();
-            backward64_0();
-        }
-        else if (ln == 15)
-        {
-            forward64_0();
-            mul512();
-            backward64_0();
-        }
-        else if (ln == 16)
-        {
-            forward64_0();
-            mul1024();
-            backward64_0();
-        }
-        else if (ln == 17)
-        {
-            forward64_0();
-            mul2048();
-            backward64_0();
-        }
-        else if (ln == 18)
-        {
-            forward256_0();
-            mul1024();
-            backward256_0();
-        }
-        else if (ln == 19)
-        {
-            forward256_0();
-            mul2048();
-            backward256_0();
-        }
-        else if (ln == 20)
-        {
-            forward256_0();
-            mul4096();
-            backward256_0();
-        }
-        else if (ln == 21)
-        {
-            forward64_0();
-            forward64_9();
-            mul512();
-            backward64_9();
-            backward64_0();
-        }
-        else if (ln == 22)
-        {
-            forward1024_0();
-            mul4096();
-            backward1024_0();
-        }
-        else
-        {
-            forward64_0();
-            forward64_11();
-            mul2048();
-            backward64_11();
-            backward64_0();
-        }
+        forward256_0();
+        mul2048();
+        backward256_0();
     }
 
     void initMultiplicand(const size_t src)
@@ -903,75 +633,8 @@ template <size_t RNS_SIZE, bool is32> class engines : public device
         _setKernelArg(_copyp, 2, sizeof(uint32), &isrc);
         _executeKernel(_copyp, RNS_SIZE * _n / 4);
 
-        int lm = _ln;
-
-        if (lm == 11)
-        {
-            forward64p_0();
-            fwd32p();
-        }
-        else if (lm == 12)
-        {
-            forward64p_0();
-            fwd64p();
-        }
-        else if (lm == 13)
-        {
-            forward64p_0();
-            fwd128p();
-        }
-        else if (lm == 14)
-        {
-            forward64p_0();
-            fwd256p();
-        }
-        else if (lm == 15)
-        {
-            forward64p_0();
-            fwd512p();
-        }
-        else if (lm == 16)
-        {
-            forward64p_0();
-            fwd1024p();
-        }
-        else if (lm == 17)
-        {
-            forward64p_0();
-            fwd2048p();
-        }
-        else if (lm == 18)
-        {
-            forward256p_0();
-            fwd1024p();
-        }
-        else if (lm == 19)
-        {
-            forward256p_0();
-            fwd2048p();
-        }
-        else if (lm == 20)
-        {
-            forward256p_0();
-            fwd4096p();
-        }
-        else if (lm == 21)
-        {
-            forward64p_0();
-            forward64p_9();
-            fwd512p();
-        }
-        else if (lm == 22)
-        {
-            forward1024p_0();
-            fwd4096p();
-        }
-        else
-        {
-            forward64p_0();
-            forward64p_11();
-            fwd2048p();
-        }
+        forward256p_0();
+        fwd2048p();
         if (src == 0)
             restoreZero();
     }
@@ -1065,6 +728,10 @@ template <size_t RNS_SIZE, bool is32> class transformGPUs : public transform
           _z(new ZP[RNS_SIZE * (size_t(1) << n) * num_regs])
     {
         // std::cout << "NTT" << RNS_SIZE << (is32 ? "u" : "i") << std::endl;
+
+        static_assert(RNS_SIZE == 2 && !is32, "GFN-19 requires the signed two-prime transform");
+        if (n != 19)
+            throw std::runtime_error("This CUDA transform supports GFN-19 only");
 
         const size_t size = getSize();
 

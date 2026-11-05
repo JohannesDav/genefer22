@@ -25,6 +25,9 @@ def main():
         "--sdk", type=Path, default=Path("/usr"), help="BOINC SDK prefix"
     )
     parser.add_argument("--cuda", type=Path, default=Path("/usr/local/cuda"))
+    parser.add_argument(
+        "--kernel", type=Path, help="use PTX regenerated with kernels/build.py"
+    )
     args = parser.parse_args()
     output, sdk, cuda = args.output.resolve(), args.sdk.resolve(), args.cuda.resolve()
     if output.exists():
@@ -58,7 +61,8 @@ def main():
         + ("86" if args.gpu == "3090" else "89")
         + ".ptx"
     )
-    shutil.copy2(ROOT / kernel, output / kernel)
+    kernel_source = args.kernel.resolve() if args.kernel else ROOT / kernel
+    shutil.copy2(kernel_source, output / kernel)
     policy = dict(
         persist=4 if args.gpu == "3090" else 0,
         inner=50 if args.gpu == "3090" else 100,

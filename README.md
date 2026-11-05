@@ -4,7 +4,7 @@ All modifications in this fork are AI-generated and should not be considered saf
 
 Based on [Yves Gallot's genefer22](https://github.com/galloty/genefer22). This fork targets only PrimeGrid's **GFN-19** subproject on the **RTX 3090** and **RTX 4060 Ti 16GB**, on Linux x86-64. Other GPUs and GFN sizes have not been optimized or validated here.
 
-Measured time for one candidate, including proof generation and independent verification:
+Times include proof generation and an extra local check with upstream Genefer, applied to both versions:
 
 | GPU | Base | Upstream reference | Modified | Speedup |
 |---|---:|---:|---:|---:|
@@ -27,4 +27,4 @@ python3 build/3090/run_checked.py -b 28000000 -f /absolute/path/gproof
 
 For the 4060 Ti, use `--gpu 4060` and `build/4060` instead. Both GPU versions come from one codebase, with different kernels and settings for each card.
 
-The optimized prover accepts even base values from 1,024 to 30,000,000, except powers of two. Only setups with one GPU available to the program have been tested. See the [build and BOINC instructions](doc/gfn19.md) for dependencies and setup.
+The optimized prover accepts even base values from 1,024 to 30,000,000, except powers of two. Only setups with one GPU available to the program have been tested. See the [build and BOINC instructions](doc/gfn19.md) for dependencies, setup and rebuilding the GPU kernels from source.
