@@ -7,7 +7,11 @@ Please give feedback to the authors if improvement is realized. It is distribute
 
 #include <stdexcept>
 
+#if defined(GENEFER_CUDA)
+#include "cuda/transform.h"
+#else
 #include "transformGPU.h"
+#endif
 
 // inline uint64_t bt12(const double pp_2N)
 // {
@@ -31,6 +35,13 @@ transform * transform::create_ocl(const uint32_t b, const uint32_t n, const bool
 	// 	std::cout << "." << std::endl;
 	// }
 
+#if defined(GENEFER_CUDA)
+    // The independently checked wrapper is required for this specialization.
+    if (n != 19 || device != 0 || b < 1024 || b > 30000000 || b % 2 || (b & (b - 1)) == 0)
+        throw std::runtime_error("CUDA profile requires GFN-19, device 0 and an even non-power-of-two base in 1024..30000000");
+    return new transformGPUs<2, false>(b, n, isBoinc, device, num_regs,
+                                     boinc_platform_id, boinc_device_id, verbose);
+#else
 	transform * pTransform = nullptr;
 	if (b * static_cast<uint64_t>(b) < (P1S * static_cast<uint64_t>(P2S) / 2) / (size_t(1) << n))
 	{
@@ -49,4 +60,5 @@ transform * transform::create_ocl(const uint32_t b, const uint32_t n, const bool
 		pTransform = new transformGPUs<3, true>(b, n, isBoinc, device, num_regs, boinc_platform_id, boinc_device_id, verbose);
 	}
 	return pTransform;
+#endif
 }

@@ -272,6 +272,9 @@ public:
 	cl_device_id getDevice(const size_t d) const { return _devices[d].device_id; }
 };
 
+#if defined(GENEFER_CUDA)
+#include "cuda/device.h"
+#else
 class device : oclObject
 {
 private:
@@ -671,3 +674,5 @@ protected:
 		}
 	}
 };
+
+#endif // GENEFER_CUDA
