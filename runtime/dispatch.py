@@ -103,7 +103,7 @@ def main():
     )
     if not optimized:
         for name in list(env):
-            if name.startswith("CUDA_") or name in [
+            if name == "GENEFER_KERNEL" or name in [
                 "LOAD_SOURCE",
                 "DUMP_SOURCE",
                 "DUMP_COMPILE_SOURCE",

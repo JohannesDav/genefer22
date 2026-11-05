@@ -24,12 +24,11 @@ def main():
     parser.add_argument(
         "--sdk", type=Path, default=Path("/usr"), help="BOINC SDK prefix"
     )
-    parser.add_argument("--cuda", type=Path, default=Path("/usr/local/cuda"))
     parser.add_argument(
         "--kernel", type=Path, help="use PTX regenerated with kernels/build.py"
     )
     args = parser.parse_args()
-    output, sdk, cuda = args.output.resolve(), args.sdk.resolve(), args.cuda.resolve()
+    output, sdk = args.output.resolve(), args.sdk.resolve()
     if output.exists():
         parser.error(
             "output already exists; use a new directory to preserve checkpoint identities"
@@ -40,7 +39,6 @@ def main():
     libraries = sdk / "lib/x86_64-linux-gnu"
     for path in (
         sdk / "include/boinc/api/boinc_api.h",
-        cuda / "include/cuda.h",
         libraries / "libboinc_api.so",
         libraries / "libboinc_opencl.so",
     ):
@@ -56,21 +54,9 @@ def main():
         shutil.copy2(ROOT / "runtime" / name, output / name)
     shutil.copy2(ROOT / "runtime/dispatch.py", output / "genefer-boinc")
     (output / "genefer-boinc").chmod(0o755)
-    kernel = (
-        "kernels/gfn19-signed-divider-sm"
-        + ("86" if args.gpu == "3090" else "89")
-        + ".ptx"
-    )
+    kernel = "kernels/gfn19-" + args.gpu + ".ptx"
     kernel_source = args.kernel.resolve() if args.kernel else ROOT / kernel
     shutil.copy2(kernel_source, output / kernel)
-    policy = dict(
-        persist=4 if args.gpu == "3090" else 0,
-        inner=50 if args.gpu == "3090" else 100,
-        bridge=50 if args.gpu == "3090" else 100,
-        graph_span=8,
-        dup_special=True,
-    )
-    (output / "runtime.json").write_text(json.dumps(policy, indent=2) + "\n")
     for name in ("boinc", "boinc_api", "boinc_opencl"):
         library = (libraries / ("lib" + name + ".so.7")).resolve(strict=True)
         shutil.copy2(library, output / "lib" / library.name)
@@ -96,14 +82,7 @@ def main():
         str(ROOT / "Khronos"),
     ]
     sources = [str(ROOT / "src/main.cpp"), str(ROOT / "src/transform_ocl.cpp")]
-    cuda_flags = [
-        "-DGENEFER_CUDA",
-        "-DGENEFER_GUARD_" + args.gpu,
-        "-I",
-        str(cuda / "include"),
-        "-L",
-        str(cuda / "lib64/stubs"),
-    ]
+    optimized_flags = ["-DGENEFER_GFN19", "-DGENEFER_GUARD_" + args.gpu]
     boinc_flags = [
         "-DBOINC",
         "-I",
@@ -130,17 +109,15 @@ def main():
         + boinc_libs
         + ["-o", str(output / "bin/genefer-boinc-stock")],
         common
-        + cuda_flags
+        + optimized_flags
         + sources
-        + ["-lcuda"]
         + standard_libs
-        + ["-o", str(output / "bin/genefer-signed-divider")],
+        + ["-o", str(output / "bin/genefer-gfn19")],
         common
-        + cuda_flags
+        + optimized_flags
         + boinc_flags
         + ["-DGENEFER_BOINC_GUARD"]
         + sources
-        + ["-lcuda"]
         + standard_libs
         + boinc_libs
         + ["-o", str(output / "bin/genefer-boinc-checked")],
@@ -154,14 +131,12 @@ def main():
         kernel,
         "boinc_guard_verify.py",
         "run_checked.py",
-        "runtime.json",
     )
     manifest = dict(
         version=1,
         gpu=args.gpu,
         profile="broad",
         kernel=kernel,
-        runtime_policy=policy,
         files={name: sha(output / name) for name in required},
     )
     (output / "boinc-guard-manifest.json").write_text(

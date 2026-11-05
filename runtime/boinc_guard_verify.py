@@ -63,15 +63,12 @@ def load_inputs(bundle, prefix, base, device, operation):
         "bin/genefer-conservative",
         "boinc_guard_verify.py",
         "run_checked.py",
-        "runtime.json",
         manifest["kernel"],
     }
     require(set(manifest["files"]) == required, "manifest file set")
     require(
         manifest["kernel"]
-        == "kernels/gfn19-signed-divider-sm"
-        + ("86" if manifest["gpu"] == "3090" else "89")
-        + ".ptx",
+        == "kernels/gfn19-" + manifest["gpu"] + ".ptx",
         "kernel profile",
     )
     for name, digest in manifest["files"].items():
@@ -89,31 +86,10 @@ def load_inputs(bundle, prefix, base, device, operation):
         sha(parent) == manifest["files"]["bin/genefer-boinc-checked"],
         "unexpected parent executable identity",
     )
-    policy = json.loads((bundle / "runtime.json").read_text())
-    require(policy == manifest["runtime_policy"], "runtime policy changed")
-    accepted_policy = dict(
-        persist=4 if manifest["gpu"] == "3090" else 0,
-        inner=50 if manifest["gpu"] == "3090" else 100,
-        bridge=50 if manifest["gpu"] == "3090" else 100,
-        graph_span=8,
-        dup_special=True,
+    require(
+        os.environ.get("GENEFER_KERNEL") == str(bundle / manifest["kernel"]),
+        "unexpected GPU kernel path",
     )
-    require(policy == accepted_policy, "policy outside the selected GPU profile")
-    expected = {
-        "CUDA_PTX": str(bundle / manifest["kernel"]),
-        "CUDA_GRAPH": "1",
-        "CUDA_CACHE": "50",
-        "CUDA_INNER_CACHE": str(policy["inner"]),
-        "CUDA_BRIDGE_CACHE": str(policy["bridge"]),
-        "CUDA_GRAPH_SPAN": str(policy["graph_span"]),
-        "CUDA_DUP_SPECIAL": "1",
-    }
-    if policy["persist"]:
-        expected["CUDA_DATA_PERSIST"] = str(policy["persist"])
-    actual = {
-        key: value for key, value in os.environ.items() if key.startswith("CUDA_")
-    }
-    require(actual == expected, "unexpected CUDA runtime settings")
     expected_prefix = (
         ".gfn_checked_" + ("c_" if operation == "check" else "") + "19_" + str(base)
     )
@@ -128,7 +104,6 @@ def load_inputs(bundle, prefix, base, device, operation):
         operation=operation,
         manifest_sha256=sha(manifest_path),
         files=manifest["files"],
-        runtime_policy=policy,
     )
     return manifest, identity
 
@@ -283,7 +258,7 @@ def check_certificate(bundle, prefix, base, device, identity):
         "conservative checker key mismatch",
     )
     require(
-        "CUDA PTX backend" not in log and "Experimental GFN-19" not in log,
+        "GFN-19 optimized kernels:" not in log and "Experimental GFN-19" not in log,
         "certificate check did not use conservative arithmetic",
     )
     require(

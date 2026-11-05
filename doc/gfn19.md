@@ -8,22 +8,22 @@ There are two ways to use the build. For a standalone calculation, you choose a 
 
 The optimizations target the RTX 3090 and RTX 4060 Ti 16GB on Linux x86-64. Only configurations with one GPU available to the application have been tested. The optimized prover accepts GFN-19 candidates with even bases between 1,024 and 30,000,000, excluding powers of two. For example, the command later in this guide tests `28000000^(2^19) + 1`.
 
-You will need Python 3.9 or later, a compiler supporting C++17, and glibc 2.34 or later. The build also needs GMP for large-integer arithmetic, the OpenCL development files and NVIDIA OpenCL runtime, the NVIDIA CUDA toolkit, and the BOINC application development libraries. The BOINC libraries are required by this build script even if you only intend to run standalone calculations, because it builds the BOINC applications as well.
+You will need Python 3.9 or later, a compiler supporting C++17, and glibc 2.34 or later. The build also needs GMP for large-integer arithmetic, the OpenCL development files, NVIDIA OpenCL runtime, and BOINC application development libraries. The BOINC libraries are required by this build script even if you only intend to run standalone calculations, because it builds the BOINC applications as well.
 
-On Ubuntu, the relevant system packages include `g++`, `libgmp-dev`, `ocl-icd-opencl-dev` and `libboinc-app-dev`. The NVIDIA driver, CUDA toolkit and NVIDIA OpenCL runtime must also be installed; the OpenCL development package alone does not supply NVIDIA's GPU implementation.
+On Ubuntu, the relevant system packages include `g++`, `libgmp-dev`, `ocl-icd-opencl-dev` and `libboinc-app-dev`. The NVIDIA driver and NVIDIA OpenCL runtime must also be installed; the OpenCL development package alone does not supply NVIDIA's GPU implementation.
 
 The builds were tested on Ubuntu 24.04 with GCC 13.3 and the BOINC 7.24.1 application libraries. The NVIDIA software differed between the two machines:
 
-| GPU | CUDA toolkit | NVIDIA driver |
-|---|---|---|
-| RTX 3090 | 13.0 | 580.178.04 |
-| RTX 4060 Ti 16GB | 12.8 | 570.169 |
+| GPU | NVIDIA driver |
+|---|---|
+| RTX 3090 | 580.178.04 |
+| RTX 4060 Ti 16GB | 570.169 |
 
 These are the tested configurations. Compatibility with other software versions has not been established.
 
 ## 2. Build for your GPU
 
-Both cards use the same C++ codebase, but they need different GPU kernels and settings. You select the card when building; there is no automatic choice between the two versions.
+Both cards use the same C++ codebase, but they need different GPU kernels. You select the card when building; there is no automatic choice between the two versions.
 
 For an RTX 3090, run:
 
@@ -39,18 +39,18 @@ python3 build.py --gpu 4060 --output build/4060
 
 The `--output` argument names the directory that will hold the runnable build. It must be a new directory: the builder refuses to overwrite an existing one. If you rebuild later, choose another name, such as `build/3090-new`.
 
-By default, the script looks for the CUDA toolkit under `/usr/local/cuda` and the BOINC development files under `/usr`. If your installations are elsewhere, specify their locations explicitly. For example:
+By default, the script looks for the BOINC development files under `/usr`. If you installed them elsewhere, specify their location. For example:
 
 ```sh
 python3 build.py --gpu 4060 --output build/4060 \
-    --cuda /path/to/cuda --sdk /path/to/boinc-sdk
+    --sdk /path/to/boinc-sdk
 ```
 
-Replace those paths with your actual installation directories. The BOINC SDK directory must use the layout expected by Ubuntu's development package: headers under `include/boinc/api` and `include/boinc/lib`, and shared libraries under `lib/x86_64-linux-gnu`. It must also contain the libraries' copyright notice, either under `share/doc/libboinc-app-dev/copyright` or in a `licenses` directory with a filename ending in `copyright`.
+Replace that path with your actual installation directory. The BOINC SDK directory must use the layout expected by Ubuntu's development package: headers under `include/boinc/api` and `include/boinc/lib`, and shared libraries under `lib/x86_64-linux-gnu`. It must also contain the libraries' copyright notice, either under `share/doc/libboinc-app-dev/copyright` or in a `licenses` directory with a filename ending in `copyright`.
 
-When the build finishes, the output directory contains the optimized programs, the original OpenCL programs used for verification and fallback, the matching GPU kernels, and the scripts that run them. It also contains copies of the BOINC shared libraries and their notices. GMP, OpenCL and the NVIDIA driver remain dependencies of the machine where you run it.
+When the build finishes, the output directory contains the optimized programs, the upstream programs used for verification and fallback, the matching GPU kernels, and the scripts that run them. It also contains copies of the BOINC shared libraries and their notices. GMP, OpenCL and the NVIDIA driver remain dependencies of the machine where you run it.
 
-Keep this whole directory together. Copying just an executable is insufficient: the supplied launchers need its companion programs, kernels and configuration files. The rest of this guide calls this directory the **build directory**.
+Keep this whole directory together. Copying just an executable is insufficient: the supplied launchers need its companion programs, kernels and manifests. The rest of this guide calls this directory the **build directory**.
 
 These commands use the GPU kernels included in the repository. If you also want to compile the GPU kernels yourself, follow [Rebuilding the GPU kernels](#rebuilding-the-gpu-kernels) below. The resulting PTX file can be passed to the application builder with `--kernel`.
 
@@ -80,13 +80,13 @@ After successful verification, the example command produces these files:
 | `/absolute/path/gproof.cert` | The certificate used for verification |
 | `/absolute/path/gproof.json` | The result, timings and verification information |
 
-During the calculation, the script keeps its working files, logs and checkpoints in `/absolute/path/gproof.work`. Intermediate files can exist there before verification finishes. Use `run_checked.py` for standalone results: running the native CUDA executable directly skips this script's verification and retry procedure.
+During the calculation, the script keeps its working files, logs and checkpoints in `/absolute/path/gproof.work`. Intermediate files can exist there before verification finishes. Use `run_checked.py` for standalone results: running the native optimized executable directly skips this script's verification and retry procedure.
 
 ### Interrupting, resuming and rebuilding
 
 If you interrupt the script with Ctrl+C, keep the working directory. To resume, run the same command with the same build directory and `-f` prefix. The prover can then use its saved checkpoint.
 
-A checkpoint is tied to the candidate and the particular programs, kernels and settings that created it. The scripts record file hashes to detect changes to those components. If you rebuild the programs or change the GPU version, start with a new output prefix rather than reusing the old working directory. Similarly, editing files inside an existing build directory will cause the integrity checks to reject it.
+A checkpoint is tied to the candidate and the particular programs and kernels that created it. The scripts record file hashes to detect changes to those components. If you rebuild the programs or change the GPU version, start with a new output prefix rather than reusing the old working directory. Similarly, editing files inside an existing build directory will cause the integrity checks to reject it.
 
 After a run has completed, the script will refuse to overwrite its final output during another ordinary run. To check the existing proof again without repeating the long candidate calculation, add `--verify-existing`:
 
@@ -119,6 +119,8 @@ For a supported GFN-19 proof-generation task, the launcher starts the optimized 
 
 Certificate-checking tasks use the original OpenCL calculation. Requests outside the launcher's supported optimized range are passed to the original BOINC application as well. You can explicitly select that application by adding `--upstream` to the launch arguments. Each invocation handles one BOINC task; it does not combine work units or fetch additional ones.
 
+In particular, proof-generation tasks with bases above 30,000,000 run with the upstream application and receive no optimized speedup. The standalone `run_checked.py` script accepts only the supported base range and rejects larger bases.
+
 The modified BOINC application handles the client's suspend, resume, quit and abort requests, including while the separate verification program is running. It also checks the saved checkpoint's identity before resuming. If verification fails, or files in the build directory have changed, it stops without reporting an unchecked result as successful. Unlike the standalone script, it does not automatically repeat a failed optimized calculation with the original prover.
 
 The local verification is separate from PrimeGrid's validation of a returned work unit. Passing the local checks does not mean that PrimeGrid has accepted the task.
@@ -139,7 +141,7 @@ python3 tests/run.py --bundle build/3090 --output build/test-3090
 
 Here, `--bundle` means the build directory to test. The script first compares GPU arithmetic with GMP, an independent large-integer library. It exercises multiplication, copying intermediate calculation results, and transfers between the GPU and CPU. It then runs a full proof for base 28,000,000, interrupts it to create a checkpoint, resumes it, and checks that its completed proof matches the saved reference hash. It also tests suspension during verification and a certificate-checking task.
 
-Those BOINC tests supply synthetic task data locally. They do not attach an account, contact a project or consume PrimeGrid work units. They do perform full GPU calculations, so let them finish without other jobs using the GPU. If you built with custom `--sdk` or `--cuda` paths, pass the same options to `tests/run.py`.
+Those BOINC tests supply synthetic task data locally. They do not attach an account, contact a project or consume PrimeGrid work units. They do perform full GPU calculations, so let them finish without other jobs using the GPU. If you built with a custom `--sdk` path, pass the same option to `tests/run.py`.
 
 There is a separate test for the complete standalone script:
 
@@ -148,7 +150,7 @@ python3 tests/standalone.py --bundle build/3090 \
     --output build/standalone-test-3090
 ```
 
-This generates a full proof for base 1,026 and compares the proof and result with the original reference. It then rechecks that proof and confirms that the script refuses to run when a build file has changed. For that last check, the test briefly modifies `runtime.json` and restores it, so no other calculation should be using the same build directory while this test runs.
+This generates a full proof for base 1,026 and compares the proof and result with the original reference. It then rechecks that proof and confirms that the script refuses to run when a build file has changed. For that last check, the test briefly modifies the bundled kernel file and restores it, so no other calculation should be using the same build directory while this test runs.
 
 For the 4060 Ti, use `build/4060` in place of `build/3090` and choose separate test-output directories.
 
@@ -156,9 +158,9 @@ For the 4060 Ti, use `build/4060` in place of `build/3090` and choose separate t
 
 The GPU source is in `kernels/src/`. `common.clh` contains shared modular arithmetic, while `gfn19-3090.cl` and `gfn19-4060.cl` contain the kernels for the two cards. Both versions use the same arithmetic scale. Their differences concern root-table access and the GPU-specific implementation choices used by each card.
 
-The source is OpenCL C, with a few NVIDIA-specific inline assembly instructions. To compile it, the builder uses the OpenCL compiler supplied by the NVIDIA driver on your machine. It then exports PTX, NVIDIA's intermediate assembly format, for the CUDA driver backend used by this fork. The application still requires CUDA after this step.
+The source is OpenCL C, with a few NVIDIA-specific inline assembly instructions. To compile it, the builder uses the OpenCL compiler supplied by the NVIDIA driver on your machine. It then exports PTX, NVIDIA's intermediate assembly format, which NVIDIA's OpenCL runtime loads when the application starts. These kernels remain specific to NVIDIA GPUs.
 
-Kernel generation needs Python, the OpenCL loader (`libOpenCL.so.1`), NVIDIA's OpenCL runtime, and the matching GPU. It does not invoke `nvcc`. The driver versions in the setup table above are the versions used to reproduce the bundled kernels exactly.
+Kernel generation needs Python, the OpenCL loader (`libOpenCL.so.1`), NVIDIA's OpenCL runtime, and the matching GPU. The driver versions in the setup table above are the versions used to reproduce the bundled kernels exactly.
 
 For the RTX 3090, run:
 
@@ -172,9 +174,9 @@ For the RTX 4060 Ti 16GB, run:
 python3 kernels/build.py --gpu 4060 --output build/gfn19-4060.ptx --verify
 ```
 
-The builder compiles the selected source, exports its PTX, and applies the register limits measured for that card. It also creates two versions of the carry kernel for a flag that selects whether a square is doubled. Making that flag constant lets the application select the appropriate version when constructing its CUDA graphs.
+The builder compiles the selected source and exports its PTX. For the 3090, it adds cache eviction hints to the frequently reused data loads and stores, and adjusts the carry kernel's shared-memory allocation. For the 4060 Ti, it applies the measured register limits. It also creates two versions of the carry kernel with a constant flag selecting whether a square is doubled; the application chooses the appropriate one for each squaring.
 
-Compilation takes its inputs from `kernels/src/` and the configuration identifier in `src/cuda/profiles.h`. With `--verify`, the finished output is then compared byte for byte with the bundled PTX. The build fails if they differ. This allows you to check that your toolchain reproduces the supplied kernels before using its output.
+Compilation takes its inputs from `kernels/src/` and the configuration identifier in `src/gfn19/profiles.h`. With `--verify`, the finished output is then compared byte for byte with the bundled PTX. The build fails if they differ. This allows you to check that your toolchain reproduces the supplied kernels before using its output.
 
 Choose a new filename for `--output`; the script refuses to overwrite an existing file. Alongside the PTX, it writes a `.ptx.json` record containing the GPU, driver and compiler information, source hashes, and the output hash.
 
@@ -189,8 +191,10 @@ You can then use `build/3090-rebuilt/run_checked.py` as described in the standal
 
 A different NVIDIA driver may generate different PTX even from identical source. In that case, `--verify` will fail. You can omit that option to generate kernels for testing, but those kernels need fresh arithmetic, full-proof and performance checks before you rely on them. The tests earlier in this guide can be run against a build made with `--kernel`.
 
-The optimized CUDA module contains only the kernels used by GFN-19, including the operations needed for general multiplication, checkpoints and verification-related calculations. The original OpenCL implementation remains separate and is used by the BOINC launcher for requests outside the optimized range.
+The optimized kernel module contains only the kernels used by GFN-19, including the operations needed for general multiplication, checkpoints and verification-related calculations. The upstream implementation remains separate and is used by the BOINC launcher for requests outside the optimized range.
 
 ## Measurement notes
 
-The performance figures in the README include proof generation followed by the same additional local certificate generation and checking steps for both executables. A reference run therefore includes the original prover plus those checks; a modified run includes the optimized prover plus those checks. Each comparison ran both versions on the same machine, with warmed driver caches and variable GPU clocks. The reference executable was compiled from upstream commit `56905b2`; it was not the binary distributed by PrimeGrid.
+The README compares upstream proof generation with the complete modified workflow. The modified time includes proof generation, local certificate generation and certificate checking. These extra local checks are required by this fork and are charged only to its runtime. Each comparison ran both versions on the same machine, with warmed driver caches and variable GPU clocks. The reference executable was compiled from upstream commit `56905b2`; it was not the binary distributed by PrimeGrid.
+
+Those measurements use large bases. The most specialized carry arithmetic applies to supported bases from 4,194,304 through 30,000,000. Smaller bases share the optimized transforms but use a more general carry routine. Upstream also already uses two prime moduli for sufficiently small bases, so reducing the number of moduli provides no saving there. The same speedups should not be assumed across the full supported range. The standalone test at base 1,026 checks that smaller-base path.

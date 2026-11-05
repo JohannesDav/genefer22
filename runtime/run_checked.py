@@ -64,7 +64,7 @@ def write_json(path, value):
 def clean_environment():
     env = dict(os.environ)
     for name in list(env):
-        if name.startswith("CUDA_") or name in (
+        if name == "GENEFER_KERNEL" or name in (
             "LOAD_SOURCE",
             "DUMP_SOURCE",
             "DUMP_COMPILE_SOURCE",
@@ -139,7 +139,7 @@ def verify(proof, base, device, work, conservative):
         raise ValidationError(
             "Conservative server did not produce a result; see " + str(directory)
         )
-    if "Experimental GFN-19" in server or "CUDA PTX backend" in server:
+    if "Experimental GFN-19" in server or "GFN-19 optimized kernels:" in server:
         raise ValidationError(
             "Certificate generation did not use the conservative binary"
         )
@@ -203,7 +203,7 @@ def _execute_locked(base, output, device=0, verify_existing=False, bundle=BUNDLE
     if verify_existing and not proof.is_file():
         raise ValidationError("No proof exists at " + str(proof))
     conservative = (bundle / "bin" / "genefer-conservative").resolve()
-    fast = (bundle / "bin" / "genefer-signed-divider").resolve()
+    fast = (bundle / "bin" / "genefer-gfn19").resolve()
     manifest = json.loads((bundle / "boinc-guard-manifest.json").read_text())
     deployment = json.loads((bundle / "deployment-manifest.json").read_text())
     for name, digest in deployment["files"].items():
@@ -225,22 +225,13 @@ def _execute_locked(base, output, device=0, verify_existing=False, bundle=BUNDLE
     if metadata.exists() and json.loads(metadata.read_text()) != identity:
         raise ValidationError("Working directory belongs to another candidate/device")
     write_json(metadata, identity)
-    policy = json.loads((bundle / "runtime.json").read_text())
-    expected_policy = dict(
-        persist=4 if manifest["gpu"] == "3090" else 0,
-        inner=50 if manifest["gpu"] == "3090" else 100,
-        bridge=50 if manifest["gpu"] == "3090" else 100,
-        graph_span=8,
-        dup_special=True,
-    )
-    if manifest["gpu"] not in ("3090", "4060") or policy != expected_policy:
-        raise ValidationError("Invalid GPU runtime policy")
+    if manifest["gpu"] not in ("3090", "4060"):
+        raise ValidationError("Invalid GPU profile")
     backend = {
         "fast_binary": fast.name,
         "fast_sha256": sha256(fast) if fast.is_file() else None,
         "kernel_sha256": sha256(kernel) if kernel.is_file() else None,
         "conservative_sha256": sha256(conservative),
-        "runtime_policy": policy,
         "runner_sha256": sha256(Path(__file__)),
     }
     if not verify_existing:
@@ -282,15 +273,7 @@ def _execute_locked(base, output, device=0, verify_existing=False, bundle=BUNDLE
             binary = conservative
             if mode == "fast":
                 binary = fast
-                env.update(CUDA_PTX=str(kernel), CUDA_GRAPH="1", CUDA_CACHE="50")
-                env.update(
-                    CUDA_INNER_CACHE=str(policy["inner"]),
-                    CUDA_BRIDGE_CACHE=str(policy["bridge"]),
-                    CUDA_GRAPH_SPAN="8",
-                    CUDA_DUP_SPECIAL="1",
-                )
-                if policy["persist"]:
-                    env["CUDA_DATA_PERSIST"] = str(policy["persist"])
+                env["GENEFER_KERNEL"] = str(kernel)
             try:
                 text, seconds = command(
                     binary,

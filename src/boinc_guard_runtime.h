@@ -22,8 +22,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#if !defined(BOINC) || !defined(GENEFER_CUDA) || !defined(GPU)
-#error The guarded coordinator requires the real BOINC API and CUDA GPU build.
+#if !defined(BOINC) || !defined(GENEFER_GFN19) || !defined(GPU)
+#error The guarded coordinator requires the real BOINC API and GFN-19 GPU build.
 #endif
 #if defined(GENEFER_GUARD_3090) == defined(GENEFER_GUARD_4060)
 #error Select exactly one GFN-19 GPU profile.
@@ -144,7 +144,7 @@ class coordinator
             std::string value(*entry);
             auto equal = value.find('=');
             auto name = value.substr(0, equal);
-            if (name.rfind("CUDA_", 0) == 0)
+            if (name == "GENEFER_KERNEL")
                 clear.push_back(name);
         }
         for (const auto &name : clear)
@@ -153,19 +153,10 @@ class coordinator
             require(::setenv(name, value.c_str(), 1) == 0, "cannot set GPU runtime policy");
         };
 #if defined(GENEFER_GUARD_3090)
-        set("CUDA_PTX", (bundle / "kernels/gfn19-signed-divider-sm86.ptx").string());
-        set("CUDA_INNER_CACHE", "50");
-        set("CUDA_BRIDGE_CACHE", "50");
-        set("CUDA_DATA_PERSIST", "4");
+        set("GENEFER_KERNEL", (bundle / "kernels/gfn19-3090.ptx").string());
 #else
-        set("CUDA_PTX", (bundle / "kernels/gfn19-signed-divider-sm89.ptx").string());
-        set("CUDA_INNER_CACHE", "100");
-        set("CUDA_BRIDGE_CACHE", "100");
+        set("GENEFER_KERNEL", (bundle / "kernels/gfn19-4060.ptx").string());
 #endif
-        set("CUDA_GRAPH", "1");
-        set("CUDA_GRAPH_SPAN", "8");
-        set("CUDA_CACHE", "50");
-        set("CUDA_DUP_SPECIAL", "1");
     }
 
     static void signal_group(pid_t child, int signal)

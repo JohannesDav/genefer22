@@ -7,8 +7,8 @@ Please give feedback to the authors if improvement is realized. It is distribute
 
 #include <stdexcept>
 
-#if defined(GENEFER_CUDA)
-#include "cuda/transform.h"
+#if defined(GENEFER_GFN19)
+#include "gfn19/transform.h"
 #else
 #include "transformGPU.h"
 #endif
@@ -35,10 +35,10 @@ transform * transform::create_ocl(const uint32_t b, const uint32_t n, const bool
 	// 	std::cout << "." << std::endl;
 	// }
 
-#if defined(GENEFER_CUDA)
+#if defined(GENEFER_GFN19)
     // The independently checked wrapper is required for this specialization.
     if (n != 19 || device != 0 || b < 1024 || b > 30000000 || b % 2 || (b & (b - 1)) == 0)
-        throw std::runtime_error("CUDA profile requires GFN-19, device 0 and an even non-power-of-two base in 1024..30000000");
+        throw std::runtime_error("The optimized profile requires GFN-19, device 0 and an even non-power-of-two base in 1024..30000000");
     return new transformGPUs<2, false>(b, n, isBoinc, device, num_regs,
                                      boinc_platform_id, boinc_device_id, verbose);
 #else

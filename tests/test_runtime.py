@@ -26,7 +26,7 @@ class RuntimeTests(unittest.TestCase):
         for name in ("genefer-boinc-checked", "genefer-boinc-stock"):
             path = self.bundle / "bin" / name
             path.write_text(
-                '#!/usr/bin/python3\nimport json,os,sys\nprint(json.dumps(dict(backend=os.path.basename(__file__),pid=os.getpid(),argv=sys.argv[1:],cuda=os.getenv("CUDA_TEST"))))\n'
+                '#!/usr/bin/python3\nimport json,os,sys\nprint(json.dumps(dict(backend=os.path.basename(__file__),pid=os.getpid(),argv=sys.argv[1:],kernel_path=os.getenv("GENEFER_KERNEL"))))\n'
             )
             path.chmod(0o755)
         self.manifest()
@@ -52,7 +52,7 @@ class RuntimeTests(unittest.TestCase):
             ]
             + arguments,
             cwd=self.bundle,
-            env=dict(os.environ, CUDA_TEST="inherited"),
+            env=dict(os.environ, GENEFER_KERNEL="inherited"),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -83,7 +83,7 @@ class RuntimeTests(unittest.TestCase):
                     "genefer-boinc-checked" if optimized else "genefer-boinc-stock",
                 )
                 if not optimized:
-                    self.assertIsNone(actual["cuda"])
+                    self.assertIsNone(actual["kernel_path"])
                     self.assertNotIn("--guard-bundle", actual["argv"])
 
     def test_changed_bundle_rejected(self):
@@ -111,7 +111,7 @@ class RuntimeTests(unittest.TestCase):
         with self.assertRaises(checked.ValidationError):
             checked.proof_header(proof, 28000000)
         self.assertFalse(
-            any(name.startswith("CUDA_") for name in checked.clean_environment())
+            any(name == "GENEFER_KERNEL" for name in checked.clean_environment())
         )
 
 

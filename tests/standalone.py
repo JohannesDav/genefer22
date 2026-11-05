@@ -36,15 +36,17 @@ def main():
     assert repeated["validated"] and repeated["mode"] == "verified-existing"
     assert repeated["proof_sha256"] == report["proof_sha256"]
     # Modified bundle files must be refused before running GPU work.
-    original = (bundle / "runtime.json").read_bytes()
+    manifest = json.loads((bundle / "boinc-guard-manifest.json").read_text())
+    kernel = bundle / manifest["kernel"]
+    original = kernel.read_bytes()
     try:
-        (bundle / "runtime.json").write_bytes(original + b" ")
+        kernel.write_bytes(original + b" ")
         rejected = subprocess.run(
             command + ["--verify-existing"], capture_output=True, text=True
         )
         assert rejected.returncode != 0 and "Bundle file changed" in rejected.stderr
     finally:
-        (bundle / "runtime.json").write_bytes(original)
+        kernel.write_bytes(original)
     print(
         "PASS: standalone proof, repeat verification and changed-bundle rejection",
         flush=True,

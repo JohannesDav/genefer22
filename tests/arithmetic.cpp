@@ -1,7 +1,7 @@
 #include <chrono>
 #include <iostream>
 #include <memory>
-#include "cuda/transform.h"
+#include "gfn19/transform.h"
 #include "reference.h"
 class ArithmeticTest : public transformGPUs<2, false>
 {

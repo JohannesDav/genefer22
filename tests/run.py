@@ -14,10 +14,9 @@ def main():
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sdk", type=Path, default=Path("/usr"))
-    parser.add_argument("--cuda", type=Path, default=Path("/usr/local/cuda"))
     args = parser.parse_args()
-    bundle, output, sdk, cuda = (
-        p.resolve() for p in (args.bundle, args.output, args.sdk, args.cuda)
+    bundle, output, sdk = (
+        p.resolve() for p in (args.bundle, args.output, args.sdk)
     )
     output.mkdir(parents=True)
     manifest = json.loads((bundle / "boinc-guard-manifest.json").read_text())
@@ -27,37 +26,20 @@ def main():
         "-std=c++17",
         "-O3",
         "-DGPU",
-        "-DGENEFER_CUDA",
+        "-DGENEFER_GFN19",
         "-DGENEFER_GUARD_" + manifest["gpu"],
         "-I",
         str(ROOT / "src"),
         "-I",
         str(ROOT / "Khronos"),
-        "-I",
-        str(cuda / "include"),
         str(ROOT / "tests/arithmetic.cpp"),
-        "-L",
-        str(cuda / "lib64/stubs"),
-        "-lcuda",
         "-lOpenCL",
         "-lgmp",
         "-o",
         str(output / "arithmetic"),
     ]
     subprocess.run(command, check=True)
-    policy = manifest["runtime_policy"]
-    env = {k: v for k, v in os.environ.items() if not k.startswith("CUDA_")}
-    env.update(
-        CUDA_PTX=str(bundle / manifest["kernel"]),
-        CUDA_CACHE="50",
-        CUDA_GRAPH="1",
-        CUDA_GRAPH_SPAN="8",
-        CUDA_DUP_SPECIAL="1",
-        CUDA_INNER_CACHE=str(policy["inner"]),
-        CUDA_BRIDGE_CACHE=str(policy["bridge"]),
-    )
-    if policy["persist"]:
-        env["CUDA_DATA_PERSIST"] = str(policy["persist"])
+    env = dict(os.environ, GENEFER_KERNEL=str(bundle / manifest["kernel"]))
     cases = [
         (1026, {}),
         (13427472, {"ROUNDTRIP": "1"}),

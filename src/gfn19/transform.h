@@ -331,7 +331,6 @@ template <size_t RNS_SIZE, bool is32> class engines : public device
             _bridgeAux = _createBuffer(CL_MEM_READ_WRITE, STAIR_SHADOW_OFFSET + 32);
             _parity = _createBuffer(CL_MEM_READ_WRITE, n / 2);
             _z = _createBuffer(CL_MEM_READ_WRITE, RNS_SIZE * n * _num_regs * sizeof(ZP));
-            configureDataWindow(_z, RNS_SIZE * n * sizeof(ZP));
 
             _zp = _createBuffer(CL_MEM_READ_WRITE, RNS_SIZE * n * sizeof(ZP));
             _w = _createBuffer(CL_MEM_READ_ONLY, RNS_SIZE * n * sizeof(ZP));
@@ -731,7 +730,7 @@ template <size_t RNS_SIZE, bool is32> class transformGPUs : public transform
 
         static_assert(RNS_SIZE == 2 && !is32, "GFN-19 requires the signed two-prime transform");
         if (n != 19)
-            throw std::runtime_error("This CUDA transform supports GFN-19 only");
+            throw std::runtime_error("This transform supports GFN-19 only");
 
         const size_t size = getSize();
 
@@ -870,10 +869,8 @@ template <size_t RNS_SIZE, bool is32> class transformGPUs : public transform
 
     void squareDup(const bool dup) override
     {
-        _pEngine->runSquareGraph(dup, [&]() {
-            _pEngine->square();
-            _pEngine->baseMod(dup);
-        });
+        _pEngine->square();
+        _pEngine->baseMod(dup);
     }
 
     void squareMul(const int32_t a) override
