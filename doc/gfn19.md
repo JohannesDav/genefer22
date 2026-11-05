@@ -193,4 +193,4 @@ The optimized CUDA module contains only the kernels used by GFN-19, including th
 
 ## Measurement notes
 
-The performance figures in the README include proof generation followed by the same additional local certificate generation and checking steps for both executables. A reference run therefore includes the original prover plus those checks; a modified run includes the optimized prover plus those checks. Each comparison ran both versions on the same machine, with warmed driver caches and variable GPU clocks. The reference executable was compiled from upstream commit `56905b2`; it was not the binary distributed by PrimeGrid.
+The README compares upstream proof generation with the complete modified workflow. The modified time includes proof generation, local certificate generation and certificate checking. These extra local checks are required by this fork and are charged only to its runtime. Each comparison ran both versions on the same machine, with warmed driver caches and variable GPU clocks. The reference executable was compiled from upstream commit `56905b2`; it was not the binary distributed by PrimeGrid.

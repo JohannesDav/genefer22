@@ -1,15 +1,15 @@
-# genefer22: experimental GFN-19 GPU optimizations
+# genefer22: experimental GFN-19 GPU optimizations (CUDA version)
 
 All modifications in this fork are AI-generated and should not be considered safe or stable.
 
 Based on [Yves Gallot's genefer22](https://github.com/galloty/genefer22). This fork targets only PrimeGrid's **GFN-19** subproject on the **RTX 3090** and **RTX 4060 Ti 16GB**, on Linux x86-64. Other GPUs and GFN sizes have not been optimized or validated here.
 
-Times include proof generation and an extra local check with upstream Genefer, applied to both versions:
+Upstream times are for proof generation. Modified times also include this fork’s extra local verification:
 
 | GPU | Base | Upstream reference | Modified | Speedup |
 |---|---:|---:|---:|---:|
-| RTX 3090, 300W | 30,000,000 | 1,112 s | 481 s | 2.31× |
-| RTX 4060 Ti 16GB, 165W | 28,000,000 | 1,198 s | 538 s | 2.23× |
+| RTX 3090, 300W | 30,000,000 | 1,093 s | 481 s | 2.28× |
+| RTX 4060 Ti 16GB, 165W | 28,000,000 | 1,178 s | 538 s | 2.19× |
 
 The main optimization techniques are:
 
