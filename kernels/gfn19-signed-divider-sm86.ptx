@@ -2985,14 +2985,12 @@ $L__BB1_2:
 )
 .reqntid 128, 1, 1
 {
-	.reg .b64 %gfnCachePolicy;
 	.reg .pred 	%p<215>;
 	.reg .b32 	%r<1982>;
 	.reg .b64 	%rd<148>;
 	// demoted variable
 	.shared .align 16 .b8 square2048_$_Z[8192];
 
-	createpolicy.fractional.L2::evict_last.L2::evict_unchanged.b64 %gfnCachePolicy, 0f3f800000;
 	ld.param.u64 	%rd2, [square2048_param_0];
 	ld.param.u64 	%rd3, [square2048_param_1];
 	ld.param.u64 	%rd4, [square2048_param_2];
@@ -3043,7 +3041,7 @@ $L__BB3_2:
 	add.s64 	%rd21, %rd20, %rd18;
 	shl.b64 	%rd22, %rd21, 4;
 	add.s64 	%rd23, %rd2, %rd22;
-	ld.global.L2::cache_hint.v4.u32 	{%r59, %r60, %r61, %r62}, [%rd23+4096], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r59, %r60, %r61, %r62}, [%rd23+4096];
 	ld.global.nc.u32 	%r64, [%rd15];
 	mul.hi.u32 	%r65, %r64, %r9;
 	setp.ne.s32 	%p2, %r64, 0;
@@ -3065,7 +3063,7 @@ $L__BB3_2:
 	mul.lo.s32 	%r84, %r82, %r9;
 	sub.s32 	%r85, %r79, %r80;
 	sub.s32 	%r86, %r83, %r84;
-	ld.global.L2::cache_hint.v4.u32 	{%r87, %r88, %r89, %r90}, [%rd23], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r87, %r88, %r89, %r90}, [%rd23];
 	shl.b32 	%r92, %r9, 1;
 	setp.gt.u32 	%p3, %r92, %r87;
 	selp.b32 	%r93, 0, %r92, %p3;
@@ -3083,7 +3081,7 @@ $L__BB3_2:
 	sub.s32 	%r105, %r92, %r85;
 	sub.s32 	%r106, %r92, %r76;
 	sub.s32 	%r107, %r92, %r75;
-	ld.global.L2::cache_hint.v4.u32 	{%r108, %r109, %r110, %r111}, [%rd23+6144], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r108, %r109, %r110, %r111}, [%rd23+6144];
 	mul.hi.u32 	%r113, %r108, %r64;
 	mul.lo.s32 	%r114, %r67, %r108;
 	mul.lo.s32 	%r115, %r113, %r9;
@@ -3100,7 +3098,7 @@ $L__BB3_2:
 	mul.lo.s32 	%r129, %r127, %r9;
 	sub.s32 	%r130, %r124, %r125;
 	sub.s32 	%r131, %r128, %r129;
-	ld.global.L2::cache_hint.v4.u32 	{%r132, %r133, %r134, %r135}, [%rd23+2048], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r132, %r133, %r134, %r135}, [%rd23+2048];
 	setp.gt.u32 	%p7, %r92, %r132;
 	selp.b32 	%r137, 0, %r92, %p7;
 	setp.gt.u32 	%p8, %r92, %r133;
@@ -5166,18 +5164,18 @@ $L__BB3_2:
 	mul.hi.u32 	%r1971, %r1970, %r1792;
 	mul.lo.s32 	%r1972, %r1926, %r1970;
 	mul.lo.s32 	%r1973, %r1971, %r9;
-	st.global.L2::cache_hint.v4.u32 	[%rd23], {%r1922, %r1921, %r1920, %r1919}, %gfnCachePolicy;
-	st.global.L2::cache_hint.v4.u32 	[%rd23+2048], {%r1957, %r1956, %r1955, %r1954}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd23], {%r1922, %r1921, %r1920, %r1919};
+	st.global.v4.u32 	[%rd23+2048], {%r1957, %r1956, %r1955, %r1954};
 	sub.s32 	%r1974, %r1940, %r1941;
 	sub.s32 	%r1975, %r1936, %r1937;
 	sub.s32 	%r1976, %r1932, %r1933;
 	sub.s32 	%r1977, %r1928, %r1929;
-	st.global.L2::cache_hint.v4.u32 	[%rd23+4096], {%r1977, %r1976, %r1975, %r1974}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd23+4096], {%r1977, %r1976, %r1975, %r1974};
 	sub.s32 	%r1978, %r1972, %r1973;
 	sub.s32 	%r1979, %r1968, %r1969;
 	sub.s32 	%r1980, %r1964, %r1965;
 	sub.s32 	%r1981, %r1960, %r1961;
-	st.global.L2::cache_hint.v4.u32 	[%rd23+6144], {%r1981, %r1980, %r1979, %r1978}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd23+6144], {%r1981, %r1980, %r1979, %r1978};
 	ret;
 
 }
@@ -17706,19 +17704,17 @@ $L__BB12_65:
 )
 .reqntid 256, 1, 1
 {
-	.reg .b64 %gfnCachePolicy;
 	.reg .pred 	%p<340>;
 	.reg .b16 	%rs<25>;
 	.reg .b32 	%r<4127>;
 	.reg .b64 	%rd<440>;
 	// demoted variable
-	.shared .align 16 .b8 boundary_bridge_signed_$_Z[24576];
+	.shared .align 16 .b8 boundary_bridge_signed_$_Z[16384];
 	// demoted variable
 	.shared .align 4 .u32 boundary_bridge_signed_$_logical;
 	// demoted variable
 	.shared .align 8 .b8 boundary_bridge_signed_$_cachedRoots[4096];
 
-	createpolicy.fractional.L2::evict_last.L2::evict_unchanged.b64 %gfnCachePolicy, 0f3f800000;
 	ld.param.u64 	%rd38, [boundary_bridge_signed_param_0];
 	ld.param.u64 	%rd39, [boundary_bridge_signed_param_1];
 	ld.param.u64 	%rd40, [boundary_bridge_signed_param_2];
@@ -17744,7 +17740,7 @@ $L__BB13_2:
 	mul.wide.u32 	%rd47, %r4092, 4;
 	add.s64 	%rd48, %rd39, %rd47;
 	ld.const.v2.u32 	{%r141, %r142}, [%rd434];
-	ld.global.L2::cache_hint.u32 	%r144, [%rd48], %gfnCachePolicy;
+	ld.global.u32 	%r144, [%rd48];
 	mul.hi.u32 	%r145, %r144, %r141;
 	setp.ne.s32 	%p3, %r144, 0;
 	selp.u32 	%r146, 1, 0, %p3;
@@ -17794,12 +17790,12 @@ $L__BB13_5:
 	add.s64 	%rd9, %rd38, %rd58;
 	shr.u32 	%r13, %r2, 2;
 	cvt.u64.u32 	%rd10, %r160;
-	ld.global.L2::cache_hint.v4.u32 	{%r161, %r162, %r163, %r164}, [%rd9+8192], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r161, %r162, %r163, %r164}, [%rd9+8192];
 	add.s32 	%r166, %r164, 2112880642;
 	add.s32 	%r168, %r163, 2112880642;
 	add.s32 	%r170, %r162, 2112880642;
 	add.s32 	%r172, %r161, 2112880642;
-	ld.global.L2::cache_hint.v4.u32 	{%r173, %r174, %r175, %r176}, [%rd9], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r173, %r174, %r175, %r176}, [%rd9];
 	add.s32 	%r178, %r173, %r161;
 	setp.lt.u32 	%p7, %r178, 2112880642;
 	selp.b32 	%r179, 0, 2112880642, %p7;
@@ -17836,12 +17832,12 @@ $L__BB13_5:
 	mad.lo.s32 	%r208, %r202, -1056440321, %r203;
 	mad.lo.s32 	%r209, %r199, -1056440321, %r200;
 	mad.lo.s32 	%r210, %r193, %r195, %r197;
-	ld.global.L2::cache_hint.v4.u32 	{%r211, %r212, %r213, %r214}, [%rd9+24576], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r211, %r212, %r213, %r214}, [%rd9+24576];
 	add.s32 	%r216, %r214, 2112880642;
 	add.s32 	%r218, %r213, 2112880642;
 	add.s32 	%r220, %r212, 2112880642;
 	add.s32 	%r222, %r211, 2112880642;
-	ld.global.L2::cache_hint.v4.u32 	{%r223, %r224, %r225, %r226}, [%rd9+16384], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r223, %r224, %r225, %r226}, [%rd9+16384];
 	add.s32 	%r228, %r223, %r211;
 	setp.lt.u32 	%p11, %r228, 2112880642;
 	selp.b32 	%r229, 0, 2112880642, %p11;
@@ -18565,12 +18561,12 @@ $L__BB13_5:
 	sub.s32 	%r880, %r720, %r879;
 	add.s32 	%r30, %r880, %r877;
 	bar.sync 	0;
-	ld.global.L2::cache_hint.v4.u32 	{%r881, %r882, %r883, %r884}, [%rd9+2105344], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r881, %r882, %r883, %r884}, [%rd9+2105344];
 	add.s32 	%r886, %r884, 2107637762;
 	add.s32 	%r888, %r883, 2107637762;
 	add.s32 	%r890, %r882, 2107637762;
 	add.s32 	%r892, %r881, 2107637762;
-	ld.global.L2::cache_hint.v4.u32 	{%r893, %r894, %r895, %r896}, [%rd9+2097152], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r893, %r894, %r895, %r896}, [%rd9+2097152];
 	add.s32 	%r898, %r893, %r881;
 	setp.lt.u32 	%p71, %r898, 2107637762;
 	selp.b32 	%r899, 0, 2107637762, %p71;
@@ -18607,12 +18603,12 @@ $L__BB13_5:
 	mad.lo.s32 	%r928, %r922, -1053818881, %r923;
 	mad.lo.s32 	%r929, %r919, -1053818881, %r920;
 	mad.lo.s32 	%r930, %r913, %r915, %r917;
-	ld.global.L2::cache_hint.v4.u32 	{%r931, %r932, %r933, %r934}, [%rd9+2121728], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r931, %r932, %r933, %r934}, [%rd9+2121728];
 	add.s32 	%r936, %r934, 2107637762;
 	add.s32 	%r938, %r933, 2107637762;
 	add.s32 	%r940, %r932, 2107637762;
 	add.s32 	%r942, %r931, 2107637762;
-	ld.global.L2::cache_hint.v4.u32 	{%r943, %r944, %r945, %r946}, [%rd9+2113536], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r943, %r944, %r945, %r946}, [%rd9+2113536];
 	add.s32 	%r948, %r943, %r931;
 	setp.lt.u32 	%p75, %r948, 2107637762;
 	selp.b32 	%r949, 0, 2107637762, %p75;
@@ -19306,13 +19302,13 @@ $L__BB13_5:
 	sub.s32 	%r1587, %r1427, %r1586;
 	add.s32 	%r46, %r1587, %r1584;
 	bar.sync 	0;
-	ld.global.L2::cache_hint.u32 	%r47, [%rd41+262688], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r48, [%rd41+262692], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r49, [%rd41+262696], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r50, [%rd41+262700], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r51, [%rd41+262704], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r52, [%rd41+262708], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r53, [%rd41+262712], %gfnCachePolicy;
+	ld.global.u32 	%r47, [%rd41+262688];
+	ld.global.u32 	%r48, [%rd41+262692];
+	ld.global.u32 	%r49, [%rd41+262696];
+	ld.global.u32 	%r50, [%rd41+262700];
+	ld.global.u32 	%r51, [%rd41+262704];
+	ld.global.u32 	%r52, [%rd41+262708];
+	ld.global.u32 	%r53, [%rd41+262712];
 	and.b32  	%r54, %r1, -256;
 	setp.ne.s32 	%p135, %r54, 0;
 	mul.wide.u32 	%rd172, %r2, 8;
@@ -19422,8 +19418,8 @@ $L__BB13_5:
 	add.s32 	%r1665, %r58, %r1663;
 	cvt.u64.u32 	%rd175, %r1665;
 	add.s64 	%rd176, %rd40, %rd175;
-	ld.global.L2::cache_hint.u8 	%rs1, [%rd176], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs2, [%rd174], %gfnCachePolicy;
+	ld.global.u8 	%rs1, [%rd176];
+	ld.global.u8 	%rs2, [%rd174];
 	xor.b16  	%rs3, %rs1, %rs2;
 	cvt.u32.u16 	%r1666, %rs3;
 	and.b32  	%r1667, %r1666, 255;
@@ -19467,8 +19463,8 @@ $L__BB13_5:
 	add.s32 	%r1702, %r58, %r1700;
 	cvt.u64.u32 	%rd179, %r1702;
 	add.s64 	%rd180, %rd40, %rd179;
-	ld.global.L2::cache_hint.u8 	%rs4, [%rd180], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs5, [%rd178], %gfnCachePolicy;
+	ld.global.u8 	%rs4, [%rd180];
+	ld.global.u8 	%rs5, [%rd178];
 	xor.b16  	%rs6, %rs4, %rs5;
 	cvt.u32.u16 	%r1703, %rs6;
 	and.b32  	%r1704, %r1703, 255;
@@ -19654,8 +19650,8 @@ $L__BB13_8:
 	add.s32 	%r1839, %r4074, %r1837;
 	cvt.u64.u32 	%rd193, %r1839;
 	add.s64 	%rd194, %rd40, %rd193;
-	ld.global.L2::cache_hint.u8 	%rs7, [%rd194], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs8, [%rd192], %gfnCachePolicy;
+	ld.global.u8 	%rs7, [%rd194];
+	ld.global.u8 	%rs8, [%rd192];
 	xor.b16  	%rs9, %rs7, %rs8;
 	cvt.u32.u16 	%r1840, %rs9;
 	and.b32  	%r1841, %r1840, 255;
@@ -19699,8 +19695,8 @@ $L__BB13_8:
 	add.s32 	%r1876, %r4074, %r1874;
 	cvt.u64.u32 	%rd197, %r1876;
 	add.s64 	%rd198, %rd40, %rd197;
-	ld.global.L2::cache_hint.u8 	%rs10, [%rd198], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs11, [%rd196], %gfnCachePolicy;
+	ld.global.u8 	%rs10, [%rd198];
+	ld.global.u8 	%rs11, [%rd196];
 	xor.b16  	%rs12, %rs10, %rs11;
 	cvt.u32.u16 	%r1877, %rs12;
 	and.b32  	%r1878, %r1877, 255;
@@ -19890,8 +19886,8 @@ $L__BB13_10:
 	add.s32 	%r2013, %r4084, %r2011;
 	cvt.u64.u32 	%rd211, %r2013;
 	add.s64 	%rd212, %rd40, %rd211;
-	ld.global.L2::cache_hint.u8 	%rs13, [%rd212], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs14, [%rd210], %gfnCachePolicy;
+	ld.global.u8 	%rs13, [%rd212];
+	ld.global.u8 	%rs14, [%rd210];
 	xor.b16  	%rs15, %rs13, %rs14;
 	cvt.u32.u16 	%r2014, %rs15;
 	and.b32  	%r2015, %r2014, 255;
@@ -19935,8 +19931,8 @@ $L__BB13_10:
 	add.s32 	%r2050, %r4084, %r2048;
 	cvt.u64.u32 	%rd215, %r2050;
 	add.s64 	%rd216, %rd40, %rd215;
-	ld.global.L2::cache_hint.u8 	%rs16, [%rd216], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs17, [%rd214], %gfnCachePolicy;
+	ld.global.u8 	%rs16, [%rd216];
+	ld.global.u8 	%rs17, [%rd214];
 	xor.b16  	%rs18, %rs16, %rs17;
 	cvt.u32.u16 	%r2051, %rs18;
 	and.b32  	%r2052, %r2051, 255;
@@ -20125,8 +20121,8 @@ $L__BB13_12:
 	add.s32 	%r2187, %r4058, %r2185;
 	cvt.u64.u32 	%rd229, %r2187;
 	add.s64 	%rd230, %rd40, %rd229;
-	ld.global.L2::cache_hint.u8 	%rs19, [%rd230], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs20, [%rd228], %gfnCachePolicy;
+	ld.global.u8 	%rs19, [%rd230];
+	ld.global.u8 	%rs20, [%rd228];
 	xor.b16  	%rs21, %rs19, %rs20;
 	cvt.u32.u16 	%r2188, %rs21;
 	and.b32  	%r2189, %r2188, 255;
@@ -20170,8 +20166,8 @@ $L__BB13_12:
 	add.s32 	%r2224, %r4058, %r2222;
 	cvt.u64.u32 	%rd233, %r2224;
 	add.s64 	%rd234, %rd40, %rd233;
-	ld.global.L2::cache_hint.u8 	%rs22, [%rd234], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs23, [%rd232], %gfnCachePolicy;
+	ld.global.u8 	%rs22, [%rd234];
+	ld.global.u8 	%rs23, [%rd232];
 	xor.b16  	%rs24, %rs22, %rs23;
 	cvt.u32.u16 	%r2225, %rs24;
 	and.b32  	%r2226, %r2225, 255;
@@ -20403,7 +20399,7 @@ $L__BB13_27:
 	cvt.u64.u32 	%rd258, %r2343;
 	add.s64 	%rd259, %rd258, %rd10;
 	add.s64 	%rd260, %rd40, %rd259;
-	st.global.L2::cache_hint.u8 	[%rd260], %r2341, %gfnCachePolicy;
+	st.global.u8 	[%rd260], %r2341;
 	or.b32  	%r106, %r13, 64;
 	shl.b32 	%r2344, %r13, 7;
 	mul.wide.u32 	%rd261, %r2344, 8;
@@ -20470,7 +20466,7 @@ $L__BB13_32:
 	cvt.u64.u32 	%rd266, %r2379;
 	add.s64 	%rd267, %rd266, %rd10;
 	add.s64 	%rd268, %rd40, %rd267;
-	st.global.L2::cache_hint.u8 	[%rd268], %r2377, %gfnCachePolicy;
+	st.global.u8 	[%rd268], %r2377;
 	or.b32  	%r111, %r13, 128;
 	@%p200 bra 	$L__BB13_34;
 
@@ -20534,7 +20530,7 @@ $L__BB13_37:
 	cvt.u64.u32 	%rd273, %r2414;
 	add.s64 	%rd274, %rd273, %rd10;
 	add.s64 	%rd275, %rd40, %rd274;
-	st.global.L2::cache_hint.u8 	[%rd275], %r2412, %gfnCachePolicy;
+	st.global.u8 	[%rd275], %r2412;
 	or.b32  	%r116, %r13, 192;
 	@%p200 bra 	$L__BB13_39;
 
@@ -20598,7 +20594,7 @@ $L__BB13_42:
 	cvt.u64.u32 	%rd280, %r2449;
 	add.s64 	%rd281, %rd280, %rd10;
 	add.s64 	%rd282, %rd40, %rd281;
-	st.global.L2::cache_hint.u8 	[%rd282], %r2447, %gfnCachePolicy;
+	st.global.u8 	[%rd282], %r2447;
 
 $L__BB13_43:
 	mov.u32 	%r4037, %tid.x;
@@ -21481,22 +21477,22 @@ $L__BB13_43:
 	add.s32 	%r3232, %r3187, %r3170;
 	add.s32 	%r3233, %r3186, %r3171;
 	add.s32 	%r3234, %r3185, %r3172;
-	st.global.L2::cache_hint.v4.u32 	[%rd429], {%r3234, %r3233, %r3232, %r3231}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429], {%r3234, %r3233, %r3232, %r3231};
 	sub.s32 	%r3235, %r3192, %r3184;
 	sub.s32 	%r3236, %r3191, %r3183;
 	sub.s32 	%r3237, %r3190, %r3182;
 	sub.s32 	%r3238, %r3189, %r3181;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+8192], {%r3238, %r3237, %r3236, %r3235}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+8192], {%r3238, %r3237, %r3236, %r3235};
 	add.s32 	%r3239, %r3226, %r3207;
 	add.s32 	%r3240, %r3225, %r3208;
 	add.s32 	%r3241, %r3224, %r3209;
 	add.s32 	%r3242, %r3223, %r3210;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+16384], {%r3242, %r3241, %r3240, %r3239}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+16384], {%r3242, %r3241, %r3240, %r3239};
 	sub.s32 	%r3243, %r3230, %r3222;
 	sub.s32 	%r3244, %r3229, %r3221;
 	sub.s32 	%r3245, %r3228, %r3220;
 	sub.s32 	%r3246, %r3227, %r3219;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+24576], {%r3246, %r3245, %r3244, %r3243}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+24576], {%r3246, %r3245, %r3244, %r3243};
 	bar.sync 	0;
 	and.b32  	%r3247, %r2450, 1053818881;
 	mov.u32 	%r3248, 1053818881;
@@ -22312,22 +22308,22 @@ $L__BB13_43:
 	add.s32 	%r3999, %r3954, %r3937;
 	add.s32 	%r4000, %r3953, %r3938;
 	add.s32 	%r4001, %r3952, %r3939;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+2097152], {%r4001, %r4000, %r3999, %r3998}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+2097152], {%r4001, %r4000, %r3999, %r3998};
 	sub.s32 	%r4002, %r3959, %r3951;
 	sub.s32 	%r4003, %r3958, %r3950;
 	sub.s32 	%r4004, %r3957, %r3949;
 	sub.s32 	%r4005, %r3956, %r3948;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+2105344], {%r4005, %r4004, %r4003, %r4002}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+2105344], {%r4005, %r4004, %r4003, %r4002};
 	add.s32 	%r4006, %r3993, %r3974;
 	add.s32 	%r4007, %r3992, %r3975;
 	add.s32 	%r4008, %r3991, %r3976;
 	add.s32 	%r4009, %r3990, %r3977;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+2113536], {%r4009, %r4008, %r4007, %r4006}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+2113536], {%r4009, %r4008, %r4007, %r4006};
 	sub.s32 	%r4010, %r3997, %r3989;
 	sub.s32 	%r4011, %r3996, %r3988;
 	sub.s32 	%r4012, %r3995, %r3987;
 	sub.s32 	%r4013, %r3994, %r3986;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+2121728], {%r4013, %r4012, %r4011, %r4010}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+2121728], {%r4013, %r4012, %r4011, %r4010};
 	bar.sync 	0;
 
 $L__BB13_44:
@@ -22347,19 +22343,17 @@ $L__BB13_44:
 )
 .reqntid 256, 1, 1
 {
-	.reg .b64 %gfnCachePolicy;
 	.reg .pred 	%p<340>;
 	.reg .b16 	%rs<25>;
 	.reg .b32 	%r<4127>;
 	.reg .b64 	%rd<440>;
 	// demoted variable
-	.shared .align 16 .b8 boundary_bridge_signed_dup0_$_Z[24576];
+	.shared .align 16 .b8 boundary_bridge_signed_dup0_$_Z[16384];
 	// demoted variable
 	.shared .align 4 .u32 boundary_bridge_signed_dup0_$_logical;
 	// demoted variable
 	.shared .align 8 .b8 boundary_bridge_signed_dup0_$_cachedRoots[4096];
 
-	createpolicy.fractional.L2::evict_last.L2::evict_unchanged.b64 %gfnCachePolicy, 0f3f800000;
 	ld.param.u64 	%rd38, [boundary_bridge_signed_dup0_param_0];
 	ld.param.u64 	%rd39, [boundary_bridge_signed_dup0_param_1];
 	ld.param.u64 	%rd40, [boundary_bridge_signed_dup0_param_2];
@@ -22385,7 +22379,7 @@ $L__BB13_2:
 	mul.wide.u32 	%rd47, %r4092, 4;
 	add.s64 	%rd48, %rd39, %rd47;
 	ld.const.v2.u32 	{%r141, %r142}, [%rd434];
-	ld.global.L2::cache_hint.u32 	%r144, [%rd48], %gfnCachePolicy;
+	ld.global.u32 	%r144, [%rd48];
 	mul.hi.u32 	%r145, %r144, %r141;
 	setp.ne.s32 	%p3, %r144, 0;
 	selp.u32 	%r146, 1, 0, %p3;
@@ -22435,12 +22429,12 @@ $L__BB13_5:
 	add.s64 	%rd9, %rd38, %rd58;
 	shr.u32 	%r13, %r2, 2;
 	cvt.u64.u32 	%rd10, %r160;
-	ld.global.L2::cache_hint.v4.u32 	{%r161, %r162, %r163, %r164}, [%rd9+8192], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r161, %r162, %r163, %r164}, [%rd9+8192];
 	add.s32 	%r166, %r164, 2112880642;
 	add.s32 	%r168, %r163, 2112880642;
 	add.s32 	%r170, %r162, 2112880642;
 	add.s32 	%r172, %r161, 2112880642;
-	ld.global.L2::cache_hint.v4.u32 	{%r173, %r174, %r175, %r176}, [%rd9], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r173, %r174, %r175, %r176}, [%rd9];
 	add.s32 	%r178, %r173, %r161;
 	setp.lt.u32 	%p7, %r178, 2112880642;
 	selp.b32 	%r179, 0, 2112880642, %p7;
@@ -22477,12 +22471,12 @@ $L__BB13_5:
 	mad.lo.s32 	%r208, %r202, -1056440321, %r203;
 	mad.lo.s32 	%r209, %r199, -1056440321, %r200;
 	mad.lo.s32 	%r210, %r193, %r195, %r197;
-	ld.global.L2::cache_hint.v4.u32 	{%r211, %r212, %r213, %r214}, [%rd9+24576], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r211, %r212, %r213, %r214}, [%rd9+24576];
 	add.s32 	%r216, %r214, 2112880642;
 	add.s32 	%r218, %r213, 2112880642;
 	add.s32 	%r220, %r212, 2112880642;
 	add.s32 	%r222, %r211, 2112880642;
-	ld.global.L2::cache_hint.v4.u32 	{%r223, %r224, %r225, %r226}, [%rd9+16384], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r223, %r224, %r225, %r226}, [%rd9+16384];
 	add.s32 	%r228, %r223, %r211;
 	setp.lt.u32 	%p11, %r228, 2112880642;
 	selp.b32 	%r229, 0, 2112880642, %p11;
@@ -23206,12 +23200,12 @@ $L__BB13_5:
 	sub.s32 	%r880, %r720, %r879;
 	add.s32 	%r30, %r880, %r877;
 	bar.sync 	0;
-	ld.global.L2::cache_hint.v4.u32 	{%r881, %r882, %r883, %r884}, [%rd9+2105344], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r881, %r882, %r883, %r884}, [%rd9+2105344];
 	add.s32 	%r886, %r884, 2107637762;
 	add.s32 	%r888, %r883, 2107637762;
 	add.s32 	%r890, %r882, 2107637762;
 	add.s32 	%r892, %r881, 2107637762;
-	ld.global.L2::cache_hint.v4.u32 	{%r893, %r894, %r895, %r896}, [%rd9+2097152], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r893, %r894, %r895, %r896}, [%rd9+2097152];
 	add.s32 	%r898, %r893, %r881;
 	setp.lt.u32 	%p71, %r898, 2107637762;
 	selp.b32 	%r899, 0, 2107637762, %p71;
@@ -23248,12 +23242,12 @@ $L__BB13_5:
 	mad.lo.s32 	%r928, %r922, -1053818881, %r923;
 	mad.lo.s32 	%r929, %r919, -1053818881, %r920;
 	mad.lo.s32 	%r930, %r913, %r915, %r917;
-	ld.global.L2::cache_hint.v4.u32 	{%r931, %r932, %r933, %r934}, [%rd9+2121728], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r931, %r932, %r933, %r934}, [%rd9+2121728];
 	add.s32 	%r936, %r934, 2107637762;
 	add.s32 	%r938, %r933, 2107637762;
 	add.s32 	%r940, %r932, 2107637762;
 	add.s32 	%r942, %r931, 2107637762;
-	ld.global.L2::cache_hint.v4.u32 	{%r943, %r944, %r945, %r946}, [%rd9+2113536], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r943, %r944, %r945, %r946}, [%rd9+2113536];
 	add.s32 	%r948, %r943, %r931;
 	setp.lt.u32 	%p75, %r948, 2107637762;
 	selp.b32 	%r949, 0, 2107637762, %p75;
@@ -23947,13 +23941,13 @@ $L__BB13_5:
 	sub.s32 	%r1587, %r1427, %r1586;
 	add.s32 	%r46, %r1587, %r1584;
 	bar.sync 	0;
-	ld.global.L2::cache_hint.u32 	%r47, [%rd41+262688], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r48, [%rd41+262692], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r49, [%rd41+262696], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r50, [%rd41+262700], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r51, [%rd41+262704], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r52, [%rd41+262708], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r53, [%rd41+262712], %gfnCachePolicy;
+	ld.global.u32 	%r47, [%rd41+262688];
+	ld.global.u32 	%r48, [%rd41+262692];
+	ld.global.u32 	%r49, [%rd41+262696];
+	ld.global.u32 	%r50, [%rd41+262700];
+	ld.global.u32 	%r51, [%rd41+262704];
+	ld.global.u32 	%r52, [%rd41+262708];
+	ld.global.u32 	%r53, [%rd41+262712];
 	and.b32  	%r54, %r1, -256;
 	setp.ne.s32 	%p135, %r54, 0;
 	mul.wide.u32 	%rd172, %r2, 8;
@@ -24063,8 +24057,8 @@ $L__BB13_5:
 	add.s32 	%r1665, %r58, %r1663;
 	cvt.u64.u32 	%rd175, %r1665;
 	add.s64 	%rd176, %rd40, %rd175;
-	ld.global.L2::cache_hint.u8 	%rs1, [%rd176], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs2, [%rd174], %gfnCachePolicy;
+	ld.global.u8 	%rs1, [%rd176];
+	ld.global.u8 	%rs2, [%rd174];
 	xor.b16  	%rs3, %rs1, %rs2;
 	cvt.u32.u16 	%r1666, %rs3;
 	and.b32  	%r1667, %r1666, 255;
@@ -24108,8 +24102,8 @@ $L__BB13_5:
 	add.s32 	%r1702, %r58, %r1700;
 	cvt.u64.u32 	%rd179, %r1702;
 	add.s64 	%rd180, %rd40, %rd179;
-	ld.global.L2::cache_hint.u8 	%rs4, [%rd180], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs5, [%rd178], %gfnCachePolicy;
+	ld.global.u8 	%rs4, [%rd180];
+	ld.global.u8 	%rs5, [%rd178];
 	xor.b16  	%rs6, %rs4, %rs5;
 	cvt.u32.u16 	%r1703, %rs6;
 	and.b32  	%r1704, %r1703, 255;
@@ -24295,8 +24289,8 @@ $L__BB13_8:
 	add.s32 	%r1839, %r4074, %r1837;
 	cvt.u64.u32 	%rd193, %r1839;
 	add.s64 	%rd194, %rd40, %rd193;
-	ld.global.L2::cache_hint.u8 	%rs7, [%rd194], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs8, [%rd192], %gfnCachePolicy;
+	ld.global.u8 	%rs7, [%rd194];
+	ld.global.u8 	%rs8, [%rd192];
 	xor.b16  	%rs9, %rs7, %rs8;
 	cvt.u32.u16 	%r1840, %rs9;
 	and.b32  	%r1841, %r1840, 255;
@@ -24340,8 +24334,8 @@ $L__BB13_8:
 	add.s32 	%r1876, %r4074, %r1874;
 	cvt.u64.u32 	%rd197, %r1876;
 	add.s64 	%rd198, %rd40, %rd197;
-	ld.global.L2::cache_hint.u8 	%rs10, [%rd198], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs11, [%rd196], %gfnCachePolicy;
+	ld.global.u8 	%rs10, [%rd198];
+	ld.global.u8 	%rs11, [%rd196];
 	xor.b16  	%rs12, %rs10, %rs11;
 	cvt.u32.u16 	%r1877, %rs12;
 	and.b32  	%r1878, %r1877, 255;
@@ -24531,8 +24525,8 @@ $L__BB13_10:
 	add.s32 	%r2013, %r4084, %r2011;
 	cvt.u64.u32 	%rd211, %r2013;
 	add.s64 	%rd212, %rd40, %rd211;
-	ld.global.L2::cache_hint.u8 	%rs13, [%rd212], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs14, [%rd210], %gfnCachePolicy;
+	ld.global.u8 	%rs13, [%rd212];
+	ld.global.u8 	%rs14, [%rd210];
 	xor.b16  	%rs15, %rs13, %rs14;
 	cvt.u32.u16 	%r2014, %rs15;
 	and.b32  	%r2015, %r2014, 255;
@@ -24576,8 +24570,8 @@ $L__BB13_10:
 	add.s32 	%r2050, %r4084, %r2048;
 	cvt.u64.u32 	%rd215, %r2050;
 	add.s64 	%rd216, %rd40, %rd215;
-	ld.global.L2::cache_hint.u8 	%rs16, [%rd216], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs17, [%rd214], %gfnCachePolicy;
+	ld.global.u8 	%rs16, [%rd216];
+	ld.global.u8 	%rs17, [%rd214];
 	xor.b16  	%rs18, %rs16, %rs17;
 	cvt.u32.u16 	%r2051, %rs18;
 	and.b32  	%r2052, %r2051, 255;
@@ -24766,8 +24760,8 @@ $L__BB13_12:
 	add.s32 	%r2187, %r4058, %r2185;
 	cvt.u64.u32 	%rd229, %r2187;
 	add.s64 	%rd230, %rd40, %rd229;
-	ld.global.L2::cache_hint.u8 	%rs19, [%rd230], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs20, [%rd228], %gfnCachePolicy;
+	ld.global.u8 	%rs19, [%rd230];
+	ld.global.u8 	%rs20, [%rd228];
 	xor.b16  	%rs21, %rs19, %rs20;
 	cvt.u32.u16 	%r2188, %rs21;
 	and.b32  	%r2189, %r2188, 255;
@@ -24811,8 +24805,8 @@ $L__BB13_12:
 	add.s32 	%r2224, %r4058, %r2222;
 	cvt.u64.u32 	%rd233, %r2224;
 	add.s64 	%rd234, %rd40, %rd233;
-	ld.global.L2::cache_hint.u8 	%rs22, [%rd234], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs23, [%rd232], %gfnCachePolicy;
+	ld.global.u8 	%rs22, [%rd234];
+	ld.global.u8 	%rs23, [%rd232];
 	xor.b16  	%rs24, %rs22, %rs23;
 	cvt.u32.u16 	%r2225, %rs24;
 	and.b32  	%r2226, %r2225, 255;
@@ -25044,7 +25038,7 @@ $L__BB13_27:
 	cvt.u64.u32 	%rd258, %r2343;
 	add.s64 	%rd259, %rd258, %rd10;
 	add.s64 	%rd260, %rd40, %rd259;
-	st.global.L2::cache_hint.u8 	[%rd260], %r2341, %gfnCachePolicy;
+	st.global.u8 	[%rd260], %r2341;
 	or.b32  	%r106, %r13, 64;
 	shl.b32 	%r2344, %r13, 7;
 	mul.wide.u32 	%rd261, %r2344, 8;
@@ -25111,7 +25105,7 @@ $L__BB13_32:
 	cvt.u64.u32 	%rd266, %r2379;
 	add.s64 	%rd267, %rd266, %rd10;
 	add.s64 	%rd268, %rd40, %rd267;
-	st.global.L2::cache_hint.u8 	[%rd268], %r2377, %gfnCachePolicy;
+	st.global.u8 	[%rd268], %r2377;
 	or.b32  	%r111, %r13, 128;
 	@%p200 bra 	$L__BB13_34;
 
@@ -25175,7 +25169,7 @@ $L__BB13_37:
 	cvt.u64.u32 	%rd273, %r2414;
 	add.s64 	%rd274, %rd273, %rd10;
 	add.s64 	%rd275, %rd40, %rd274;
-	st.global.L2::cache_hint.u8 	[%rd275], %r2412, %gfnCachePolicy;
+	st.global.u8 	[%rd275], %r2412;
 	or.b32  	%r116, %r13, 192;
 	@%p200 bra 	$L__BB13_39;
 
@@ -25239,7 +25233,7 @@ $L__BB13_42:
 	cvt.u64.u32 	%rd280, %r2449;
 	add.s64 	%rd281, %rd280, %rd10;
 	add.s64 	%rd282, %rd40, %rd281;
-	st.global.L2::cache_hint.u8 	[%rd282], %r2447, %gfnCachePolicy;
+	st.global.u8 	[%rd282], %r2447;
 
 $L__BB13_43:
 	mov.u32 	%r4037, %tid.x;
@@ -26122,22 +26116,22 @@ $L__BB13_43:
 	add.s32 	%r3232, %r3187, %r3170;
 	add.s32 	%r3233, %r3186, %r3171;
 	add.s32 	%r3234, %r3185, %r3172;
-	st.global.L2::cache_hint.v4.u32 	[%rd429], {%r3234, %r3233, %r3232, %r3231}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429], {%r3234, %r3233, %r3232, %r3231};
 	sub.s32 	%r3235, %r3192, %r3184;
 	sub.s32 	%r3236, %r3191, %r3183;
 	sub.s32 	%r3237, %r3190, %r3182;
 	sub.s32 	%r3238, %r3189, %r3181;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+8192], {%r3238, %r3237, %r3236, %r3235}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+8192], {%r3238, %r3237, %r3236, %r3235};
 	add.s32 	%r3239, %r3226, %r3207;
 	add.s32 	%r3240, %r3225, %r3208;
 	add.s32 	%r3241, %r3224, %r3209;
 	add.s32 	%r3242, %r3223, %r3210;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+16384], {%r3242, %r3241, %r3240, %r3239}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+16384], {%r3242, %r3241, %r3240, %r3239};
 	sub.s32 	%r3243, %r3230, %r3222;
 	sub.s32 	%r3244, %r3229, %r3221;
 	sub.s32 	%r3245, %r3228, %r3220;
 	sub.s32 	%r3246, %r3227, %r3219;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+24576], {%r3246, %r3245, %r3244, %r3243}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+24576], {%r3246, %r3245, %r3244, %r3243};
 	bar.sync 	0;
 	and.b32  	%r3247, %r2450, 1053818881;
 	mov.u32 	%r3248, 1053818881;
@@ -26953,22 +26947,22 @@ $L__BB13_43:
 	add.s32 	%r3999, %r3954, %r3937;
 	add.s32 	%r4000, %r3953, %r3938;
 	add.s32 	%r4001, %r3952, %r3939;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+2097152], {%r4001, %r4000, %r3999, %r3998}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+2097152], {%r4001, %r4000, %r3999, %r3998};
 	sub.s32 	%r4002, %r3959, %r3951;
 	sub.s32 	%r4003, %r3958, %r3950;
 	sub.s32 	%r4004, %r3957, %r3949;
 	sub.s32 	%r4005, %r3956, %r3948;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+2105344], {%r4005, %r4004, %r4003, %r4002}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+2105344], {%r4005, %r4004, %r4003, %r4002};
 	add.s32 	%r4006, %r3993, %r3974;
 	add.s32 	%r4007, %r3992, %r3975;
 	add.s32 	%r4008, %r3991, %r3976;
 	add.s32 	%r4009, %r3990, %r3977;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+2113536], {%r4009, %r4008, %r4007, %r4006}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+2113536], {%r4009, %r4008, %r4007, %r4006};
 	sub.s32 	%r4010, %r3997, %r3989;
 	sub.s32 	%r4011, %r3996, %r3988;
 	sub.s32 	%r4012, %r3995, %r3987;
 	sub.s32 	%r4013, %r3994, %r3986;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+2121728], {%r4013, %r4012, %r4011, %r4010}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+2121728], {%r4013, %r4012, %r4011, %r4010};
 	bar.sync 	0;
 
 $L__BB13_44:
@@ -26988,19 +26982,17 @@ $L__BB13_44:
 )
 .reqntid 256, 1, 1
 {
-	.reg .b64 %gfnCachePolicy;
 	.reg .pred 	%p<340>;
 	.reg .b16 	%rs<25>;
 	.reg .b32 	%r<4127>;
 	.reg .b64 	%rd<440>;
 	// demoted variable
-	.shared .align 16 .b8 boundary_bridge_signed_dup1_$_Z[24576];
+	.shared .align 16 .b8 boundary_bridge_signed_dup1_$_Z[16384];
 	// demoted variable
 	.shared .align 4 .u32 boundary_bridge_signed_dup1_$_logical;
 	// demoted variable
 	.shared .align 8 .b8 boundary_bridge_signed_dup1_$_cachedRoots[4096];
 
-	createpolicy.fractional.L2::evict_last.L2::evict_unchanged.b64 %gfnCachePolicy, 0f3f800000;
 	ld.param.u64 	%rd38, [boundary_bridge_signed_dup1_param_0];
 	ld.param.u64 	%rd39, [boundary_bridge_signed_dup1_param_1];
 	ld.param.u64 	%rd40, [boundary_bridge_signed_dup1_param_2];
@@ -27026,7 +27018,7 @@ $L__BB13_2:
 	mul.wide.u32 	%rd47, %r4092, 4;
 	add.s64 	%rd48, %rd39, %rd47;
 	ld.const.v2.u32 	{%r141, %r142}, [%rd434];
-	ld.global.L2::cache_hint.u32 	%r144, [%rd48], %gfnCachePolicy;
+	ld.global.u32 	%r144, [%rd48];
 	mul.hi.u32 	%r145, %r144, %r141;
 	setp.ne.s32 	%p3, %r144, 0;
 	selp.u32 	%r146, 1, 0, %p3;
@@ -27076,12 +27068,12 @@ $L__BB13_5:
 	add.s64 	%rd9, %rd38, %rd58;
 	shr.u32 	%r13, %r2, 2;
 	cvt.u64.u32 	%rd10, %r160;
-	ld.global.L2::cache_hint.v4.u32 	{%r161, %r162, %r163, %r164}, [%rd9+8192], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r161, %r162, %r163, %r164}, [%rd9+8192];
 	add.s32 	%r166, %r164, 2112880642;
 	add.s32 	%r168, %r163, 2112880642;
 	add.s32 	%r170, %r162, 2112880642;
 	add.s32 	%r172, %r161, 2112880642;
-	ld.global.L2::cache_hint.v4.u32 	{%r173, %r174, %r175, %r176}, [%rd9], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r173, %r174, %r175, %r176}, [%rd9];
 	add.s32 	%r178, %r173, %r161;
 	setp.lt.u32 	%p7, %r178, 2112880642;
 	selp.b32 	%r179, 0, 2112880642, %p7;
@@ -27118,12 +27110,12 @@ $L__BB13_5:
 	mad.lo.s32 	%r208, %r202, -1056440321, %r203;
 	mad.lo.s32 	%r209, %r199, -1056440321, %r200;
 	mad.lo.s32 	%r210, %r193, %r195, %r197;
-	ld.global.L2::cache_hint.v4.u32 	{%r211, %r212, %r213, %r214}, [%rd9+24576], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r211, %r212, %r213, %r214}, [%rd9+24576];
 	add.s32 	%r216, %r214, 2112880642;
 	add.s32 	%r218, %r213, 2112880642;
 	add.s32 	%r220, %r212, 2112880642;
 	add.s32 	%r222, %r211, 2112880642;
-	ld.global.L2::cache_hint.v4.u32 	{%r223, %r224, %r225, %r226}, [%rd9+16384], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r223, %r224, %r225, %r226}, [%rd9+16384];
 	add.s32 	%r228, %r223, %r211;
 	setp.lt.u32 	%p11, %r228, 2112880642;
 	selp.b32 	%r229, 0, 2112880642, %p11;
@@ -27847,12 +27839,12 @@ $L__BB13_5:
 	sub.s32 	%r880, %r720, %r879;
 	add.s32 	%r30, %r880, %r877;
 	bar.sync 	0;
-	ld.global.L2::cache_hint.v4.u32 	{%r881, %r882, %r883, %r884}, [%rd9+2105344], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r881, %r882, %r883, %r884}, [%rd9+2105344];
 	add.s32 	%r886, %r884, 2107637762;
 	add.s32 	%r888, %r883, 2107637762;
 	add.s32 	%r890, %r882, 2107637762;
 	add.s32 	%r892, %r881, 2107637762;
-	ld.global.L2::cache_hint.v4.u32 	{%r893, %r894, %r895, %r896}, [%rd9+2097152], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r893, %r894, %r895, %r896}, [%rd9+2097152];
 	add.s32 	%r898, %r893, %r881;
 	setp.lt.u32 	%p71, %r898, 2107637762;
 	selp.b32 	%r899, 0, 2107637762, %p71;
@@ -27889,12 +27881,12 @@ $L__BB13_5:
 	mad.lo.s32 	%r928, %r922, -1053818881, %r923;
 	mad.lo.s32 	%r929, %r919, -1053818881, %r920;
 	mad.lo.s32 	%r930, %r913, %r915, %r917;
-	ld.global.L2::cache_hint.v4.u32 	{%r931, %r932, %r933, %r934}, [%rd9+2121728], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r931, %r932, %r933, %r934}, [%rd9+2121728];
 	add.s32 	%r936, %r934, 2107637762;
 	add.s32 	%r938, %r933, 2107637762;
 	add.s32 	%r940, %r932, 2107637762;
 	add.s32 	%r942, %r931, 2107637762;
-	ld.global.L2::cache_hint.v4.u32 	{%r943, %r944, %r945, %r946}, [%rd9+2113536], %gfnCachePolicy;
+	ld.global.v4.u32 	{%r943, %r944, %r945, %r946}, [%rd9+2113536];
 	add.s32 	%r948, %r943, %r931;
 	setp.lt.u32 	%p75, %r948, 2107637762;
 	selp.b32 	%r949, 0, 2107637762, %p75;
@@ -28588,13 +28580,13 @@ $L__BB13_5:
 	sub.s32 	%r1587, %r1427, %r1586;
 	add.s32 	%r46, %r1587, %r1584;
 	bar.sync 	0;
-	ld.global.L2::cache_hint.u32 	%r47, [%rd41+262688], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r48, [%rd41+262692], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r49, [%rd41+262696], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r50, [%rd41+262700], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r51, [%rd41+262704], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r52, [%rd41+262708], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u32 	%r53, [%rd41+262712], %gfnCachePolicy;
+	ld.global.u32 	%r47, [%rd41+262688];
+	ld.global.u32 	%r48, [%rd41+262692];
+	ld.global.u32 	%r49, [%rd41+262696];
+	ld.global.u32 	%r50, [%rd41+262700];
+	ld.global.u32 	%r51, [%rd41+262704];
+	ld.global.u32 	%r52, [%rd41+262708];
+	ld.global.u32 	%r53, [%rd41+262712];
 	and.b32  	%r54, %r1, -256;
 	setp.ne.s32 	%p135, %r54, 0;
 	mul.wide.u32 	%rd172, %r2, 8;
@@ -28704,8 +28696,8 @@ $L__BB13_5:
 	add.s32 	%r1665, %r58, %r1663;
 	cvt.u64.u32 	%rd175, %r1665;
 	add.s64 	%rd176, %rd40, %rd175;
-	ld.global.L2::cache_hint.u8 	%rs1, [%rd176], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs2, [%rd174], %gfnCachePolicy;
+	ld.global.u8 	%rs1, [%rd176];
+	ld.global.u8 	%rs2, [%rd174];
 	xor.b16  	%rs3, %rs1, %rs2;
 	cvt.u32.u16 	%r1666, %rs3;
 	and.b32  	%r1667, %r1666, 255;
@@ -28749,8 +28741,8 @@ $L__BB13_5:
 	add.s32 	%r1702, %r58, %r1700;
 	cvt.u64.u32 	%rd179, %r1702;
 	add.s64 	%rd180, %rd40, %rd179;
-	ld.global.L2::cache_hint.u8 	%rs4, [%rd180], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs5, [%rd178], %gfnCachePolicy;
+	ld.global.u8 	%rs4, [%rd180];
+	ld.global.u8 	%rs5, [%rd178];
 	xor.b16  	%rs6, %rs4, %rs5;
 	cvt.u32.u16 	%r1703, %rs6;
 	and.b32  	%r1704, %r1703, 255;
@@ -28936,8 +28928,8 @@ $L__BB13_8:
 	add.s32 	%r1839, %r4074, %r1837;
 	cvt.u64.u32 	%rd193, %r1839;
 	add.s64 	%rd194, %rd40, %rd193;
-	ld.global.L2::cache_hint.u8 	%rs7, [%rd194], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs8, [%rd192], %gfnCachePolicy;
+	ld.global.u8 	%rs7, [%rd194];
+	ld.global.u8 	%rs8, [%rd192];
 	xor.b16  	%rs9, %rs7, %rs8;
 	cvt.u32.u16 	%r1840, %rs9;
 	and.b32  	%r1841, %r1840, 255;
@@ -28981,8 +28973,8 @@ $L__BB13_8:
 	add.s32 	%r1876, %r4074, %r1874;
 	cvt.u64.u32 	%rd197, %r1876;
 	add.s64 	%rd198, %rd40, %rd197;
-	ld.global.L2::cache_hint.u8 	%rs10, [%rd198], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs11, [%rd196], %gfnCachePolicy;
+	ld.global.u8 	%rs10, [%rd198];
+	ld.global.u8 	%rs11, [%rd196];
 	xor.b16  	%rs12, %rs10, %rs11;
 	cvt.u32.u16 	%r1877, %rs12;
 	and.b32  	%r1878, %r1877, 255;
@@ -29172,8 +29164,8 @@ $L__BB13_10:
 	add.s32 	%r2013, %r4084, %r2011;
 	cvt.u64.u32 	%rd211, %r2013;
 	add.s64 	%rd212, %rd40, %rd211;
-	ld.global.L2::cache_hint.u8 	%rs13, [%rd212], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs14, [%rd210], %gfnCachePolicy;
+	ld.global.u8 	%rs13, [%rd212];
+	ld.global.u8 	%rs14, [%rd210];
 	xor.b16  	%rs15, %rs13, %rs14;
 	cvt.u32.u16 	%r2014, %rs15;
 	and.b32  	%r2015, %r2014, 255;
@@ -29217,8 +29209,8 @@ $L__BB13_10:
 	add.s32 	%r2050, %r4084, %r2048;
 	cvt.u64.u32 	%rd215, %r2050;
 	add.s64 	%rd216, %rd40, %rd215;
-	ld.global.L2::cache_hint.u8 	%rs16, [%rd216], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs17, [%rd214], %gfnCachePolicy;
+	ld.global.u8 	%rs16, [%rd216];
+	ld.global.u8 	%rs17, [%rd214];
 	xor.b16  	%rs18, %rs16, %rs17;
 	cvt.u32.u16 	%r2051, %rs18;
 	and.b32  	%r2052, %r2051, 255;
@@ -29407,8 +29399,8 @@ $L__BB13_12:
 	add.s32 	%r2187, %r4058, %r2185;
 	cvt.u64.u32 	%rd229, %r2187;
 	add.s64 	%rd230, %rd40, %rd229;
-	ld.global.L2::cache_hint.u8 	%rs19, [%rd230], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs20, [%rd228], %gfnCachePolicy;
+	ld.global.u8 	%rs19, [%rd230];
+	ld.global.u8 	%rs20, [%rd228];
 	xor.b16  	%rs21, %rs19, %rs20;
 	cvt.u32.u16 	%r2188, %rs21;
 	and.b32  	%r2189, %r2188, 255;
@@ -29452,8 +29444,8 @@ $L__BB13_12:
 	add.s32 	%r2224, %r4058, %r2222;
 	cvt.u64.u32 	%rd233, %r2224;
 	add.s64 	%rd234, %rd40, %rd233;
-	ld.global.L2::cache_hint.u8 	%rs22, [%rd234], %gfnCachePolicy;
-	ld.global.L2::cache_hint.u8 	%rs23, [%rd232], %gfnCachePolicy;
+	ld.global.u8 	%rs22, [%rd234];
+	ld.global.u8 	%rs23, [%rd232];
 	xor.b16  	%rs24, %rs22, %rs23;
 	cvt.u32.u16 	%r2225, %rs24;
 	and.b32  	%r2226, %r2225, 255;
@@ -29685,7 +29677,7 @@ $L__BB13_27:
 	cvt.u64.u32 	%rd258, %r2343;
 	add.s64 	%rd259, %rd258, %rd10;
 	add.s64 	%rd260, %rd40, %rd259;
-	st.global.L2::cache_hint.u8 	[%rd260], %r2341, %gfnCachePolicy;
+	st.global.u8 	[%rd260], %r2341;
 	or.b32  	%r106, %r13, 64;
 	shl.b32 	%r2344, %r13, 7;
 	mul.wide.u32 	%rd261, %r2344, 8;
@@ -29752,7 +29744,7 @@ $L__BB13_32:
 	cvt.u64.u32 	%rd266, %r2379;
 	add.s64 	%rd267, %rd266, %rd10;
 	add.s64 	%rd268, %rd40, %rd267;
-	st.global.L2::cache_hint.u8 	[%rd268], %r2377, %gfnCachePolicy;
+	st.global.u8 	[%rd268], %r2377;
 	or.b32  	%r111, %r13, 128;
 	@%p200 bra 	$L__BB13_34;
 
@@ -29816,7 +29808,7 @@ $L__BB13_37:
 	cvt.u64.u32 	%rd273, %r2414;
 	add.s64 	%rd274, %rd273, %rd10;
 	add.s64 	%rd275, %rd40, %rd274;
-	st.global.L2::cache_hint.u8 	[%rd275], %r2412, %gfnCachePolicy;
+	st.global.u8 	[%rd275], %r2412;
 	or.b32  	%r116, %r13, 192;
 	@%p200 bra 	$L__BB13_39;
 
@@ -29880,7 +29872,7 @@ $L__BB13_42:
 	cvt.u64.u32 	%rd280, %r2449;
 	add.s64 	%rd281, %rd280, %rd10;
 	add.s64 	%rd282, %rd40, %rd281;
-	st.global.L2::cache_hint.u8 	[%rd282], %r2447, %gfnCachePolicy;
+	st.global.u8 	[%rd282], %r2447;
 
 $L__BB13_43:
 	mov.u32 	%r4037, %tid.x;
@@ -30763,22 +30755,22 @@ $L__BB13_43:
 	add.s32 	%r3232, %r3187, %r3170;
 	add.s32 	%r3233, %r3186, %r3171;
 	add.s32 	%r3234, %r3185, %r3172;
-	st.global.L2::cache_hint.v4.u32 	[%rd429], {%r3234, %r3233, %r3232, %r3231}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429], {%r3234, %r3233, %r3232, %r3231};
 	sub.s32 	%r3235, %r3192, %r3184;
 	sub.s32 	%r3236, %r3191, %r3183;
 	sub.s32 	%r3237, %r3190, %r3182;
 	sub.s32 	%r3238, %r3189, %r3181;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+8192], {%r3238, %r3237, %r3236, %r3235}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+8192], {%r3238, %r3237, %r3236, %r3235};
 	add.s32 	%r3239, %r3226, %r3207;
 	add.s32 	%r3240, %r3225, %r3208;
 	add.s32 	%r3241, %r3224, %r3209;
 	add.s32 	%r3242, %r3223, %r3210;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+16384], {%r3242, %r3241, %r3240, %r3239}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+16384], {%r3242, %r3241, %r3240, %r3239};
 	sub.s32 	%r3243, %r3230, %r3222;
 	sub.s32 	%r3244, %r3229, %r3221;
 	sub.s32 	%r3245, %r3228, %r3220;
 	sub.s32 	%r3246, %r3227, %r3219;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+24576], {%r3246, %r3245, %r3244, %r3243}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+24576], {%r3246, %r3245, %r3244, %r3243};
 	bar.sync 	0;
 	and.b32  	%r3247, %r2450, 1053818881;
 	mov.u32 	%r3248, 1053818881;
@@ -31594,22 +31586,22 @@ $L__BB13_43:
 	add.s32 	%r3999, %r3954, %r3937;
 	add.s32 	%r4000, %r3953, %r3938;
 	add.s32 	%r4001, %r3952, %r3939;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+2097152], {%r4001, %r4000, %r3999, %r3998}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+2097152], {%r4001, %r4000, %r3999, %r3998};
 	sub.s32 	%r4002, %r3959, %r3951;
 	sub.s32 	%r4003, %r3958, %r3950;
 	sub.s32 	%r4004, %r3957, %r3949;
 	sub.s32 	%r4005, %r3956, %r3948;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+2105344], {%r4005, %r4004, %r4003, %r4002}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+2105344], {%r4005, %r4004, %r4003, %r4002};
 	add.s32 	%r4006, %r3993, %r3974;
 	add.s32 	%r4007, %r3992, %r3975;
 	add.s32 	%r4008, %r3991, %r3976;
 	add.s32 	%r4009, %r3990, %r3977;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+2113536], {%r4009, %r4008, %r4007, %r4006}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+2113536], {%r4009, %r4008, %r4007, %r4006};
 	sub.s32 	%r4010, %r3997, %r3989;
 	sub.s32 	%r4011, %r3996, %r3988;
 	sub.s32 	%r4012, %r3995, %r3987;
 	sub.s32 	%r4013, %r3994, %r3986;
-	st.global.L2::cache_hint.v4.u32 	[%rd429+2121728], {%r4013, %r4012, %r4011, %r4010}, %gfnCachePolicy;
+	st.global.v4.u32 	[%rd429+2121728], {%r4013, %r4012, %r4011, %r4010};
 	bar.sync 	0;
 
 $L__BB13_44:

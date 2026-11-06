@@ -62,10 +62,11 @@ def load_inputs(bundle, prefix, base, device, operation):
     )
     native="bin/genefer-boinc-two-prime" if arithmetic=="two" else "bin/genefer-boinc-checked"
     required={native,"bin/genefer-conservative","bin/genefer-tail-check","boinc_guard_verify.py","run_checked.py",manifest["kernel"]}
-    require(manifest["backend"]=="opencl","expected an OpenCL build")
+    if arithmetic=="two" and manifest["backend"]=="cuda": required.add("runtime.json")
     require(set(manifest["files"])==required,"manifest file set")
     if arithmetic=="three": expected_kernel="kernels/gfn19-three.cl"
-    else: expected_kernel="kernels/gfn19-"+manifest["gpu"]+".ptx"
+    elif manifest["backend"]=="opencl": expected_kernel="kernels/gfn19-"+manifest["gpu"]+".ptx"
+    else: expected_kernel="kernels/gfn19-signed-divider-sm"+("86" if manifest["gpu"]=="3090" else "89")+".ptx"
     require(manifest["kernel"]==expected_kernel,"kernel profile")
     for name, digest in manifest["files"].items():
         path = bundle / name
@@ -82,7 +83,7 @@ def load_inputs(bundle, prefix, base, device, operation):
         sha(parent) == manifest["files"][native],
         "unexpected parent executable identity",
     )
-    key="GENEFER_KERNEL"
+    key="CUDA_PTX" if arithmetic=="two" and manifest["backend"]=="cuda" else "GENEFER_KERNEL"
     require(os.environ.get(key)==str(bundle/manifest["kernel"]),"unexpected GPU kernel path")
     expected_prefix = (
         ".gfn_checked_" + ("c_" if operation == "check" else "") + "19_" + str(base)

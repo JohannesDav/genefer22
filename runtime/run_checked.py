@@ -203,9 +203,14 @@ def arithmetic_manifest(bundle, two_prime=False):
 def configure_runtime(env, bundle, manifest):
     env["GENEFER_ARITHMETIC"]=manifest["arithmetic"]
     kernel=str(bundle/manifest["kernel"])
-    if manifest["backend"]!="opencl":
-        raise ValidationError("Expected an OpenCL build")
-    env["GENEFER_KERNEL"]=kernel
+    if manifest["arithmetic"]=="three" or manifest["backend"]=="opencl":
+        env["GENEFER_KERNEL"]=kernel
+    else:
+        policy=json.loads((bundle/"runtime.json").read_text())
+        env.update(CUDA_PTX=kernel,CUDA_GRAPH="1",CUDA_CACHE="50",
+                   CUDA_INNER_CACHE=str(policy["inner"]),CUDA_BRIDGE_CACHE=str(policy["bridge"]),
+                   CUDA_GRAPH_SPAN=str(policy["graph_span"]),CUDA_DUP_SPECIAL="1")
+        if policy["persist"]: env["CUDA_DATA_PERSIST"]=str(policy["persist"])
     return env
 
 

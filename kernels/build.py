@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile the GFN-19 OpenCL C kernels and export their NVIDIA program binaries."""
+"""Compile the GFN-19 OpenCL C kernels and export the PTX for Genefer's CUDA driver backend."""
 import argparse
 import ast
 import ctypes as ct
@@ -48,10 +48,10 @@ def sha(data):
 
 
 def configuration(gpu):
-    # Share the identifier that the kernel loader checks; no bundled PTX is read.
-    text = (ROOT / "src/gfn19/profiles.h").read_text()
+    # Share the identifier that the CUDA loader checks; no bundled PTX is read.
+    text = (ROOT / "src/cuda/profiles.h").read_text()
     values = re.findall(r'configuration\s*=\s*((?:"[^"]*"\s*)+);', text)
-    require(len(values) == 2, "expected two GPU configuration identifiers")
+    require(len(values) == 2, "expected two CUDA configuration identifiers")
     value = values[0 if gpu == "3090" else 1]
     return "".join(ast.literal_eval(part) for part in re.findall(r'"[^"]*"', value))
 
@@ -76,7 +76,7 @@ def validate_configuration(source, identifier):
         require(name in literals, "missing fixed kernel parameter: " + name)
         require(
             int(literals[name].rstrip("uUlL")) == int(expected[name].rstrip("uUlL")),
-            "kernel parameter differs from runtime configuration: " + name,
+            "kernel parameter differs from CUDA runtime configuration: " + name,
         )
 
 
@@ -95,44 +95,8 @@ def entry_regions(text):
     return entries
 
 
-def tune_3090(text):
-    """Keep repeatedly used data in L2 and tune bridge local-memory allocation."""
-    for name, (_, opening, end) in reversed(list(entry_regions(text).items())):
-        if name != "square2048" and not name.startswith("boundary_bridge_signed"):
-            continue
-        body = text[opening + 1 : end - 1]
-        body = "\n\t.reg .b64 %gfnCachePolicy;" + body
-        require("\n\tld.param" in body, "missing kernel parameter prologue")
-        body = body.replace(
-            "\n\tld.param",
-            "\n\tcreatepolicy.fractional.L2::evict_last.L2::evict_unchanged.b64 "
-            "%gfnCachePolicy, 0f3f800000;\n\tld.param",
-            1,
-        )
-        # Leave non-coherent root-table loads alone. The normal data loads and
-        # stores retain their arithmetic and addresses, with an eviction hint.
-        pattern = r"\b(ld\.global|st\.global)((?:\.v[24])?\.[busf]\d+)(\s+[^;]+);"
-        body, count = re.subn(
-            pattern,
-            lambda match: match[1] + ".L2::cache_hint" + match[2] + match[3]
-            + ", %gfnCachePolicy;",
-            body,
-        )
-        require(count > 0, "missing kernel data memory operations")
-        if name.startswith("boundary_bridge_signed"):
-            shared = r"(\.shared \.align 16 \.b8 \S+_\$_Z\[)(\d+)(\];)"
-            body, count = re.subn(
-                shared,
-                lambda match: match[1] + str(int(match[2]) + 8192) + match[3],
-                body,
-            )
-            require(count == 1, "unexpected bridge local-memory declaration")
-        text = text[: opening + 1] + body + text[end - 1 :]
-    return text
-
-
 def assemble(raw, gpu):
-    """Set measured GPU tuning and specialize the bridge's uniform doubling flag."""
+    """Set register budgets and specialize the bridge's uniform doubling flag."""
     entries = entry_regions(raw)
     require(set(entries) == KERNELS, "unexpected compiler kernel set")
     if gpu == "4060":
@@ -163,7 +127,7 @@ def assemble(raw, gpu):
     require(
         len(entry_regions(result)) == 17, "assembled module must contain 17 kernels"
     )
-    return tune_3090(result) if gpu == "3090" else result
+    return result
 
 
 class OpenCL:
@@ -412,14 +376,14 @@ def main():
         reference = (
             ROOT
             / "kernels"
-            / ("gfn19-" + args.gpu + ".ptx")
+            / ("gfn19-signed-divider-" + target.replace("_", "") + ".ptx")
         )
         matched = result == reference.read_bytes()
         require(
             matched,
             "generated PTX differs from the bundled reference; verify the documented driver version",
         )
-    source_files.extend([Path(__file__).resolve(), ROOT / "src/gfn19/profiles.h"])
+    source_files.extend([Path(__file__).resolve(), ROOT / "src/cuda/profiles.h"])
     record = dict(
         gpu=args.gpu,
         device=name,

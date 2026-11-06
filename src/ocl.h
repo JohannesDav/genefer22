@@ -274,8 +274,8 @@ public:
 
 #if defined(GENEFER_THREE_PRIME)
 #include "gfn19_three/device.h"
-#elif defined(GENEFER_GFN19)
-#include "gfn19/device.h"
+#elif defined(GENEFER_CUDA)
+#include "cuda/device.h"
 #else
 class device : oclObject
 {
@@ -677,4 +677,4 @@ protected:
 	}
 };
 
-#endif // GENEFER_GFN19
+#endif // GENEFER_CUDA

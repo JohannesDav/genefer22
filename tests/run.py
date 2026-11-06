@@ -14,11 +14,12 @@ def main():
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sdk", type=Path, default=Path("/usr"))
+    parser.add_argument("--cuda", type=Path, default=Path("/usr/local/cuda"))
     parser.add_argument("--two-prime", action="store_true")
     parser.add_argument("--arithmetic-only", action="store_true")
     args = parser.parse_args()
-    bundle, output, sdk = (
-        p.resolve() for p in (args.bundle, args.output, args.sdk)
+    bundle, output, sdk, cuda = (
+        p.resolve() for p in (args.bundle, args.output, args.sdk, args.cuda)
     )
     output.mkdir(parents=True)
     manifest = json.loads((bundle / ("boinc-two-prime-manifest.json" if args.two_prime else "boinc-guard-manifest.json")).read_text())
@@ -28,13 +29,18 @@ def main():
         "-std=c++17",
         "-O3",
         "-DGPU",
-        "-DGENEFER_GFN19",
+        "-DGENEFER_CUDA",
         "-DGENEFER_GUARD_" + manifest["gpu"],
         "-I",
         str(ROOT / "src"),
         "-I",
         str(ROOT / "Khronos"),
+        "-I",
+        str(cuda / "include"),
         str(ROOT / "tests/arithmetic.cpp"),
+        "-L",
+        str(cuda / "lib64/stubs"),
+        "-lcuda",
         "-lOpenCL",
         "-lgmp",
         "-o",

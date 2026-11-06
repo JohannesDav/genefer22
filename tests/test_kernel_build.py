@@ -15,15 +15,8 @@ def module():
     entries = []
     for name in sorted(builder.KERNELS):
         body = "ret;"
-        if name == "square2048" or name.startswith("boundary_bridge_signed"):
-            body = (
-                ".shared .align 16 .b8 " + name + "_$_Z[16384];\n"
-                "\tld.param.u64 %rd0, [" + name + "_param_0];\n"
-                "ld.global.u32 %r1, [%rd0];\n"
-                "ld.global.nc.u32 %r2, [%rd0];\nret;"
-            )
         if name == "boundary_bridge_signed":
-            body = "ld.param.u32 %r7, [boundary_bridge_signed_param_7];\n" + body
+            body = "ld.param.u32 %r7, [boundary_bridge_signed_param_7];\nret;"
         entries.append(".entry " + name + "()\n{\n" + body + "\n}")
     return "\n\n".join(entries) + "\n"
 
@@ -31,11 +24,11 @@ def module():
 class KernelBuildTests(unittest.TestCase):
     def test_specialization_preserves_original_entries(self):
         original = module()
-        compiled = builder.assemble(original, "4060")
+        compiled = builder.assemble(original, "3090")
         before, after = builder.entry_regions(original), builder.entry_regions(compiled)
-        for name, (_, opening, end) in before.items():
-            _, other_opening, other_end = after[name]
-            self.assertEqual(original[opening:end], compiled[other_opening:other_end])
+        for name, (start, _, end) in before.items():
+            a, _, b = after[name]
+            self.assertEqual(original[start:end], compiled[a:b])
         for bit in (0, 1):
             name = "boundary_bridge_signed_dup" + str(bit)
             a, _, b = after[name]
@@ -64,22 +57,7 @@ class KernelBuildTests(unittest.TestCase):
         for replacement in ("", load + "\n" + load):
             with self.subTest(replacement=replacement):
                 with self.assertRaisesRegex(RuntimeError, "one bridge"):
-                    builder.assemble(module().replace(load, replacement), "4060")
-
-    def test_3090_hints_preserve_root_loads_and_other_kernels(self):
-        original = module()
-        compiled = builder.assemble(original, "3090")
-        before, after = builder.entry_regions(original), builder.entry_regions(compiled)
-        for name, (start, _, end) in before.items():
-            a, _, b = after[name]
-            body = compiled[a:b]
-            if name == "square2048" or name == "boundary_bridge_signed":
-                self.assertIn("ld.global.L2::cache_hint.u32 %r1, [%rd0], %gfnCachePolicy;", body)
-                self.assertIn("ld.global.nc.u32 %r2, [%rd0];", body)
-                expected_bytes = 24576 if name == "boundary_bridge_signed" else 16384
-                self.assertIn("_$_Z[" + str(expected_bytes) + "];", body)
-            else:
-                self.assertEqual(original[start:end], body)
+                    builder.assemble(module().replace(load, replacement), "3090")
 
     def test_source_dimensions_match_runtime(self):
         for gpu in ("3090", "4060"):

@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 ROOT = Path(__file__).resolve().parent
+CUDA_BACKEND = True
 
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -18,6 +19,8 @@ def main():
     parser.add_argument('--output', type=Path, required=True, help='new build directory')
     parser.add_argument('--sdk', type=Path, default=Path('/usr'), help='BOINC SDK prefix')
     parser.add_argument('--kernel', type=Path, help='override the experimental two-prime PTX')
+    if CUDA_BACKEND:
+        parser.add_argument('--cuda', type=Path, default=Path('/usr/local/cuda'))
     args = parser.parse_args()
     output, sdk = (args.output.resolve(), args.sdk.resolve())
     if output.exists():
@@ -26,6 +29,8 @@ def main():
         parser.error('output must not contain the source directory')
     libraries = sdk / 'lib/x86_64-linux-gnu'
     dependencies = [sdk / 'include/boinc/api/boinc_api.h', libraries / 'libboinc_api.so', libraries / 'libboinc_opencl.so']
+    if CUDA_BACKEND:
+        dependencies.append(args.cuda / 'include/cuda.h')
     for path in dependencies:
         if not path.is_file():
             parser.error('missing build dependency: ' + str(path))
@@ -38,9 +43,11 @@ def main():
     (output / 'genefer-boinc').chmod(493)
     three_kernel = 'kernels/gfn19-three.cl'
     shutil.copy2(ROOT / 'kernels/src/gfn19-three.cl', output / three_kernel)
-    two_kernel = 'kernels/gfn19-' + args.gpu + '.ptx'
+    two_kernel = 'kernels/gfn19-signed-divider-sm' + ('86' if args.gpu == '3090' else '89') + '.ptx' if CUDA_BACKEND else 'kernels/gfn19-' + args.gpu + '.ptx'
     shutil.copy2(args.kernel.resolve() if args.kernel else ROOT / two_kernel, output / two_kernel)
     policy = dict(persist=4 if args.gpu == '3090' else 0, inner=50 if args.gpu == '3090' else 100, bridge=50 if args.gpu == '3090' else 100, graph_span=8, dup_special=True)
+    if CUDA_BACKEND:
+        (output / 'runtime.json').write_text(json.dumps(policy, indent=2) + '\n')
     for name in ['boinc', 'boinc_api', 'boinc_opencl']:
         library = (libraries / ('lib' + name + '.so.7')).resolve(strict=True)
         shutil.copy2(library, output / 'lib' / library.name)
@@ -59,6 +66,9 @@ def main():
     boinc_libs = ['-lboinc_api', '-lboinc_opencl', '-lboinc', '-ldl', '-lrt']
     optimized = ['-DGENEFER_GFN19', '-DGENEFER_GUARD_' + args.gpu]
     gpu_libs = []
+    if CUDA_BACKEND:
+        optimized += ['-DGENEFER_CUDA', '-I', str(args.cuda / 'include'), '-L', str(args.cuda / 'lib64/stubs')]
+        gpu_libs = ['-lcuda']
     commands = [(common + sources + libs, 'genefer-conservative'), (common + boinc + sources + libs + boinc_libs, 'genefer-boinc-stock'), (common + [str(ROOT / 'src/tail_check.cpp')] + libs, 'genefer-tail-check')]
     for arithmetic in ['three', 'two']:
         flags = optimized + (['-DGENEFER_THREE_PRIME'] if arithmetic == 'three' else [])
@@ -72,7 +82,9 @@ def main():
         native = 'bin/genefer-boinc-checked' if arithmetic == 'three' else 'bin/genefer-boinc-two-prime'
         prover = 'bin/genefer-gfn19' if arithmetic == 'three' else 'bin/genefer-gfn19-two-prime'
         required = [native, 'bin/genefer-conservative', 'bin/genefer-tail-check', kernel, 'boinc_guard_verify.py', 'run_checked.py']
-        manifest = dict(version=2, gpu=args.gpu, backend='opencl', arithmetic=arithmetic, profile=arithmetic + '-prime', kernel=kernel, prover=prover, files={name: sha(output / name) for name in required})
+        if CUDA_BACKEND and arithmetic == 'two':
+            required.append('runtime.json')
+        manifest = dict(version=2, gpu=args.gpu, backend='cuda' if CUDA_BACKEND else 'opencl', arithmetic=arithmetic, profile=arithmetic + '-prime', kernel=kernel, prover=prover, files={name: sha(output / name) for name in required})
         filename = 'boinc-guard-manifest.json' if arithmetic == 'three' else 'boinc-two-prime-manifest.json'
         (output / filename).write_text(json.dumps(manifest, indent=2) + '\n')
     files = {str(p.relative_to(output)): sha(p) for p in output.rglob('*') if p.is_file()}

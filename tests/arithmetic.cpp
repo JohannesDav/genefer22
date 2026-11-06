@@ -5,7 +5,7 @@
 #include "gfn19_three/transform.h"
 constexpr size_t fields=3;
 #else
-#include "gfn19/transform.h"
+#include "cuda/transform.h"
 constexpr size_t fields=2;
 #endif
 #include "reference.h"
