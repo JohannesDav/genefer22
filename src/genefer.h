@@ -1,3 +1,4 @@
+#include <filesystem>
 /*
 Copyright 2022, Yves Gallot
 
@@ -605,12 +606,22 @@ private:
 
 		// d(t)^{2^B} * 2^res ?= d(t + 1)
 		pTransform->getInt(gi);
+#if defined(GENEFER_GFN19) || defined(GENEFER_CUDA)
+        gi.unbalance();
+        const std::vector<int32_t> first(gi.data(), gi.data()+gi.getSize());
+        pTransform->copy(0, 2);
+        pTransform->getInt(gi);
+        gi.unbalance();
+        const bool success=std::equal(first.begin(), first.end(), gi.data());
+#else
 		const uint64_t h1 = gi.gethash64();
 		pTransform->copy(0, 2);
 		pTransform->getInt(gi);
 		const uint64_t h2 = gi.gethash64();
 
 		const bool success = (h1 == h2);
+
+#endif
 
 		validTime = chrono.getElapsedTime();
 		return success ? EReturn::Success : EReturn::Failed;
@@ -762,6 +773,10 @@ private:
 			_transform->getInt(gi);
 			isPrp = gi.isOne(res64, old64);
 		}
+#if defined(GENEFER_GFN19) || defined(GENEFER_CUDA)
+        // Keep checkpoint1 before proof generation removes intermediate files.
+        std::filesystem::copy_file(ckptFilename(1), _mainFilename+".tail", std::filesystem::copy_options::overwrite_existing);
+#endif
 		const EReturn rGL = GL(exponent, B_GL, validTime);
 		if (rGL != EReturn::Success) return rGL;
 		return PL(depth, fast_checkpoints, proofTime, pkey);

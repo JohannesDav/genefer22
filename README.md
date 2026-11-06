@@ -1,22 +1,19 @@
-# genefer22: experimental GFN-19 GPU optimizations (CUDA version)
+# genefer22: experimental GFN-19 GPU optimizations (CUDA)
 
 All modifications in this fork are AI-generated and should not be considered safe or stable.
 
-Based on [Yves Gallot's genefer22](https://github.com/galloty/genefer22). This fork targets only PrimeGrid's **GFN-19** subproject on the **RTX 3090** and **RTX 4060 Ti 16GB**, on Linux x86-64. Other GPUs and GFN sizes have not been optimized or validated here.
+Based on [Yves Gallot’s genefer22](https://github.com/galloty/genefer22). This fork targets only PrimeGrid’s **GFN-19** subproject on the **RTX 3090** and **RTX 4060 Ti 16GB**, on Linux x86-64.
 
-Upstream times are for proof generation. Modified times also include this fork’s extra local verification:
+Three-prime arithmetic is the default, with coefficient and carry bounds through base **528,220,156**. The faster **`--two-prime`** option is experimental and limited to base **30,000,000**: it lacks a worst-case arithmetic guarantee, and the risk of an undetected error has not been quantified. Both modes require additional local checks.
 
-| GPU | Base | Upstream reference | Modified | Speedup |
+Upstream times cover proof generation; modified times also include the extra local checks. Each run tests one candidate.
+
+| GPU | Base | Upstream | Three primes (default) | Two primes (experimental) |
 |---|---:|---:|---:|---:|
-| RTX 3090, 300W | 30,000,000 | 1,093 s | 481 s | 2.28× |
-| RTX 4060 Ti 16GB, 165W | 28,000,000 | 1,178 s | 538 s | 2.19× |
+| RTX 3090 | 28,000,000 | 1,091 s | 846 s (1.29×) | 490 s (2.23×) |
+| RTX 4060 Ti 16GB | 28,000,000 | 1,186 s | 874 s (1.36×) | 548 s (2.16×) |
 
-The main optimization techniques are:
-
-- Use two prime moduli where the reference normally needs three, with carry arithmetic specialized for GFN-19.
-- Combine transform, squaring and carry steps to reduce intermediate memory traffic and synchronization.
-- Tune root-table storage, register use and GPU cache settings separately for each card.
-- Reuse CUDA graphs to submit several successive squarings of one candidate together, reducing CPU launch overhead.
+The optimized transforms combine stages to reduce memory traffic and synchronization. Smaller prime moduli allow fewer modular reductions, and root tables and carry arithmetic are tuned for these cards.
 
 Build for the RTX 3090 and test a candidate:
 
@@ -25,6 +22,6 @@ python3 build.py --gpu 3090 --output build/3090
 python3 build/3090/run_checked.py -b 28000000 -f /absolute/path/gproof
 ```
 
-For the 4060 Ti, use `--gpu 4060` and `build/4060` instead. Both GPU versions come from one codebase, with different kernels and settings for each card.
+Use `--gpu 4060` for the 4060 Ti. Add `--two-prime` to the second command to select the experimental mode. Both GPU profiles and arithmetic modes use the same host source.
 
-The optimized prover accepts even base values from 1,024 to 30,000,000, except powers of two. Only setups with one GPU available to the program have been tested. See the [build and BOINC instructions](doc/gfn19.md) for dependencies, setup and rebuilding the GPU kernels from source.
+Supported bases are even and exclude powers of two. Only one-GPU setups have been tested. See the [build and BOINC instructions](doc/gfn19.md) for dependencies, kernel source and mode selection.

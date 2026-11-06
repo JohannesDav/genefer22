@@ -23,7 +23,7 @@ class RuntimeTests(unittest.TestCase):
         self.bundle = Path(self.directory.name)
         (self.bundle / "bin").mkdir()
         shutil.copy2(ROOT / "runtime/dispatch.py", self.bundle / "genefer-boinc")
-        for name in ("genefer-boinc-checked", "genefer-boinc-stock"):
+        for name in ("genefer-boinc-checked", "genefer-boinc-stock", "genefer-boinc-two-prime"):
             path = self.bundle / "bin" / name
             path.write_text(
                 '#!/usr/bin/python3\nimport json,os,sys\nprint(json.dumps(dict(backend=os.path.basename(__file__),pid=os.getpid(),argv=sys.argv[1:],cuda=os.getenv("CUDA_TEST"))))\n'
@@ -61,7 +61,9 @@ class RuntimeTests(unittest.TestCase):
     def test_routes_and_exec(self):
         for arguments, optimized in [
             (["-boinc", "-n19", "-b28000000", "-p"], True),
-            (["-boinc", "-n19", "-b30000002", "-p"], False),
+            (["-boinc", "-n19", "-b30000002", "-p"], True),
+            (["-boinc", "-n19", "-b528220156", "-p"], True),
+            (["-boinc", "-n19", "-b528220158", "-p"], False),
             (["-boinc", "-n19", "-b30000002", "-c"], True),
             (["-boinc", "-n19", "-b1024", "-p"], False),
             (["-boinc", "-n19", "-b1027", "-p"], False),
@@ -86,6 +88,19 @@ class RuntimeTests(unittest.TestCase):
                     self.assertIsNone(actual["cuda"])
                     self.assertNotIn("--guard-bundle", actual["argv"])
 
+    def test_explicit_two_prime_routes(self):
+        for base, expected in [(28000000, "two"), (30000000, "two"),
+                               (30000002, "three"), (528220156, "three")]:
+            with self.subTest(base=base):
+                result=self.launch(["-boinc", "-n19", "-b"+str(base), "-p", "--two-prime"])
+                self.assertEqual(result.returncode,0,result.stderr)
+                actual=json.loads(result.stdout)
+                self.assertNotIn("--two-prime",actual["argv"])
+                expected_binary="genefer-boinc-two-prime" if expected=="two" else "genefer-boinc-checked"
+                self.assertEqual(actual["backend"],expected_binary)
+                diagnostic=json.loads((self.bundle/".gfn19-dispatch.json").read_text())
+                self.assertEqual(diagnostic["arithmetic"],expected)
+
     def test_changed_bundle_rejected(self):
         (self.bundle / "bin/genefer-boinc-checked").write_text("changed")
         result = self.launch(["-boinc", "-n19", "-b28000000", "-p"])
@@ -99,6 +114,18 @@ class RuntimeTests(unittest.TestCase):
         result = self.launch(["-boinc", "-n19", "-b28000000", "-p"])
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("unsafe manifest path", result.stderr)
+
+    def test_checkpoint_mode_mismatch_rejected(self):
+        spec=importlib.util.spec_from_file_location("guard_verify", ROOT/"runtime/boinc_guard_verify.py")
+        guard=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(guard)
+        prefix=self.bundle/"candidate"
+        identity={"base":28000000,"arithmetic":"three"}
+        guard.check_owner(prefix,identity,True)
+        guard.check_owner(prefix,identity,False)
+        with self.assertRaisesRegex(guard.GuardError,"checkpoint owner/backend changed"):
+            guard.check_owner(prefix,dict(identity,arithmetic="two"),False)
+        self.assertEqual(json.loads((self.bundle/"candidate.backend.json").read_text()),identity)
 
     def test_truncated_proof_rejected(self):
         spec = importlib.util.spec_from_file_location(

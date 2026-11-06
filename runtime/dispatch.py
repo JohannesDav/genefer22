@@ -38,6 +38,7 @@ def main():
     bundle = None
     forward = []
     force = False
+    two_prime = False
     index = 0
     while index < len(words):
         word = words[index]
@@ -45,6 +46,10 @@ def main():
             require(bundle is None and index + 1 < len(words), "invalid --guard-bundle")
             bundle = Path(words[index + 1]).resolve()
             index += 2
+            continue
+        if word == "--two-prime":
+            two_prime = True
+            index += 1
             continue
         if word == "--upstream":
             force = True
@@ -88,14 +93,15 @@ def main():
         and device == 0
         and ordinary
         and (
-            (mode == "p" and 1024 <= base <= 30000000)
+            (mode == "p" and 1024 <= base <= 528220156)
             or (mode == "c" and 1024 <= base <= 2000000000)
         )
     )
+    arithmetic="two" if two_prime and base is not None and base<=30000000 else "three"
     backend = (
         bundle
         / "bin"
-        / ("genefer-boinc-checked" if optimized else "genefer-boinc-stock")
+        / ("genefer-boinc-two-prime" if optimized and arithmetic=="two" else "genefer-boinc-checked" if optimized else "genefer-boinc-stock")
     )
     env = dict(os.environ)
     env["LD_LIBRARY_PATH"] = str(bundle / "lib") + (
@@ -103,7 +109,7 @@ def main():
     )
     if not optimized:
         for name in list(env):
-            if name.startswith("CUDA_") or name in [
+            if name.startswith(("GENEFER_", "CUDA_")) or name in [
                 "LOAD_SOURCE",
                 "DUMP_SOURCE",
                 "DUMP_COMPILE_SOURCE",
@@ -115,6 +121,7 @@ def main():
     diagnostic = dict(
         version=1,
         route="guarded" if optimized else "upstream",
+        arithmetic=arithmetic if optimized else "upstream",
         base=base,
         n=n,
         device=device,

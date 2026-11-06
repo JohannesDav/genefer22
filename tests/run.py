@@ -15,12 +15,14 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sdk", type=Path, default=Path("/usr"))
     parser.add_argument("--cuda", type=Path, default=Path("/usr/local/cuda"))
+    parser.add_argument("--two-prime", action="store_true")
+    parser.add_argument("--arithmetic-only", action="store_true")
     args = parser.parse_args()
     bundle, output, sdk, cuda = (
         p.resolve() for p in (args.bundle, args.output, args.sdk, args.cuda)
     )
     output.mkdir(parents=True)
-    manifest = json.loads((bundle / "boinc-guard-manifest.json").read_text())
+    manifest = json.loads((bundle / ("boinc-two-prime-manifest.json" if args.two_prime else "boinc-guard-manifest.json")).read_text())
     compiler = os.environ.get("CXX", "g++")
     command = [
         compiler,
@@ -44,20 +46,15 @@ def main():
         "-o",
         str(output / "arithmetic"),
     ]
+    if not args.two_prime:
+        command.insert(1, "-DGENEFER_THREE_PRIME")
     subprocess.run(command, check=True)
-    policy = manifest["runtime_policy"]
-    env = {k: v for k, v in os.environ.items() if not k.startswith("CUDA_")}
-    env.update(
-        CUDA_PTX=str(bundle / manifest["kernel"]),
-        CUDA_CACHE="50",
-        CUDA_GRAPH="1",
-        CUDA_GRAPH_SPAN="8",
-        CUDA_DUP_SPECIAL="1",
-        CUDA_INNER_CACHE=str(policy["inner"]),
-        CUDA_BRIDGE_CACHE=str(policy["bridge"]),
-    )
-    if policy["persist"]:
-        env["CUDA_DATA_PERSIST"] = str(policy["persist"])
+    import importlib.util
+    spec=importlib.util.spec_from_file_location("checked",bundle/"run_checked.py")
+    checked=importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(checked)
+    env=checked.clean_environment()
+    checked.configure_runtime(env,bundle,manifest)
     cases = [
         (1026, {}),
         (13427472, {"ROUNDTRIP": "1"}),
@@ -67,6 +64,12 @@ def main():
         (28000000, {"GATE_PATTERN": "zero"}),
         (28000000, {"DUP_ALL8": "1", "DUP_OFFSET": "255"}),
     ]
+    if not args.two_prime:
+        for base in [38000000, 100000000, 528220156]:
+            cases.extend([(base,{"COPY_RESTORE":"1","MULTIPLY":"1"}),
+                          (base,{"GATE_PATTERN":"alternating","GATE_AMPLITUDE":str(base+2),"SCALAR":"2147483647"})])
+        cases.extend([(1026,{"SCALAR":"2147483647"}),
+                      (528220156,{"GATE_PATTERN":"constant","GATE_AMPLITUDE":"528220158"})])
     for index, (base, extra) in enumerate(cases):
         with (output / ("arithmetic-" + str(index) + ".log")).open("w") as log:
             subprocess.run(
@@ -77,6 +80,9 @@ def main():
                 stderr=subprocess.STDOUT,
             )
         print("Arithmetic case " + str(index) + " passed", flush=True)
+    if args.arithmetic_only:
+        print("PASS: GMP arithmetic tests",flush=True)
+        return
     command = [
         compiler,
         "-std=c++17",
@@ -104,7 +110,7 @@ def main():
             str(output / "boinc-init"),
             "--output",
             str(output / "boinc"),
-        ],
+        ] + (["--two-prime"] if args.two_prime else []),
         check=True,
     )
     print("PASS: arithmetic and offline BOINC tests", flush=True)
