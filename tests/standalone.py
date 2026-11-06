@@ -10,6 +10,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--two-prime", action="store_true")
     args = parser.parse_args()
     bundle, output = args.bundle.resolve(), args.output.resolve()
     output.mkdir()
@@ -22,6 +23,7 @@ def main():
         "-f",
         str(prefix),
     ]
+    if args.two_prime: command.append("--two-prime")
     subprocess.run(command, check=True)
     report = json.loads(prefix.with_suffix(".json").read_text())
     assert report["validated"] and report["mode"] == "fast", report
@@ -36,7 +38,7 @@ def main():
     assert repeated["validated"] and repeated["mode"] == "verified-existing"
     assert repeated["proof_sha256"] == report["proof_sha256"]
     # Modified bundle files must be refused before running GPU work.
-    manifest = json.loads((bundle / "boinc-guard-manifest.json").read_text())
+    manifest = json.loads((bundle / ("boinc-two-prime-manifest.json" if args.two_prime else "boinc-guard-manifest.json")).read_text())
     kernel = bundle / manifest["kernel"]
     original = kernel.read_bytes()
     try:

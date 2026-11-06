@@ -12,6 +12,7 @@ def main():
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--initializer", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--two-prime", action="store_true")
     args = parser.parse_args()
     bundle, output = args.bundle.resolve(), args.output.resolve()
     output.mkdir()
@@ -33,7 +34,7 @@ def main():
 
     episodes = []
     episode = Episode(
-        slot, public, bundle, args.initializer.resolve(), "p", "checkpoint"
+        slot, public, bundle, args.initializer.resolve(), "p", "checkpoint", two_prime=args.two_prime
     )
     try:
         episode.wait(lambda: bool(episode.samples), 30)
@@ -54,7 +55,7 @@ def main():
     assert episodes[-1]["returncode"] == 0
     print("Checkpoint/quit passed", flush=True)
     episode = Episode(
-        slot, public, bundle, args.initializer.resolve(), "p", "resume-proof"
+        slot, public, bundle, args.initializer.resolve(), "p", "resume-proof", two_prime=args.two_prime
     )
     try:
         episode.wait(
@@ -93,7 +94,7 @@ def main():
     (check_slot / "gproof.cert").symlink_to("../check-project/input.cert")
     (check_slot / "results.txt").symlink_to("../check-project/result.out")
     episode = Episode(
-        check_slot, check_public, bundle, args.initializer.resolve(), "c", "certificate"
+        check_slot, check_public, bundle, args.initializer.resolve(), "c", "certificate", two_prime=args.two_prime
     )
     try:
         episodes.append(episode.finish(150))

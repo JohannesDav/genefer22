@@ -6,7 +6,7 @@ There are two ways to use the build. For a standalone calculation, you choose a 
 
 ## 1. Prepare the machine
 
-The optimizations target the RTX 3090 and RTX 4060 Ti 16GB on Linux x86-64. Only configurations with one GPU available to the application have been tested. The optimized prover accepts GFN-19 candidates with even bases between 1,024 and 30,000,000, excluding powers of two. For example, the command later in this guide tests `28000000^(2^19) + 1`.
+The optimizations target the RTX 3090 and RTX 4060 Ti 16GB on Linux x86-64. Only configurations with one GPU available to the application have been tested. The optimized prover accepts GFN-19 candidates with even bases between 1,024 and 528,220,156, excluding powers of two. For example, the command later in this guide tests `28000000^(2^19) + 1`.
 
 You will need Python 3.9 or later, a compiler supporting C++17, and glibc 2.34 or later. The build also needs GMP for large-integer arithmetic, the OpenCL development files, NVIDIA OpenCL runtime, and BOINC application development libraries. The BOINC libraries are required by this build script even if you only intend to run standalone calculations, because it builds the BOINC applications as well.
 
@@ -52,7 +52,7 @@ When the build finishes, the output directory contains the optimized programs, t
 
 Keep this whole directory together. Copying just an executable is insufficient: the supplied launchers need its companion programs, kernels and manifests. The rest of this guide calls this directory the **build directory**.
 
-These commands use the GPU kernels included in the repository. If you also want to compile the GPU kernels yourself, follow [Rebuilding the GPU kernels](#rebuilding-the-gpu-kernels) below. The resulting PTX file can be passed to the application builder with `--kernel`.
+The default three-prime kernels are supplied as OpenCL C source in `kernels/src/gfn19-three.cl`. The NVIDIA driver compiles them for the requested base when a calculation starts. No separate kernel-build command is needed. The experimental two-prime kernels also have source; their rebuild commands are described below.
 
 ## 3. Run a candidate without BOINC
 
@@ -68,7 +68,7 @@ For a 4060 Ti build, change the script path to `build/4060/run_checked.py`. The 
 
 ### What the script does
 
-`run_checked.py` first starts the optimized prover. When that calculation finishes, the script starts a separate executable, `bin/genefer-conservative`, built from Gallot's original OpenCL implementation. It uses Genefer's server mode to generate a verification certificate from the proof, then Genefer's certificate-checking mode to check that certificate. These are additional local calculations performed by the script. Upstream Genefer provides the `-s` and `-c` modes, but its ordinary `-p` proof-generation command does not run them automatically. The local checks do not contact PrimeGrid.
+`run_checked.py` first starts the optimized prover. When that calculation finishes, the script starts a separate executable, `bin/genefer-conservative`, built from Gallot's original OpenCL implementation. It uses Genefer's server mode to generate a verification certificate from the proof, then Genefer's certificate-checking mode to check that certificate. The script also saves an intermediate checkpoint and uses `bin/genefer-tail-check`, built with the original three-prime arithmetic, to recompute the final segment of the primality test and compare every result digit. These are additional local calculations performed by the script. Upstream Genefer provides the `-s` and `-c` modes, but its ordinary `-p` proof-generation command does not run them automatically. The local checks do not contact PrimeGrid.
 
 If the optimized calculation fails or its proof does not pass verification, the script retries the candidate with the original OpenCL prover. That retry can take much longer. The JSON report records whether the accepted result came from the optimized calculation (`fast`) or the original prover (`conservative-fallback`).
 
@@ -86,7 +86,7 @@ During the calculation, the script keeps its working files, logs and checkpoints
 
 If you interrupt the script with Ctrl+C, keep the working directory. To resume, run the same command with the same build directory and `-f` prefix. The prover can then use its saved checkpoint.
 
-A checkpoint is tied to the candidate and the particular programs and kernels that created it. The scripts record file hashes to detect changes to those components. If you rebuild the programs or change the GPU version, start with a new output prefix rather than reusing the old working directory. Similarly, editing files inside an existing build directory will cause the integrity checks to reject it.
+A checkpoint is tied to the candidate and the particular programs and kernels that created it. The scripts record file hashes to detect changes to those components. If you switch arithmetic modes, rebuild the programs or change the GPU version, start with a new output prefix rather than reusing the old working directory. Similarly, editing files inside an existing build directory will cause the integrity checks to reject it.
 
 After a run has completed, the script will refuse to overwrite its final output during another ordinary run. To check the existing proof again without repeating the long candidate calculation, add `--verify-existing`:
 
@@ -95,7 +95,22 @@ python3 build/3090/run_checked.py -b 28000000 \
     -f /absolute/path/gproof --verify-existing
 ```
 
-This runs the certificate generation and checking steps again and updates the certificate and JSON report.
+This runs the certificate generation and checking steps again and updates the certificate and JSON report. It does not repeat the final-segment computation; that check needs the intermediate checkpoint retained during the original run.
+
+## Choosing two or three prime moduli
+
+Three-prime arithmetic is the default. It reconstructs transform coefficients using three modular calculations. The coefficient and carry bounds in `src/gfn19_three/bounds.h` cover even bases up to 528,220,156, excluding powers of two. The limit also keeps stored digits within the signed decoding range of the first prime. This is an arithmetic range bound, not a proof that the program, compiler or GPU cannot make an error.
+
+The faster two-prime implementation is available explicitly:
+
+```sh
+python3 build/3090/run_checked.py -b 28000000 \
+    -f /absolute/path/two-prime-test --two-prime
+```
+
+Two primes provide less reconstruction range. Some coefficients can exceed that range, so this mode lacks the default mode’s worst-case arithmetic bound. Tests within its supported range have passed, but there is no established probability of an undetected error. Local checks are required in both modes; they do not turn the two-prime calculation into a guaranteed one. Incorrect calculations have been observed at larger bases, and some deliberately constructed errors escaped the original proof checks. Do not assume that a successful run establishes correctness for every smaller base.
+
+For that reason, the supplied standalone runner limits `--two-prime` to base 30,000,000. The BOINC launcher accepts the same option: append `--two-prime` to its fixed launch arguments. It uses two primes only through that limit, then selects the default three-prime program through 528,220,156. Its dispatch record identifies which arithmetic was actually selected. Changing modes requires a fresh working directory; checkpoints cannot be shared between modes.
 
 ## 4. Use the build with BOINC
 
@@ -119,7 +134,7 @@ For a supported GFN-19 proof-generation task, the launcher starts the optimized 
 
 Certificate-checking tasks use the original OpenCL calculation. Requests outside the launcher's supported optimized range are passed to the original BOINC application as well. You can explicitly select that application by adding `--upstream` to the launch arguments. Each invocation handles one BOINC task; it does not combine work units or fetch additional ones.
 
-In particular, proof-generation tasks with bases above 30,000,000 run with the upstream application and receive no optimized speedup. The standalone `run_checked.py` script accepts only the supported base range and rejects larger bases.
+Proof-generation tasks above base 528,220,156 use the upstream application. The standalone script rejects bases above its selected arithmetic mode’s limit. The original implementation also handles other GFN sizes and unsupported device selections.
 
 The modified BOINC application handles the client's suspend, resume, quit and abort requests, including while the separate verification program is running. It also checks the saved checkpoint's identity before resuming. If verification fails, or files in the build directory have changed, it stops without reporting an unchecked result as successful. Unlike the standalone script, it does not automatically repeat a failed optimized calculation with the original prover.
 
@@ -139,7 +154,7 @@ To test the GPU arithmetic and the BOINC application, use the build for the card
 python3 tests/run.py --bundle build/3090 --output build/test-3090
 ```
 
-Here, `--bundle` means the build directory to test. The script first compares GPU arithmetic with GMP, an independent large-integer library. It exercises multiplication, copying intermediate calculation results, and transfers between the GPU and CPU. It then runs a full proof for base 28,000,000, interrupts it to create a checkpoint, resumes it, and checks that its completed proof matches the saved reference hash. It also tests suspension during verification and a certificate-checking task.
+Here, `--bundle` means the build directory to test. The script first compares the selected GPU arithmetic with GMP, an independent large-integer library. Add `--two-prime` to test the experimental mode, or `--arithmetic-only` to skip the full BOINC lifecycle calculation. It exercises multiplication, copying intermediate calculation results, and transfers between the GPU and CPU. It then runs a full proof for base 28,000,000, interrupts it to create a checkpoint, resumes it, and checks that its completed proof matches the saved reference hash. It also tests suspension during verification and a certificate-checking task.
 
 Those BOINC tests supply synthetic task data locally. They do not attach an account, contact a project or consume PrimeGrid work units. They do perform full GPU calculations, so let them finish without other jobs using the GPU. If you built with a custom `--sdk` path, pass the same option to `tests/run.py`.
 
@@ -154,9 +169,9 @@ This generates a full proof for base 1,026 and compares the proof and result wit
 
 For the 4060 Ti, use `build/4060` in place of `build/3090` and choose separate test-output directories.
 
-## Rebuilding the GPU kernels
+## Rebuilding the experimental two-prime kernels
 
-The GPU source is in `kernels/src/`. `common.clh` contains shared modular arithmetic, while `gfn19-3090.cl` and `gfn19-4060.cl` contain the kernels for the two cards. Both versions use the same arithmetic scale. Their differences concern root-table access and the GPU-specific implementation choices used by each card.
+The two-prime GPU source is in `kernels/src/`. `common.clh` contains shared modular arithmetic, while `gfn19-3090.cl` and `gfn19-4060.cl` contain the kernels for the two cards. Both versions use the same arithmetic scale. Their differences concern root-table access and the GPU-specific implementation choices used by each card.
 
 The source is OpenCL C, with a few NVIDIA-specific inline assembly instructions. To compile it, the builder uses the OpenCL compiler supplied by the NVIDIA driver on your machine. It then exports PTX, NVIDIA's intermediate assembly format, which NVIDIA's OpenCL runtime loads when the application starts. These kernels remain specific to NVIDIA GPUs.
 
@@ -195,6 +210,6 @@ The optimized kernel module contains only the kernels used by GFN-19, including 
 
 ## Measurement notes
 
-The README compares upstream proof generation with the complete modified workflow. The modified time includes proof generation, local certificate generation and certificate checking. These extra local checks are required by this fork and are charged only to its runtime. Each comparison ran both versions on the same machine, with warmed driver caches and variable GPU clocks. The reference executable was compiled from upstream commit `56905b2`; it was not the binary distributed by PrimeGrid.
+The README compares upstream proof generation with the complete modified workflow for one candidate. The modified time includes certificate generation, certificate checking and the final-segment recomputation described above. These extra checks are charged only to this fork. Reference builds use upstream commit `56905b2`, rather than PrimeGrid’s distributed binary. Comparisons use the same card and base; clocks and driver caches can affect the timings.
 
-Those measurements use large bases. The most specialized carry arithmetic applies to supported bases from 4,194,304 through 30,000,000. Smaller bases share the optimized transforms but use a more general carry routine. Upstream also already uses two prime moduli for sufficiently small bases, so reducing the number of moduli provides no saving there. The same speedups should not be assumed across the full supported range. The standalone test at base 1,026 checks that smaller-base path.
+The quoted improvements concern large bases. Upstream already uses fewer prime moduli for sufficiently small bases, and the two-prime implementation uses a different carry routine below base 4,194,304. Do not assume the same speedups throughout the supported range.

@@ -144,7 +144,7 @@ class coordinator
             std::string value(*entry);
             auto equal = value.find('=');
             auto name = value.substr(0, equal);
-            if (name == "GENEFER_KERNEL")
+            if (name.rfind("GENEFER_", 0) == 0 || name.rfind("CUDA_", 0) == 0)
                 clear.push_back(name);
         }
         for (const auto &name : clear)
@@ -152,10 +152,16 @@ class coordinator
         auto set = [](const char *name, const std::string &value) {
             require(::setenv(name, value.c_str(), 1) == 0, "cannot set GPU runtime policy");
         };
+#if defined(GENEFER_THREE_PRIME)
+        set("GENEFER_ARITHMETIC","three");
+        set("GENEFER_KERNEL",(bundle/"kernels/gfn19-three.cl").string());
+#else
+        set("GENEFER_ARITHMETIC","two");
 #if defined(GENEFER_GUARD_3090)
         set("GENEFER_KERNEL", (bundle / "kernels/gfn19-3090.ptx").string());
 #else
         set("GENEFER_KERNEL", (bundle / "kernels/gfn19-4060.ptx").string());
+#endif
 #endif
     }
 
@@ -314,7 +320,12 @@ class coordinator
         : public_prefix_(public_prefix.empty() ? "g19_" + std::to_string(base) : public_prefix),
           base_(base), device_(device), check_mode_(certificate_check)
     {
-        auto maximum = check_mode_ ? 2000000000u : 30000000u;
+        auto maximum = check_mode_ ? 2000000000u :
+#if defined(GENEFER_THREE_PRIME)
+            528220156u;
+#else
+            30000000u;
+#endif
         require(n == 19 && device == 0 && base >= 1024 && base <= maximum && base % 2 == 0 &&
                     (base & (base - 1)) != 0,
                 "request outside the single-GPU GFN-19 specialization");

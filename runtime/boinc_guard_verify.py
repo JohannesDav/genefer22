@@ -46,31 +46,27 @@ def load_inputs(bundle, prefix, base, device, operation):
     require(
         device == 0, "this experimental bundle supports the single assigned GPU only"
     )
-    manifest_path = bundle / "boinc-guard-manifest.json"
+    arithmetic=os.environ.get("GENEFER_ARITHMETIC")
+    require(arithmetic in ("two","three"),"arithmetic selection missing")
+    manifest_path=bundle/("boinc-two-prime-manifest.json" if arithmetic=="two" else "boinc-guard-manifest.json")
     manifest = json.loads(manifest_path.read_text())
     require(
-        manifest["version"] == 1 and manifest["profile"] == "broad",
+        manifest["version"]==2 and manifest["arithmetic"]==arithmetic and manifest["profile"]==arithmetic+"-prime",
         "manifest version/profile",
     )
     require(manifest["gpu"] in ("3090", "4060"), "unsupported GPU profile")
-    maximum = 30000000 if operation == "proof" else 2000000000
+    maximum=(30000000 if arithmetic=="two" else 528220156) if operation=="proof" else 2000000000
     require(
         1024 <= base <= maximum and base % 2 == 0 and base & (base - 1) != 0,
         "base outside the explicitly guarded specialization",
     )
-    required = {
-        "bin/genefer-boinc-checked",
-        "bin/genefer-conservative",
-        "boinc_guard_verify.py",
-        "run_checked.py",
-        manifest["kernel"],
-    }
-    require(set(manifest["files"]) == required, "manifest file set")
-    require(
-        manifest["kernel"]
-        == "kernels/gfn19-" + manifest["gpu"] + ".ptx",
-        "kernel profile",
-    )
+    native="bin/genefer-boinc-two-prime" if arithmetic=="two" else "bin/genefer-boinc-checked"
+    required={native,"bin/genefer-conservative","bin/genefer-tail-check","boinc_guard_verify.py","run_checked.py",manifest["kernel"]}
+    require(manifest["backend"]=="opencl","expected an OpenCL build")
+    require(set(manifest["files"])==required,"manifest file set")
+    if arithmetic=="three": expected_kernel="kernels/gfn19-three.cl"
+    else: expected_kernel="kernels/gfn19-"+manifest["gpu"]+".ptx"
+    require(manifest["kernel"]==expected_kernel,"kernel profile")
     for name, digest in manifest["files"].items():
         path = bundle / name
         require(
@@ -83,13 +79,11 @@ def load_inputs(bundle, prefix, base, device, operation):
     parent = Path("/proc/" + str(os.getppid()) + "/exe")
     # BOINC may copy/rename the executable in its project/slot layout.
     require(
-        sha(parent) == manifest["files"]["bin/genefer-boinc-checked"],
+        sha(parent) == manifest["files"][native],
         "unexpected parent executable identity",
     )
-    require(
-        os.environ.get("GENEFER_KERNEL") == str(bundle / manifest["kernel"]),
-        "unexpected GPU kernel path",
-    )
+    key="GENEFER_KERNEL"
+    require(os.environ.get(key)==str(bundle/manifest["kernel"]),"unexpected GPU kernel path")
     expected_prefix = (
         ".gfn_checked_" + ("c_" if operation == "check" else "") + "19_" + str(base)
     )
@@ -102,6 +96,7 @@ def load_inputs(bundle, prefix, base, device, operation):
         n=19,
         device=device,
         operation=operation,
+        arithmetic=arithmetic,
         manifest_sha256=sha(manifest_path),
         files=manifest["files"],
     )
@@ -190,6 +185,10 @@ def verify(bundle, prefix, base, device, identity):
             ),
             "conservative verifier reported an error",
         )
+    checkpoint=prefix.with_name(prefix.name+".tail")
+    checkpoint_sha=sha(checkpoint)
+    tail=checked.verify_tail(checkpoint,proof,base,device,prefix.parent,bundle/"bin/genefer-conservative")
+    require(sha(checkpoint)==checkpoint_sha,"final-segment checkpoint changed during verification")
     # Revalidate ownership/identities after the independent GPU subprocesses.
     _, final_identity = load_inputs(bundle, prefix, base, device, "proof")
     require(final_identity == identity, "bundle changed during verification")
@@ -212,6 +211,7 @@ def verify(bundle, prefix, base, device, identity):
         proof_sha256=original_proof_sha,
         backend_identity=identity,
         verification=result,
+        tail_verification=tail,
         scope="private conservative verification; native BOINC parent must still publish and finish",
     )
     atomic_json(prefix.with_name(prefix.name + ".verified.json"), report)

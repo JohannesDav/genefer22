@@ -1,9 +1,15 @@
 #include <chrono>
 #include <iostream>
 #include <memory>
+#if defined(GENEFER_THREE_PRIME)
+#include "gfn19_three/transform.h"
+constexpr size_t fields=3;
+#else
 #include "gfn19/transform.h"
+constexpr size_t fields=2;
+#endif
 #include "reference.h"
-class ArithmeticTest : public transformGPUs<2, false>
+class ArithmeticTest : public transformGPUs<fields, false>
 {
   public:
     using transformGPUs::getZi;

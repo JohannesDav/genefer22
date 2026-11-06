@@ -26,6 +26,7 @@ class Episode:
         label,
         client_pid=None,
         candidate=28000000,
+        two_prime=False,
     ):
         self.slot, self.label = slot, label
         subprocess.run(
@@ -55,7 +56,7 @@ class Episode:
                 "gproof",
                 "--guard-bundle",
                 str(bundle),
-            ],
+            ] + (["--two-prime"] if two_prime else []),
             cwd=slot,
             stdout=self.log,
             stderr=subprocess.STDOUT,
