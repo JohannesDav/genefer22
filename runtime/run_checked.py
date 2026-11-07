@@ -95,6 +95,8 @@ def command(binary, mode, base, device, prefix, cwd, log, env):
         "-f",
         str(prefix),
     ]
+    result_file = cwd / "results.txt"
+    result_offset = result_file.stat().st_size if result_file.exists() else 0
     started = time.monotonic()
     print("{}: {}".format(mode, log), flush=True)
     with log.open("wb") as out:
@@ -119,6 +121,12 @@ def command(binary, mode, base, device, prefix, cwd, log, env):
         raise ValidationError(
             "{} exited with status {}; see {}".format(binary.name, code, log)
         )
+    # Genefer prints proof completion to stdout, but appends the native
+    # primality result to results.txt. Read only this invocation's records.
+    if result_file.exists():
+        with result_file.open("rb") as results:
+            results.seek(result_offset)
+            text += "\n" + results.read().decode(errors="replace")
     return text, time.monotonic() - started
 
 

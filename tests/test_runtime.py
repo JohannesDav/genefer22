@@ -166,6 +166,34 @@ class RuntimeTests(unittest.TestCase):
             self.assertEqual(routes.two_prime_width(bound), width)
         self.assertIsNone(routes.two_prime_width(4038250))
 
+    def test_native_result_comes_from_result_file(self):
+        spec = importlib.util.spec_from_file_location(
+            "checked_result", ROOT / "runtime/run_checked.py"
+        )
+        checked = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(checked)
+        binary = self.bundle / "native-prover"
+        binary.write_text(
+            "#!/usr/bin/python3\n"
+            'print("proof file is generated")\n'
+            'with open("results.txt", "a") as f: f.write("new native result\\n")\n'
+        )
+        binary.chmod(0o755)
+        (self.bundle / "results.txt").write_text("stale native result\n")
+        text, _ = checked.command(
+            binary,
+            "-p",
+            1026,
+            0,
+            self.bundle / "gproof",
+            self.bundle,
+            self.bundle / "proof.log",
+            checked.clean_environment(),
+        )
+        self.assertIn("proof file is generated", text)
+        self.assertIn("new native result", text)
+        self.assertNotIn("stale native result", text)
+
     def test_optional_checks_are_independent(self):
         from unittest.mock import patch
 
