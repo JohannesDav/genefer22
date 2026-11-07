@@ -360,7 +360,17 @@ class coordinator
     }
     outcome prepare()
     {
-        return helper("prepare", false);
+        const auto result = helper("prepare", false);
+#if defined(GENEFER_THREE_PRIME)
+        if (result == outcome::success && !check_mode_)
+        {
+            const auto path = prefix_.string() + ".packed.cl";
+            if (fs::exists(path))
+                require(::setenv("GENEFER_PACKED_KERNEL", path.c_str(), 1) == 0,
+                        "cannot install packed kernel path");
+        }
+#endif
+        return result;
     }
 
     outcome finish(const std::string &result_text)

@@ -52,7 +52,7 @@ When the build finishes, the output directory contains the optimized programs, t
 
 Keep this whole directory together. Copying just an executable is insufficient: the supplied launchers need its companion programs, kernels and configuration files. The rest of this guide calls this directory the **build directory**.
 
-The default three-prime kernels are supplied as OpenCL C source in `kernels/src/gfn19-three.cl`. The NVIDIA driver compiles them for the requested base when a calculation starts. No separate kernel-build command is needed. The experimental two-prime kernels also have source; their rebuild commands are described below.
+The default kernels are supplied as OpenCL C source in `kernels/src/gfn19-packed.cl` and `kernels/src/gfn19-three.cl`. When a calculation starts, `runtime/packed_kernel.py` computes exact integer constants for its base and selects a representation whose arithmetic bounds hold. The NVIDIA driver compiles the resulting source, and the application runs it through the CUDA driver. No separate kernel-build command is needed. The generator uses only Python’s standard library. The experimental two-prime kernels also have source; their rebuild commands are described below.
 
 ## 3. Run a candidate without BOINC
 
@@ -97,9 +97,15 @@ python3 build/3090/run_checked.py -b 28000000 \
 
 This runs the certificate generation and checking steps again and updates the certificate and JSON report. It does not repeat the final-segment computation; that check needs the intermediate checkpoint retained during the original run.
 
-## Choosing two or three prime moduli
+## Default exact arithmetic and the experimental option
 
-Three-prime arithmetic is the default. It reconstructs transform coefficients using three modular calculations. The coefficient and carry bounds in `src/gfn19_three/bounds.h` cover even bases up to 528,220,156, excluding powers of two. The limit also keeps stored digits within the signed decoding range of the first prime. This is an arithmetic range bound, not a proof that the program, compiler or GPU cannot make an error.
+The default uses exact integer arithmetic with explicit bounds on coefficient reconstruction, intermediate calculations and carries. Its supported range is unchanged: even bases up to 528,220,156, excluding powers of two. The upper limit keeps ordinary base-b digits within the signed decoding range used by the three-prime operations. Arithmetic bounds do not prove that the program, compiler or GPU is free of bugs.
+
+For bases from 4,194,304 upward, the main squaring path groups eight base-b digits into one coefficient, reducing the transform length from 524,288 to 65,536. Smaller bases use the ordinary three-prime calculation. The coefficients are larger, so the shorter transform uses more prime moduli: the program chooses enough of them for the requested base and checks its bounds before generating the kernel. This choice depends on worst-case bounds, not on sampled coefficients or a probability estimate. General multiplication and checkpoints retain the ordinary three-prime representation. If a packed representation does not meet every bound, the program uses the three-prime calculation instead.
+
+After the main primality calculation, the program constructs the proof using the ordinary three-prime arithmetic. That stage consists of many short powers and multiplications, so keeping one representation avoids repeated conversions.
+
+The packed arithmetic bounds and constants are in `runtime/packed_kernel.py`; the ordinary three-prime bounds are in `src/gfn19_three/bounds.h` and its constructor. No rounding with floating-point numbers is used in either calculation. The fixed-point quotient approximations in the packed converter have explicit integer error bounds, and their carry update stays within the same digit bound after every square. The CUDA graphs group consecutive squares of one candidate; they do not batch different candidates.
 
 The faster two-prime implementation is available explicitly:
 
@@ -110,7 +116,7 @@ python3 build/3090/run_checked.py -b 28000000 \
 
 Two primes provide less reconstruction range. Some coefficients can exceed that range, so this mode lacks the default mode’s worst-case arithmetic bound. Tests within its supported range have passed, but there is no established probability of an undetected error. Local checks are required in both modes; they do not turn the two-prime calculation into a guaranteed one. Incorrect calculations have been observed at larger bases, and some deliberately constructed errors escaped the original proof checks. Do not assume that a successful run establishes correctness for every smaller base.
 
-For that reason, the supplied standalone runner limits `--two-prime` to base 30,000,000. The BOINC launcher accepts the same option: append `--two-prime` to its fixed launch arguments. It uses two primes only through that limit, then selects the default three-prime program through 528,220,156. Its dispatch record identifies which arithmetic was actually selected. Changing modes requires a fresh working directory; checkpoints cannot be shared between modes.
+For that reason, the supplied standalone runner limits `--two-prime` to base 30,000,000. The BOINC launcher accepts the same option: append `--two-prime` to its fixed launch arguments. It uses two primes only through that limit, then selects the default exact program through 528,220,156. Its dispatch record identifies which arithmetic was actually selected. Changing modes requires a fresh working directory; checkpoints cannot be shared between modes.
 
 ## 4. Use the build with BOINC
 
@@ -163,9 +169,18 @@ python3 tests/standalone.py --bundle build/3090 \
     --output build/standalone-test-3090
 ```
 
-This generates a full proof for base 1,026 and compares the proof and result with the original reference. It then rechecks that proof and confirms that the script refuses to run when a build file has changed. For that last check, the test briefly modifies `runtime.json` and restores it, so no other calculation should be using the same build directory while this test runs.
+This generates a full proof for base 1,026 and compares the proof and result with the original reference. It then rechecks that proof and confirms that the script refuses to run when a build file has changed. For that last check, the test briefly modifies a GPU kernel file and restores it, so no other calculation should be using the same build directory while this test runs.
 
 For the 4060 Ti, use `build/4060` in place of `build/3090` and choose separate test-output directories.
+
+The arithmetic model can also be checked without a GPU:
+
+```sh
+python3 tests/packed_reference.py
+python3 tests/crt_reference.py
+```
+
+These tests use exact Python integers to check CRT reconstruction, carry updates and their uniform bounds. They complement the GPU and complete-proof tests above.
 
 ## Rebuilding the experimental two-prime kernels
 
@@ -209,5 +224,14 @@ The optimized CUDA module contains only the kernels used by GFN-19, including th
 ## Measurement notes
 
 The README compares upstream proof generation with the complete modified workflow for one candidate. The modified time includes certificate generation, certificate checking and the final-segment recomputation described above. These extra checks are charged only to this fork. Reference builds use upstream commit `56905b2`, rather than PrimeGrid’s distributed binary. Comparisons use the same card and base; clocks and driver caches can affect the timings.
+
+The 3090 machine used a Xeon W-3223, PCIe 3.0 ×16 and a 300 W GPU power limit. The 4060 Ti machine used an EPYC 7532, PCIe 4.0 ×4 and a 165 W limit.
+
+Complete runs at the upper supported base, 528,220,156, also matched the upstream proofs:
+
+| GPU | Upstream | Exact (default) |
+|---|---:|---:|
+| RTX 3090 | 1,285 s | 895 s (1.44×) |
+| RTX 4060 Ti 16GB | 1,379 s | 1,001 s (1.38×) |
 
 The quoted improvements concern large bases. Upstream already uses fewer prime moduli for sufficiently small bases, and the two-prime implementation uses a different carry routine below base 4,194,304. Do not assume the same speedups throughout the supported range.

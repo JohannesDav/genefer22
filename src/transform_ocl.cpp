@@ -8,7 +8,7 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #include <stdexcept>
 
 #if defined(GENEFER_THREE_PRIME)
-#include "gfn19_three/transform.h"
+#include "gfn19_three/packed.h"
 #elif defined(GENEFER_CUDA)
 #include "cuda/transform.h"
 #else
@@ -40,7 +40,7 @@ transform * transform::create_ocl(const uint32_t b, const uint32_t n, const bool
 #if defined(GENEFER_THREE_PRIME)
     if (n != 19 || device != 0 || !gfn19_guaranteed::supported(b))
         throw std::runtime_error("The three-prime profile requires GFN-19, device 0 and an even non-power-of-two base in 1024..528220156");
-    return new transformGPUs<3, false>(b, n, isBoinc, device, num_regs, boinc_platform_id, boinc_device_id, verbose);
+    return new packed_transform(b, n, isBoinc, device, num_regs, boinc_platform_id, boinc_device_id, verbose);
 #elif defined(GENEFER_CUDA)
     // The independently checked wrapper is required for this specialization.
     if (n != 19 || device != 0 || b < 1024 || b > 30000000 || b % 2 || (b & (b - 1)) == 0)

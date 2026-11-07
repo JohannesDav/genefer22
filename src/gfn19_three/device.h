@@ -6,6 +6,7 @@
 #include <map>
 #include <cstring>
 #include <vector>
+#include <regex>
 
 inline void three_cuda_check(CUresult result)
 {
@@ -192,6 +193,10 @@ public:
     void loadProgram(const std::string &source)
     {
         std::string binary=compile(source);
+#if defined(GENEFER_GUARD_3090)
+        // Streaming loads performed best for this module on the RTX3090.
+        binary = std::regex_replace(binary, std::regex("ld\\.global\\.(nc\\.)?"), "ld.global.cs.");
+#endif
         three_cuda_check(cuModuleLoadData(&module_,binary.c_str()));
     }
     void clearProgram() { flush();three_cuda_check(cuStreamSynchronize(stream_)); }

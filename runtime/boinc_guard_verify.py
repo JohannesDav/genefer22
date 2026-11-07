@@ -4,6 +4,7 @@
 The native parent owns BOINC IPC and publication. This helper never attaches to
 BOINC, fetches work, resolves public output names, or publishes result files.
 """
+
 from pathlib import Path
 import argparse
 import hashlib
@@ -41,33 +42,77 @@ def atomic_json(path, data):
     temporary.replace(path)
 
 
-def load_inputs(bundle, prefix, base, device, operation):
+def checked_module(bundle):
+    spec = importlib.util.spec_from_file_location(
+        "gfn19_checked_runner", bundle / "run_checked.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_inputs(bundle, prefix, base, device, operation, preparing=False):
     require(Path(__file__).resolve().parent == bundle, "helper/bundle mismatch")
     require(
         device == 0, "this experimental bundle supports the single assigned GPU only"
     )
-    arithmetic=os.environ.get("GENEFER_ARITHMETIC")
-    require(arithmetic in ("two","three"),"arithmetic selection missing")
-    manifest_path=bundle/("boinc-two-prime-manifest.json" if arithmetic=="two" else "boinc-guard-manifest.json")
+    arithmetic = os.environ.get("GENEFER_ARITHMETIC")
+    require(arithmetic in ("two", "three"), "arithmetic selection missing")
+    manifest_path = bundle / (
+        "boinc-two-prime-manifest.json"
+        if arithmetic == "two"
+        else "boinc-guard-manifest.json"
+    )
     manifest = json.loads(manifest_path.read_text())
     require(
-        manifest["version"]==2 and manifest["arithmetic"]==arithmetic and manifest["profile"]==arithmetic+"-prime",
+        manifest["version"] == 2
+        and manifest["arithmetic"] == arithmetic
+        and manifest["profile"] == arithmetic + "-prime",
         "manifest version/profile",
     )
     require(manifest["gpu"] in ("3090", "4060"), "unsupported GPU profile")
-    maximum=(30000000 if arithmetic=="two" else 528220156) if operation=="proof" else 2000000000
+    maximum = (
+        (30000000 if arithmetic == "two" else 528220156)
+        if operation == "proof"
+        else 2000000000
+    )
     require(
         1024 <= base <= maximum and base % 2 == 0 and base & (base - 1) != 0,
         "base outside the explicitly guarded specialization",
     )
-    native="bin/genefer-boinc-two-prime" if arithmetic=="two" else "bin/genefer-boinc-checked"
-    required={native,"bin/genefer-conservative","bin/genefer-tail-check","boinc_guard_verify.py","run_checked.py",manifest["kernel"]}
-    if arithmetic=="two" and manifest["backend"]=="cuda": required.add("runtime.json")
-    require(set(manifest["files"])==required,"manifest file set")
-    if arithmetic=="three": expected_kernel="kernels/gfn19-three.cl"
-    elif manifest["backend"]=="opencl": expected_kernel="kernels/gfn19-"+manifest["gpu"]+".ptx"
-    else: expected_kernel="kernels/gfn19-signed-divider-sm"+("86" if manifest["gpu"]=="3090" else "89")+".ptx"
-    require(manifest["kernel"]==expected_kernel,"kernel profile")
+    native = (
+        "bin/genefer-boinc-two-prime"
+        if arithmetic == "two"
+        else "bin/genefer-boinc-checked"
+    )
+    required = {
+        native,
+        "bin/genefer-conservative",
+        "bin/genefer-tail-check",
+        "boinc_guard_verify.py",
+        "run_checked.py",
+        manifest["kernel"],
+    }
+    if arithmetic == "two" and manifest["backend"] == "cuda":
+        required.add("runtime.json")
+    if manifest.get("packed_squaring"):
+        require(
+            arithmetic == "three" and manifest["backend"] == "cuda",
+            "invalid packed backend",
+        )
+        required.update(checked_module(bundle).PACKED_ASSETS)
+    require(set(manifest["files"]) == required, "manifest file set")
+    if arithmetic == "three":
+        expected_kernel = "kernels/gfn19-three.cl"
+    elif manifest["backend"] == "opencl":
+        expected_kernel = "kernels/gfn19-" + manifest["gpu"] + ".ptx"
+    else:
+        expected_kernel = (
+            "kernels/gfn19-signed-divider-sm"
+            + ("86" if manifest["gpu"] == "3090" else "89")
+            + ".ptx"
+        )
+    require(manifest["kernel"] == expected_kernel, "kernel profile")
     for name, digest in manifest["files"].items():
         path = bundle / name
         require(
@@ -83,8 +128,15 @@ def load_inputs(bundle, prefix, base, device, operation):
         sha(parent) == manifest["files"][native],
         "unexpected parent executable identity",
     )
-    key="CUDA_PTX" if arithmetic=="two" and manifest["backend"]=="cuda" else "GENEFER_KERNEL"
-    require(os.environ.get(key)==str(bundle/manifest["kernel"]),"unexpected GPU kernel path")
+    key = (
+        "CUDA_PTX"
+        if arithmetic == "two" and manifest["backend"] == "cuda"
+        else "GENEFER_KERNEL"
+    )
+    require(
+        os.environ.get(key) == str(bundle / manifest["kernel"]),
+        "unexpected GPU kernel path",
+    )
     expected_prefix = (
         ".gfn_checked_" + ("c_" if operation == "check" else "") + "19_" + str(base)
     )
@@ -101,6 +153,28 @@ def load_inputs(bundle, prefix, base, device, operation):
         manifest_sha256=sha(manifest_path),
         files=manifest["files"],
     )
+    if manifest.get("packed_squaring") and operation == "proof":
+        selected = (
+            checked_module(bundle)
+            .packed_module(bundle)
+            .select_program(base, manifest["gpu"], bundle / "kernels")
+        )
+        path = prefix.with_name(prefix.name + ".packed.cl")
+        if selected is not None:
+            text, information = selected
+            digest = hashlib.sha256(text.encode()).hexdigest()
+            identity["packed_squaring"] = dict(information, source_sha256=digest)
+            if path.exists():
+                require(sha(path) == digest, "generated packed kernel changed")
+            else:
+                require(preparing, "generated packed kernel missing")
+            if not preparing:
+                require(
+                    os.environ.get("GENEFER_PACKED_KERNEL") == str(path),
+                    "packed kernel path changed",
+                )
+        else:
+            require(not path.exists(), "unexpected packed kernel for this candidate")
     return manifest, identity
 
 
@@ -186,10 +260,20 @@ def verify(bundle, prefix, base, device, identity):
             ),
             "conservative verifier reported an error",
         )
-    checkpoint=prefix.with_name(prefix.name+".tail")
-    checkpoint_sha=sha(checkpoint)
-    tail=checked.verify_tail(checkpoint,proof,base,device,prefix.parent,bundle/"bin/genefer-conservative")
-    require(sha(checkpoint)==checkpoint_sha,"final-segment checkpoint changed during verification")
+    checkpoint = prefix.with_name(prefix.name + ".tail")
+    checkpoint_sha = sha(checkpoint)
+    tail = checked.verify_tail(
+        checkpoint,
+        proof,
+        base,
+        device,
+        prefix.parent,
+        bundle / "bin/genefer-conservative",
+    )
+    require(
+        sha(checkpoint) == checkpoint_sha,
+        "final-segment checkpoint changed during verification",
+    )
     # Revalidate ownership/identities after the independent GPU subprocesses.
     _, final_identity = load_inputs(bundle, prefix, base, device, "proof")
     require(final_identity == identity, "bundle changed during verification")
@@ -315,9 +399,30 @@ def main():
         or (args.mode == "check" and args.operation == "check"),
         "mode/operation mismatch",
     )
-    _, identity = load_inputs(bundle, prefix, args.base, args.device, args.operation)
+    manifest, identity = load_inputs(
+        bundle,
+        prefix,
+        args.base,
+        args.device,
+        args.operation,
+        preparing=args.mode == "prepare",
+    )
     check_owner(prefix, identity, create=args.mode == "prepare")
     if args.mode == "prepare":
+        if identity.get("packed_squaring"):
+            text, _ = (
+                checked_module(bundle)
+                .packed_module(bundle)
+                .select_program(args.base, manifest["gpu"], bundle / "kernels")
+            )
+            path = prefix.with_name(prefix.name + ".packed.cl")
+            if not path.exists():
+                temporary = path.with_name(path.name + ".new")
+                with temporary.open("w") as stream:
+                    stream.write(text)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                temporary.replace(path)
         # A previous verification is not authority for a new execution episode.
         for suffix in (".verified.json", ".checked.json", ".conservative-result.txt"):
             old = prefix.with_name(prefix.name + suffix)

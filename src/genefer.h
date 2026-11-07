@@ -636,6 +636,14 @@ private:
 		gint & gi = *_gi;
 
 		clearline(); pio::display("Generating proof...\r");
+		struct proof_generation_scope
+		{
+			transform * arithmetic;
+			explicit proof_generation_scope(transform * value) : arithmetic(value)
+			{ arithmetic->setProofGeneration(true); }
+			~proof_generation_scope() { arithmetic->setProofGeneration(false); }
+		} phase(pTransform);
+
 
 		watch chrono;
 

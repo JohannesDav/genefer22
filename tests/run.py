@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Compile and run GMP arithmetic tests and an offline BOINC proof lifecycle."""
+
 import argparse
 import json
 import os
@@ -22,7 +23,16 @@ def main():
         p.resolve() for p in (args.bundle, args.output, args.sdk, args.cuda)
     )
     output.mkdir(parents=True)
-    manifest = json.loads((bundle / ("boinc-two-prime-manifest.json" if args.two_prime else "boinc-guard-manifest.json")).read_text())
+    manifest = json.loads(
+        (
+            bundle
+            / (
+                "boinc-two-prime-manifest.json"
+                if args.two_prime
+                else "boinc-guard-manifest.json"
+            )
+        ).read_text()
+    )
     compiler = os.environ.get("CXX", "g++")
     command = [
         compiler,
@@ -50,11 +60,12 @@ def main():
         command.insert(1, "-DGENEFER_THREE_PRIME")
     subprocess.run(command, check=True)
     import importlib.util
-    spec=importlib.util.spec_from_file_location("checked",bundle/"run_checked.py")
-    checked=importlib.util.module_from_spec(spec)
+
+    spec = importlib.util.spec_from_file_location("checked", bundle / "run_checked.py")
+    checked = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(checked)
-    env=checked.clean_environment()
-    checked.configure_runtime(env,bundle,manifest)
+    env = checked.clean_environment()
+    checked.configure_runtime(env, bundle, manifest)
     cases = [
         (1026, {}),
         (13427472, {"ROUNDTRIP": "1"}),
@@ -65,23 +76,69 @@ def main():
         (28000000, {"DUP_ALL8": "1", "DUP_OFFSET": "255"}),
     ]
     if not args.two_prime:
+        for base in [28000000, 528220156]:
+            cases.append(
+                (
+                    base,
+                    {
+                        "PROOF_PHASE": "1",
+                        "ROUNDTRIP": "1",
+                        "COPY_RESTORE": "1",
+                        "MULTIPLY": "1",
+                        "CURRENT_MULTIPLICAND": "1",
+                        "SQUARE_AFTER_MULTIPLY": "1",
+                    },
+                )
+            )
+        for base in [28000000, 528220156]:
+            cases.append(
+                (
+                    base,
+                    {
+                        "MULTIPLY": "1",
+                        "CURRENT_MULTIPLICAND": "1",
+                        "SQUARE_AFTER_MULTIPLY": "1",
+                    },
+                )
+            )
         for base in [38000000, 100000000, 528220156]:
-            cases.extend([(base,{"COPY_RESTORE":"1","MULTIPLY":"1"}),
-                          (base,{"GATE_PATTERN":"alternating","GATE_AMPLITUDE":str(base+2),"SCALAR":"2147483647"})])
-        cases.extend([(1026,{"SCALAR":"2147483647"}),
-                      (528220156,{"GATE_PATTERN":"constant","GATE_AMPLITUDE":"528220158"})])
+            cases.extend(
+                [
+                    (base, {"COPY_RESTORE": "1", "MULTIPLY": "1"}),
+                    (
+                        base,
+                        {
+                            "GATE_PATTERN": "alternating",
+                            "GATE_AMPLITUDE": str(base + 2),
+                            "SCALAR": "2147483647",
+                        },
+                    ),
+                ]
+            )
+        cases.extend(
+            [
+                (1026, {"SCALAR": "2147483647"}),
+                (
+                    528220156,
+                    {"GATE_PATTERN": "constant", "GATE_AMPLITUDE": "528220158"},
+                ),
+            ]
+        )
     for index, (base, extra) in enumerate(cases):
+        case_environment = dict(env)
+        checked.configure_runtime(case_environment, bundle, manifest, base, output)
+
         with (output / ("arithmetic-" + str(index) + ".log")).open("w") as log:
             subprocess.run(
                 [str(output / "arithmetic"), str(base), "32"],
-                env=dict(env, **extra),
+                env=dict(case_environment, **extra),
                 check=True,
                 stdout=log,
                 stderr=subprocess.STDOUT,
             )
         print("Arithmetic case " + str(index) + " passed", flush=True)
     if args.arithmetic_only:
-        print("PASS: GMP arithmetic tests",flush=True)
+        print("PASS: GMP arithmetic tests", flush=True)
         return
     command = [
         compiler,
@@ -110,7 +167,8 @@ def main():
             str(output / "boinc-init"),
             "--output",
             str(output / "boinc"),
-        ] + (["--two-prime"] if args.two_prime else []),
+        ]
+        + (["--two-prime"] if args.two_prime else []),
         check=True,
     )
     print("PASS: arithmetic and offline BOINC tests", flush=True)

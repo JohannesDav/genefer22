@@ -2,6 +2,7 @@
 """Run the experimental GFN19 prover, certify conservatively, retry on failure.
 Standalone workflow; this is not a BOINC application wrapper.
 """
+
 import argparse
 import fcntl
 import hashlib
@@ -18,6 +19,12 @@ import tempfile
 import time
 import uuid
 
+PACKED_ASSETS = (
+    "packed_kernel.py",
+    "kernels/gfn19-packed.cl",
+    "kernels/gfn19-packed-convert.clh",
+    "kernels/gfn19-packed-codec.clh",
+)
 BUNDLE = Path(__file__).resolve().parent
 CKEY = re.compile(r"\bckey = ([0-9A-Fa-f]{16})\b")
 PKEY = re.compile(r"\bpkey = ([0-9A-Fa-f]{16})\b")
@@ -64,7 +71,7 @@ def write_json(path, value):
 def clean_environment():
     env = dict(os.environ)
     for name in list(env):
-        if name.startswith(("GENEFER_","CUDA_")) or name in (
+        if name.startswith(("GENEFER_", "CUDA_")) or name in (
             "LOAD_SOURCE",
             "DUMP_SOURCE",
             "DUMP_COMPILE_SOURCE",
@@ -190,44 +197,90 @@ def atomic_copy(source, destination):
             os.unlink(name)
 
 
-
 def arithmetic_manifest(bundle, two_prime=False):
-    name="boinc-two-prime-manifest.json" if two_prime else "boinc-guard-manifest.json"
-    data=json.loads((bundle/name).read_text())
-    expected="two" if two_prime else "three"
-    if data.get("version")!=2 or data.get("arithmetic")!=expected:
+    name = "boinc-two-prime-manifest.json" if two_prime else "boinc-guard-manifest.json"
+    data = json.loads((bundle / name).read_text())
+    expected = "two" if two_prime else "three"
+    if data.get("version") != 2 or data.get("arithmetic") != expected:
         raise ValidationError("Invalid arithmetic manifest")
     return data
 
 
-def configure_runtime(env, bundle, manifest):
-    env["GENEFER_ARITHMETIC"]=manifest["arithmetic"]
-    kernel=str(bundle/manifest["kernel"])
-    if manifest["arithmetic"]=="three" or manifest["backend"]=="opencl":
-        env["GENEFER_KERNEL"]=kernel
+def packed_module(bundle):
+    # Tests also load this wrapper by filename, outside the bundle's sys.path.
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "gfn19_packed_parameters", bundle / "packed_kernel.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def configure_runtime(
+    env, bundle, manifest, base=None, directory=None, packed_info=None
+):
+    env.pop("GENEFER_PACKED_KERNEL", None)
+    env["GENEFER_ARITHMETIC"] = manifest["arithmetic"]
+    kernel = str(bundle / manifest["kernel"])
+    if manifest["arithmetic"] == "three" or manifest["backend"] == "opencl":
+        env["GENEFER_KERNEL"] = kernel
     else:
-        policy=json.loads((bundle/"runtime.json").read_text())
-        env.update(CUDA_PTX=kernel,CUDA_GRAPH="1",CUDA_CACHE="50",
-                   CUDA_INNER_CACHE=str(policy["inner"]),CUDA_BRIDGE_CACHE=str(policy["bridge"]),
-                   CUDA_GRAPH_SPAN=str(policy["graph_span"]),CUDA_DUP_SPECIAL="1")
-        if policy["persist"]: env["CUDA_DATA_PERSIST"]=str(policy["persist"])
+        policy = json.loads((bundle / "runtime.json").read_text())
+        env.update(
+            CUDA_PTX=kernel,
+            CUDA_GRAPH="1",
+            CUDA_CACHE="50",
+            CUDA_INNER_CACHE=str(policy["inner"]),
+            CUDA_BRIDGE_CACHE=str(policy["bridge"]),
+            CUDA_GRAPH_SPAN=str(policy["graph_span"]),
+            CUDA_DUP_SPECIAL="1",
+        )
+        if policy["persist"]:
+            env["CUDA_DATA_PERSIST"] = str(policy["persist"])
+    if manifest.get("packed_squaring") and base is not None:
+        selected = packed_module(bundle).select_program(
+            base, manifest["gpu"], bundle / "kernels"
+        )
+        if selected is not None:
+            text, information = selected
+            require_directory = Path(directory) if directory is not None else None
+            if require_directory is None:
+                raise ValidationError("Packed kernel needs a working directory")
+            path = require_directory / "gfn19-packed.cl"
+            path.write_text(text)
+            env["GENEFER_PACKED_KERNEL"] = str(path)
+            if packed_info is not None:
+                packed_info.update(information, source_sha256=sha256(path))
     return env
 
 
 def verify_tail(checkpoint, proof, base, device, work, conservative):
     # Original upstream arithmetic, with a complete digit-vector comparison.
-    checker=conservative.parent/"genefer-tail-check"
-    log=work/"tail-check.log"
-    started=time.monotonic()
+    checker = conservative.parent / "genefer-tail-check"
+    log = work / "tail-check.log"
+    started = time.monotonic()
     with log.open("w") as output:
-        result=subprocess.run([str(checker),str(base),str(checkpoint),str(proof)],
-                              cwd=work,env=clean_environment(),stdout=output,stderr=subprocess.STDOUT)
+        result = subprocess.run(
+            [str(checker), str(base), str(checkpoint), str(proof)],
+            cwd=work,
+            env=clean_environment(),
+            stdout=output,
+            stderr=subprocess.STDOUT,
+        )
     if result.returncode or "TAIL_MATCH=PASS" not in log.read_text():
-        raise ValidationError("Final-segment verification failed; see "+str(log))
-    return {"tail_verified":True,"tail_seconds":time.monotonic()-started,
-            "tail_checkpoint_sha256":sha256(checkpoint)}
+        raise ValidationError("Final-segment verification failed; see " + str(log))
+    return {
+        "tail_verified": True,
+        "tail_seconds": time.monotonic() - started,
+        "tail_checkpoint_sha256": sha256(checkpoint),
+    }
 
-def _execute_locked(base, output, device=0, verify_existing=False, bundle=BUNDLE, two_prime=False):
+
+def _execute_locked(
+    base, output, device=0, verify_existing=False, bundle=BUNDLE, two_prime=False
+):
     output = Path(output).resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     proof = Path(str(output) + ".proof")
@@ -258,7 +311,12 @@ def _execute_locked(base, output, device=0, verify_existing=False, bundle=BUNDLE
         raise ValidationError("Conservative binary missing; run build.py first")
     work.mkdir(exist_ok=True)
     metadata = work / "candidate.json"
-    identity = {"base":base,"n":19,"device":device,"arithmetic":manifest["arithmetic"]}
+    identity = {
+        "base": base,
+        "n": 19,
+        "device": device,
+        "arithmetic": manifest["arithmetic"],
+    }
     if metadata.exists() and json.loads(metadata.read_text()) != identity:
         raise ValidationError("Working directory belongs to another candidate/device")
     write_json(metadata, identity)
@@ -271,6 +329,10 @@ def _execute_locked(base, output, device=0, verify_existing=False, bundle=BUNDLE
         "conservative_sha256": sha256(conservative),
         "runner_sha256": sha256(Path(__file__)),
     }
+    if manifest.get("packed_squaring"):
+        backend["packed_sources"] = {
+            name: sha256(bundle / name) for name in PACKED_ASSETS
+        }
     if not verify_existing:
         backend_path = work / "backend.json"
         if backend_path.exists():
@@ -308,9 +370,10 @@ def _execute_locked(base, output, device=0, verify_existing=False, bundle=BUNDLE
             prefix = directory / "gproof"
             env = clean_environment()
             binary = conservative
+            packed_info = {}
             if mode == "fast":
                 binary = fast
-                configure_runtime(env,bundle,manifest)
+                configure_runtime(env, bundle, manifest, base, directory, packed_info)
             try:
                 text, seconds = command(
                     binary,
@@ -328,9 +391,20 @@ def _execute_locked(base, output, device=0, verify_existing=False, bundle=BUNDLE
                         "Prover did not complete successfully; see " + str(directory)
                     )
                 certificate = verify(generated, base, device, work, conservative)
-                if mode=="fast":
-                    report.update(verify_tail(Path(str(prefix)+".tail"),generated,base,device,work,conservative))
+                if mode == "fast":
+                    report.update(
+                        verify_tail(
+                            Path(str(prefix) + ".tail"),
+                            generated,
+                            base,
+                            device,
+                            work,
+                            conservative,
+                        )
+                    )
                 report.update(certificate, mode=mode, prover_seconds=seconds)
+                if mode == "fast" and packed_info:
+                    report["packed_squaring"] = packed_info
                 source = generated
                 break
             except (ValidationError, OSError) as exc:
@@ -365,7 +439,9 @@ def _execute_locked(base, output, device=0, verify_existing=False, bundle=BUNDLE
     return report
 
 
-def execute(base, output, device=0, verify_existing=False, bundle=BUNDLE, two_prime=False):
+def execute(
+    base, output, device=0, verify_existing=False, bundle=BUNDLE, two_prime=False
+):
     output = Path(output).resolve()
     work = Path(str(output) + ".work")
     work.mkdir(parents=True, exist_ok=True)
@@ -388,16 +464,22 @@ def main(argv=None):
         action="store_true",
         help="Verify PREFIX.proof without recomputing it",
     )
-    p.add_argument("--two-prime",action="store_true",help="Use experimental two-prime arithmetic (base at most30million)")
+    p.add_argument(
+        "--two-prime",
+        action="store_true",
+        help="Use experimental two-prime arithmetic (base at most30million)",
+    )
     args = p.parse_args(argv)
     b = args.base
-    maximum=30000000 if args.two_prime else 528220156
+    maximum = 30000000 if args.two_prime else 528220156
     if b < 1024 or b > maximum or b % 2 or b & (b - 1) == 0:
         p.error("base must be even, 1024..{} and not a power of two".format(maximum))
     if args.device != 0:
         p.error("Only device 0 is supported")
     try:
-        execute(b, args.output, args.device, args.verify_existing, two_prime=args.two_prime)
+        execute(
+            b, args.output, args.device, args.verify_existing, two_prime=args.two_prime
+        )
     except KeyboardInterrupt:
         print(
             "Interrupted; checkpoints retained in PREFIX.work for resuming.",

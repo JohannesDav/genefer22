@@ -74,6 +74,8 @@ public:
 
 	virtual double getError() const { return 0; }
 	virtual void info() const {}
+	// Proof generation uses short powers interleaved with multiplications.
+	virtual void setProofGeneration(bool) {}
 
 private:
 #if defined(GPU)

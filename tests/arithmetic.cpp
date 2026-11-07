@@ -2,19 +2,21 @@
 #include <iostream>
 #include <memory>
 #if defined(GENEFER_THREE_PRIME)
-#include "gfn19_three/transform.h"
+#include "gfn19_three/packed.h"
+using ArithmeticBase=packed_transform;
 constexpr size_t fields=3;
 #else
 #include "cuda/transform.h"
 constexpr size_t fields=2;
+using ArithmeticBase=transformGPUs<2,false>;
 #endif
 #include "reference.h"
-class ArithmeticTest : public transformGPUs<fields, false>
+class ArithmeticTest : public ArithmeticBase
 {
   public:
-    using transformGPUs::getZi;
-    using transformGPUs::setZi;
-    using transformGPUs::transformGPUs;
+    using ArithmeticBase::getZi;
+    using ArithmeticBase::setZi;
+    using ArithmeticBase::ArithmeticBase;
 };
 int main(int argc, char **argv)
 {
@@ -67,7 +69,7 @@ int main(int argc, char **argv)
         mpz_set(initial, ref);
     }
     t.setZi(z.data());
-    if (std::getenv("MULTIPLY"))
+    if (std::getenv("MULTIPLY") && !std::getenv("CURRENT_MULTIPLICAND"))
     {
         t.copy(1, 0);
         t.initMultiplicand(1);
@@ -79,6 +81,10 @@ int main(int argc, char **argv)
     auto start = std::chrono::steady_clock::now();
     for (unsigned i = 0; i < count; ++i)
     {
+        if (std::getenv("PROOF_PHASE")) {
+            if (i == 6 || i == 22) t.setProofGeneration(true);
+            if (i == 14 || i == 30) t.setProofGeneration(false);
+        }
         if (std::getenv("SCALAR"))
             t.squareMul(std::atoi(std::getenv("SCALAR")));
         else
@@ -97,7 +103,13 @@ int main(int argc, char **argv)
         }
     }
     if (std::getenv("MULTIPLY"))
+    {
+        if (std::getenv("CURRENT_MULTIPLICAND"))
+            t.initMultiplicand(0);
         t.mul();
+        if (std::getenv("SQUARE_AFTER_MULTIPLY"))
+            t.squareDup(true);
+    }
     t.getZi(z.data());
     auto stop = std::chrono::steady_clock::now();
     if (true)
@@ -113,8 +125,17 @@ int main(int argc, char **argv)
         }
         if (std::getenv("MULTIPLY"))
         {
-            mpz_mul(ref, ref, initial);
+            if (std::getenv("CURRENT_MULTIPLICAND"))
+                mpz_mul(ref, ref, ref);
+            else
+                mpz_mul(ref, ref, initial);
             mpz_mod(ref, ref, modulus);
+            if (std::getenv("SQUARE_AFTER_MULTIPLY"))
+            {
+                mpz_mul(ref, ref, ref);
+                mpz_mul_2exp(ref, ref, 1);
+                mpz_mod(ref, ref, modulus);
+            }
         }
         mpz_t actual;
         mpz_init(actual);
