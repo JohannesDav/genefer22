@@ -10,11 +10,18 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #include <cstdint>
 #include <cmath>
 #include <fstream>
+#include <cstdlib>
 
 #include "ocl.h"
 #include "transform.h"
 
 #include "ocl/kernel.h"
+#if defined(GENEFER_EXACT_TWO)
+#include "gfn19_three/device.h"
+using execution_device = three_device;
+#else
+using execution_device = device;
+#endif
 
 // #define USE_WI	1
 // #define	TUNE	1
@@ -208,7 +215,7 @@ public:
 	void forward##u##p_##v() { setTransformArgs(_forward##u##_##v, false); forward##u##_##v(); setTransformArgs(_forward##u##_##v);	}
 
 template<size_t RNS_SIZE, bool is32>
-class engines : public device
+class engines : public execution_device
 {
 	using ZP1 = ZPT<is32 ? P1U : P1S, is32 ? Q1U : Q1S, is32 ? R1U : R1S, is32 ? H1U : H1S>;
 	using ZP2 = ZPT<is32 ? P2U : P2S, is32 ? Q2U : Q2S, is32 ? R2U : R2S, is32 ? H2U : H2S>;
@@ -252,7 +259,7 @@ private:
 
 public:
 	engines(const platform & platform, const size_t d, const int ln, const bool isBoinc, const size_t num_regs, const bool verbose)
-		: device(platform, d, verbose), _n(size_t(1) << ln), _ln(ln), _isBoinc(isBoinc), _num_regs(num_regs),
+		: execution_device(platform, d, verbose), _n(size_t(1) << ln), _ln(ln), _isBoinc(isBoinc), _num_regs(num_regs),
 		_lnormWGsize(std::min(std::max(5, ln / 2 - 3), ilog2_32(uint32_t(getMaxWorkGroupSize())))) {}
 	virtual ~engines() {}
 
@@ -1037,7 +1044,15 @@ public:
 
 		src << "#define MAX_WG_SZ\t" << _pEngine->getMaxWorkGroupSize() << std::endl << std::endl;
 
-		if (isBoinc || !_pEngine->readOpenCL("ocl/kernel.cl", "src/ocl/kernel.h", "src_ocl_kernel", src)) src << src_ocl_kernel;
+#if defined(GENEFER_EXACT_TWO)
+        const char *path = std::getenv("GENEFER_KERNEL");
+        if (!path) throw std::runtime_error("GENEFER_KERNEL must point to the two-prime source");
+        std::ifstream kernel(path);
+        if (!kernel) throw std::runtime_error("Cannot read two-prime kernel source");
+        src << kernel.rdbuf();
+#else
+        if (isBoinc || !_pEngine->readOpenCL("ocl/kernel.cl", "src/ocl/kernel.h", "src_ocl_kernel", src)) src << src_ocl_kernel;
+#endif
 
 		_pEngine->loadProgram(src.str());
 		_pEngine->allocMemory();
@@ -1156,8 +1171,12 @@ public:
 
 	void squareDup(const bool dup) override
 	{
+#if defined(GENEFER_EXACT_TWO)
+        _pEngine->runSquareGraph(dup, [&] { _pEngine->square(); _pEngine->baseMod(dup); });
+#else
 		_pEngine->square();
 		_pEngine->baseMod(dup);
+#endif
 	}
 
 	void squareMul(const int32_t a) override

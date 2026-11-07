@@ -169,7 +169,7 @@ public:
         three_cuda_check(cuDevicePrimaryCtxRetain(&context_,device_));
         three_cuda_check(cuCtxSetCurrent(context_));
         three_cuda_check(cuStreamCreate(&stream_,CU_STREAM_NON_BLOCKING));
-        if(verbose) pio::print("GFN-19 three-prime CUDA kernels\n");
+        if(verbose) pio::print("GFN-19 exact CUDA kernels\n");
     }
     virtual ~three_device()
     {
@@ -193,7 +193,7 @@ public:
     void loadProgram(const std::string &source)
     {
         std::string binary=compile(source);
-#if defined(GENEFER_GUARD_3090)
+#if defined(GENEFER_GUARD_3090) && defined(GENEFER_THREE_PRIME)
         // Streaming loads performed best for this module on the RTX3090.
         binary = std::regex_replace(binary, std::regex("ld\\.global\\.(nc\\.)?"), "ld.global.cs.");
 #endif

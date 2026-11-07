@@ -9,8 +9,6 @@ Please give feedback to the authors if improvement is realized. It is distribute
 
 #if defined(GENEFER_THREE_PRIME)
 #include "gfn19_three/packed.h"
-#elif defined(GENEFER_CUDA)
-#include "cuda/transform.h"
 #else
 #include "transformGPU.h"
 #endif
@@ -41,12 +39,13 @@ transform * transform::create_ocl(const uint32_t b, const uint32_t n, const bool
     if (n != 19 || device != 0 || !gfn19_guaranteed::supported(b))
         throw std::runtime_error("The three-prime profile requires GFN-19, device 0 and an even non-power-of-two base in 1024..528220156");
     return new packed_transform(b, n, isBoinc, device, num_regs, boinc_platform_id, boinc_device_id, verbose);
-#elif defined(GENEFER_CUDA)
-    // The independently checked wrapper is required for this specialization.
-    if (n != 19 || device != 0 || b < 1024 || b > 30000000 || b % 2 || (b & (b - 1)) == 0)
-        throw std::runtime_error("CUDA profile requires GFN-19, device 0 and an even non-power-of-two base in 1024..30000000");
-    return new transformGPUs<2, false>(b, n, isBoinc, device, num_regs,
-                                     boinc_platform_id, boinc_device_id, verbose);
+#elif defined(GENEFER_EXACT_TWO)
+    if (n != 19 || device != 0 || b < 1024 || b % 2 || !(b & (b-1)) ||
+        uint64_t(b) * b >= (P1U * uint64_t(P2U) / 2) / (size_t(1) << n))
+        throw std::runtime_error("Exact two-prime profile is outside its upstream arithmetic bound");
+    if (uint64_t(b) * b < (P1S * uint64_t(P2S) / 2) / (size_t(1) << n))
+        return new transformGPUs<2, false>(b, n, isBoinc, device, num_regs, boinc_platform_id, boinc_device_id, verbose);
+    return new transformGPUs<2, true>(b, n, isBoinc, device, num_regs, boinc_platform_id, boinc_device_id, verbose);
 #else
 	transform * pTransform = nullptr;
 	if (b * static_cast<uint64_t>(b) < (P1S * static_cast<uint64_t>(P2S) / 2) / (size_t(1) << n))

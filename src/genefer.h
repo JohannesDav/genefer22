@@ -783,7 +783,8 @@ private:
 		}
 #if defined(GENEFER_GFN19) || defined(GENEFER_CUDA)
         // Keep checkpoint1 before proof generation removes intermediate files.
-        std::filesystem::copy_file(ckptFilename(1), _mainFilename+".tail", std::filesystem::copy_options::overwrite_existing);
+        if (const char *check = std::getenv("GENEFER_CHECK_TAIL"); check && std::string(check) == "1")
+            std::filesystem::copy_file(ckptFilename(1), _mainFilename+".tail", std::filesystem::copy_options::overwrite_existing);
 #endif
 		const EReturn rGL = GL(exponent, B_GL, validTime);
 		if (rGL != EReturn::Success) return rGL;

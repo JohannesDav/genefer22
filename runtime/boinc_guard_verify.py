@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Private conservative verification for the native BOINC coordinator.
+"""Private preparation and optional checks for the native BOINC coordinator.
 
 The native parent owns BOINC IPC and publication. This helper never attaches to
 BOINC, fetches work, resolves public output names, or publishes result files.
@@ -56,62 +56,52 @@ def load_inputs(bundle, prefix, base, device, operation, preparing=False):
     require(
         device == 0, "this experimental bundle supports the single assigned GPU only"
     )
+    checked = checked_module(bundle)
+    routes = checked.routing_module(bundle)
     arithmetic = os.environ.get("GENEFER_ARITHMETIC")
-    require(arithmetic in ("two", "three"), "arithmetic selection missing")
-    manifest_path = bundle / (
-        "boinc-two-prime-manifest.json"
-        if arithmetic == "two"
-        else "boinc-guard-manifest.json"
-    )
+    require(arithmetic in ("two", "three", "upstream"), "arithmetic selection missing")
+    if operation == "proof":
+        require(
+            arithmetic == "upstream" or arithmetic == routes.arithmetic(base),
+            "arithmetic does not match the exact base range",
+        )
+    manifest_path = bundle / routes.manifest_name(arithmetic)
     manifest = json.loads(manifest_path.read_text())
     require(
         manifest["version"] == 2
         and manifest["arithmetic"] == arithmetic
-        and manifest["profile"] == arithmetic + "-prime",
+        and manifest["profile"] == arithmetic,
         "manifest version/profile",
     )
     require(manifest["gpu"] in ("3090", "4060"), "unsupported GPU profile")
-    maximum = (
-        (30000000 if arithmetic == "two" else 528220156)
-        if operation == "proof"
-        else 2000000000
-    )
     require(
-        1024 <= base <= maximum and base % 2 == 0 and base & (base - 1) != 0,
-        "base outside the explicitly guarded specialization",
+        1024 <= base <= routes.MAX_BASE and base % 2 == 0 and base & (base - 1) != 0,
+        "base outside supported range",
     )
-    native = (
-        "bin/genefer-boinc-two-prime"
-        if arithmetic == "two"
-        else "bin/genefer-boinc-checked"
-    )
+    native = {
+        "two": "bin/genefer-boinc-two",
+        "three": "bin/genefer-boinc-checked",
+        "upstream": "bin/genefer-boinc-upstream",
+    }[arithmetic]
     required = {
         native,
         "bin/genefer-conservative",
         "bin/genefer-tail-check",
         "boinc_guard_verify.py",
         "run_checked.py",
+        "routing.py",
         manifest["kernel"],
     }
-    if arithmetic == "two" and manifest["backend"] == "cuda":
-        required.add("runtime.json")
     if manifest.get("packed_squaring"):
         require(
             arithmetic == "three" and manifest["backend"] == "cuda",
             "invalid packed backend",
         )
-        required.update(checked_module(bundle).PACKED_ASSETS)
+        required.update(checked.PACKED_ASSETS)
     require(set(manifest["files"]) == required, "manifest file set")
-    if arithmetic == "three":
-        expected_kernel = "kernels/gfn19-three.cl"
-    elif manifest["backend"] == "opencl":
-        expected_kernel = "kernels/gfn19-" + manifest["gpu"] + ".ptx"
-    else:
-        expected_kernel = (
-            "kernels/gfn19-signed-divider-sm"
-            + ("86" if manifest["gpu"] == "3090" else "89")
-            + ".ptx"
-        )
+    expected_kernel = (
+        "kernels/gfn19-three.cl" if arithmetic == "three" else "kernels/gfn19-two.cl"
+    )
     require(manifest["kernel"] == expected_kernel, "kernel profile")
     for name, digest in manifest["files"].items():
         path = bundle / name
@@ -128,13 +118,8 @@ def load_inputs(bundle, prefix, base, device, operation, preparing=False):
         sha(parent) == manifest["files"][native],
         "unexpected parent executable identity",
     )
-    key = (
-        "CUDA_PTX"
-        if arithmetic == "two" and manifest["backend"] == "cuda"
-        else "GENEFER_KERNEL"
-    )
     require(
-        os.environ.get(key) == str(bundle / manifest["kernel"]),
+        os.environ.get("GENEFER_KERNEL") == str(bundle / manifest["kernel"]),
         "unexpected GPU kernel path",
     )
     expected_prefix = (
@@ -239,48 +224,58 @@ def verify(bundle, prefix, base, device, identity):
     checked = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(checked)
     work = prefix.with_name(prefix.name + ".verification")
-    work.mkdir(exist_ok=True)
-    result = checked.verify(
-        proof, base, device, work, bundle / "bin/genefer-conservative"
-    )
-    for field in ("probable_prime", "proof_key", "residue64"):
-        require(
-            native[field] == result[field], "native/conservative mismatch: " + field
+    checked.proof_header(proof, base)
+    certificate_requested = os.environ.get("GENEFER_CHECK_CERTIFICATE") == "1"
+    tail_requested = os.environ.get("GENEFER_CHECK_TAIL") == "1"
+    result, tail = {}, {}
+    if certificate_requested:
+        work.mkdir(exist_ok=True)
+        result = checked.verify(
+            proof, base, device, work, bundle / "bin/genefer-conservative"
         )
-    server = (Path(result["verification_directory"]) / "server.log").read_text()
-    old = re.search(r"\bold64 = ([0-9a-fA-F]{16})\b", server)
-    require(
-        native["old64"] == (old[1].upper() if old else None), "legacy residue mismatch"
-    )
-    for name in ("server.log", "check.log"):
-        log = (Path(result["verification_directory"]) / name).read_text()
+        for field in ("probable_prime", "proof_key", "residue64"):
+            require(
+                native[field] == result[field], "native/conservative mismatch: " + field
+            )
+        server = (Path(result["verification_directory"]) / "server.log").read_text()
+        old = re.search(r"\bold64 = ([0-9a-fA-F]{16})\b", server)
         require(
-            not re.search(
-                r"validation failed|incorrect|runtime_error|Error:", log, re.I
-            ),
-            "conservative verifier reported an error",
+            native["old64"] == (old[1].upper() if old else None),
+            "legacy residue mismatch",
         )
-    checkpoint = prefix.with_name(prefix.name + ".tail")
-    checkpoint_sha = sha(checkpoint)
-    tail = checked.verify_tail(
-        checkpoint,
-        proof,
-        base,
-        device,
-        prefix.parent,
-        bundle / "bin/genefer-conservative",
-    )
-    require(
-        sha(checkpoint) == checkpoint_sha,
-        "final-segment checkpoint changed during verification",
-    )
+        for name in ("server.log", "check.log"):
+            log = (Path(result["verification_directory"]) / name).read_text()
+            require(
+                not re.search(
+                    r"validation failed|incorrect|runtime_error|Error:", log, re.I
+                ),
+                "conservative verifier reported an error",
+            )
+    if tail_requested:
+        checkpoint = prefix.with_name(prefix.name + ".tail")
+        checkpoint_sha = sha(checkpoint)
+        tail = checked.verify_tail(
+            checkpoint,
+            proof,
+            base,
+            device,
+            prefix.parent,
+            bundle / "bin/genefer-conservative",
+        )
+        require(
+            sha(checkpoint) == checkpoint_sha,
+            "final-segment checkpoint changed during verification",
+        )
     # Revalidate ownership/identities after the independent GPU subprocesses.
     _, final_identity = load_inputs(bundle, prefix, base, device, "proof")
     require(final_identity == identity, "bundle changed during verification")
     require(
         sha(proof) == original_proof_sha
-        and sha(Path(result["verification_directory"]) / "gproof.proof")
-        == original_proof_sha,
+        and (
+            not certificate_requested
+            or sha(Path(result["verification_directory"]) / "gproof.proof")
+            == original_proof_sha
+        ),
         "proof changed during verification",
     )
     require(
@@ -288,7 +283,10 @@ def verify(bundle, prefix, base, device, identity):
         "native result changed during verification",
     )
     report = dict(
-        validated=True,
+        completed=True,
+        validated=certificate_requested and tail_requested,
+        certificate_verified=certificate_requested,
+        tail_verified=tail_requested,
         base=base,
         n=19,
         native_result=native,
@@ -297,10 +295,10 @@ def verify(bundle, prefix, base, device, identity):
         backend_identity=identity,
         verification=result,
         tail_verification=tail,
-        scope="private conservative verification; native BOINC parent must still publish and finish",
+        scope="Requested optional numerical checks and mandatory input identity checks; native BOINC parent publishes and finishes",
     )
     atomic_json(prefix.with_name(prefix.name + ".verified.json"), report)
-    print("BOINC_GUARD_PRIVATE_VERIFICATION_PASS", flush=True)
+    print("BOINC_GUARD_REQUESTED_CHECKS_PASS", flush=True)
 
 
 def check_certificate(bundle, prefix, base, device, identity):

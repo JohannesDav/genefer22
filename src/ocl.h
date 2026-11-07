@@ -272,10 +272,8 @@ public:
 	cl_device_id getDevice(const size_t d) const { return _devices[d].device_id; }
 };
 
-#if defined(GENEFER_THREE_PRIME)
+#if defined(GENEFER_THREE_PRIME) || defined(GENEFER_EXACT_TWO)
 #include "gfn19_three/device.h"
-#elif defined(GENEFER_CUDA)
-#include "cuda/device.h"
 #else
 class device : oclObject
 {

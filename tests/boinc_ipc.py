@@ -25,7 +25,8 @@ class Episode:
         label,
         client_pid=None,
         candidate=28000000,
-        two_prime=False,
+        check_certificate=True,
+        check_tail=True,
     ):
         self.slot, self.label = slot, label
         subprocess.run(
@@ -55,7 +56,9 @@ class Episode:
                 "gproof",
                 "--guard-bundle",
                 str(bundle),
-            ] + (["--two-prime"] if two_prime else []),
+            ]
+            + (["--check-certificate"] if check_certificate else [])
+            + (["--check-tail"] if check_tail else []),
             cwd=slot,
             stdout=self.log,
             stderr=subprocess.STDOUT,

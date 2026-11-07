@@ -13,7 +13,6 @@ def main():
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--initializer", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--two-prime", action="store_true")
     args = parser.parse_args()
     bundle, output = args.bundle.resolve(), args.output.resolve()
     output.mkdir()
@@ -41,7 +40,6 @@ def main():
         args.initializer.resolve(),
         "p",
         "checkpoint",
-        two_prime=args.two_prime,
     )
     try:
         episode.wait(lambda: bool(episode.samples), 30)
@@ -61,16 +59,7 @@ def main():
     assert (slot / ".gfn_checked_19_28000000.ctx").is_file()
     assert episodes[-1]["returncode"] == 0
     print("Checkpoint/quit passed", flush=True)
-    manifest = json.loads(
-        (
-            bundle
-            / (
-                "boinc-two-prime-manifest.json"
-                if args.two_prime
-                else "boinc-guard-manifest.json"
-            )
-        ).read_text()
-    )
+    manifest = json.loads((bundle / "boinc-guard-manifest.json").read_text())
     if manifest.get("packed_squaring"):
         rejected_root = output / "changed-kernel"
         rejected_root.mkdir()
@@ -87,7 +76,6 @@ def main():
             args.initializer.resolve(),
             "p",
             "changed-kernel",
-            two_prime=args.two_prime,
         )
         try:
             # An intentional preparation failure can precede the first periodic
@@ -115,7 +103,6 @@ def main():
         args.initializer.resolve(),
         "p",
         "resume-proof",
-        two_prime=args.two_prime,
     )
     try:
         episode.wait(
@@ -160,7 +147,6 @@ def main():
         args.initializer.resolve(),
         "c",
         "certificate",
-        two_prime=args.two_prime,
     )
     try:
         episodes.append(episode.finish(150))

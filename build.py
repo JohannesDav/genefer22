@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build GFN-19 with exact arithmetic and an experimental two-prime option."""
+"""Build exact GFN-19 with automatic arithmetic selection."""
 
 import argparse
 import hashlib
@@ -32,9 +32,6 @@ def main():
     parser.add_argument(
         "--sdk", type=Path, default=Path("/usr"), help="BOINC SDK prefix"
     )
-    parser.add_argument(
-        "--kernel", type=Path, help="override the experimental two-prime PTX"
-    )
     if CUDA_BACKEND:
         parser.add_argument("--cuda", type=Path, default=Path("/usr/local/cuda"))
     args = parser.parse_args()
@@ -57,7 +54,7 @@ def main():
     for folder in ["bin", "kernels", "lib", "licenses"]:
         (output / folder).mkdir(parents=True)
     shutil.copy2(ROOT / "LICENSE", output / "LICENSE")
-    for name in ["run_checked.py", "boinc_guard_verify.py"]:
+    for name in ["run_checked.py", "boinc_guard_verify.py", "routing.py"]:
         shutil.copy2(ROOT / "runtime" / name, output / name)
     for name in PACKED_ASSETS:
         source = (
@@ -70,25 +67,8 @@ def main():
     (output / "genefer-boinc").chmod(493)
     three_kernel = "kernels/gfn19-three.cl"
     shutil.copy2(ROOT / "kernels/src/gfn19-three.cl", output / three_kernel)
-    two_kernel = (
-        "kernels/gfn19-signed-divider-sm"
-        + ("86" if args.gpu == "3090" else "89")
-        + ".ptx"
-        if CUDA_BACKEND
-        else "kernels/gfn19-" + args.gpu + ".ptx"
-    )
-    shutil.copy2(
-        args.kernel.resolve() if args.kernel else ROOT / two_kernel, output / two_kernel
-    )
-    policy = dict(
-        persist=4 if args.gpu == "3090" else 0,
-        inner=50 if args.gpu == "3090" else 100,
-        bridge=50 if args.gpu == "3090" else 100,
-        graph_span=8,
-        dup_special=True,
-    )
-    if CUDA_BACKEND:
-        (output / "runtime.json").write_text(json.dumps(policy, indent=2) + "\n")
+    two_kernel = "kernels/gfn19-two.cl"
+    shutil.copy2(ROOT / "ocl/kernel.cl", output / two_kernel)
     for name in ["boinc", "boinc_api", "boinc_opencl"]:
         library = (libraries / ("lib" + name + ".so.7")).resolve(strict=True)
         shutil.copy2(library, output / "lib" / library.name)
@@ -145,14 +125,28 @@ def main():
         (common + boinc + sources + libs + boinc_libs, "genefer-boinc-stock"),
         (common + [str(ROOT / "src/tail_check.cpp")] + libs, "genefer-tail-check"),
     ]
-    for arithmetic in ["three", "two"]:
-        flags = optimized + (["-DGENEFER_THREE_PRIME"] if arithmetic == "three" else [])
-        prover = "genefer-gfn19" if arithmetic == "three" else "genefer-gfn19-two-prime"
-        native = (
-            "genefer-boinc-checked"
-            if arithmetic == "three"
-            else "genefer-boinc-two-prime"
-        )
+    names = {
+        "three": (
+            "genefer-gfn19",
+            "genefer-boinc-checked",
+            three_kernel,
+            ["-DGENEFER_THREE_PRIME"],
+        ),
+        "two": (
+            "genefer-gfn19-two",
+            "genefer-boinc-two",
+            two_kernel,
+            ["-DGENEFER_EXACT_TWO"],
+        ),
+        "upstream": (
+            "genefer-gfn19-upstream",
+            "genefer-boinc-upstream",
+            two_kernel,
+            [],
+        ),
+    }
+    for arithmetic, (prover, native, kernel, extra) in names.items():
+        flags = optimized + extra
         commands += [
             (common + flags + sources + libs + gpu_libs, prover),
             (
@@ -170,46 +164,35 @@ def main():
     for command, name in commands:
         print("Building " + name, flush=True)
         subprocess.run(command + ["-o", str(output / "bin" / name)], check=True)
-    for arithmetic, kernel in [("three", three_kernel), ("two", two_kernel)]:
-        native = (
-            "bin/genefer-boinc-checked"
-            if arithmetic == "three"
-            else "bin/genefer-boinc-two-prime"
-        )
-        prover = (
-            "bin/genefer-gfn19"
-            if arithmetic == "three"
-            else "bin/genefer-gfn19-two-prime"
-        )
+    for arithmetic, (prover, native, kernel, _) in names.items():
         required = [
-            native,
+            "bin/" + native,
             "bin/genefer-conservative",
             "bin/genefer-tail-check",
             kernel,
             "boinc_guard_verify.py",
             "run_checked.py",
+            "routing.py",
         ]
         if arithmetic == "three":
             required.extend(PACKED_ASSETS)
-        if CUDA_BACKEND and arithmetic == "two":
-            required.append("runtime.json")
         manifest = dict(
             version=2,
             gpu=args.gpu,
-            backend="cuda" if CUDA_BACKEND else "opencl",
+            backend="opencl" if arithmetic == "upstream" else "cuda",
             arithmetic=arithmetic,
-            profile=arithmetic + "-prime",
+            profile=arithmetic,
             kernel=kernel,
-            prover=prover,
+            prover="bin/" + prover,
             files={name: sha(output / name) for name in required},
         )
         if arithmetic == "three":
             manifest["packed_squaring"] = True
-        filename = (
-            "boinc-guard-manifest.json"
-            if arithmetic == "three"
-            else "boinc-two-prime-manifest.json"
-        )
+        filename = {
+            "three": "boinc-guard-manifest.json",
+            "two": "boinc-two-prime-manifest.json",
+            "upstream": "boinc-upstream-manifest.json",
+        }[arithmetic]
         (output / filename).write_text(json.dumps(manifest, indent=2) + "\n")
     files = {
         str(p.relative_to(output)): sha(p) for p in output.rglob("*") if p.is_file()

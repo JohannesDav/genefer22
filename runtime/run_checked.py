@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the experimental GFN19 prover, certify conservatively, retry on failure.
+"""Run an exact GFN19 prover, with optional independent checks.
 Standalone workflow; this is not a BOINC application wrapper.
 """
 
@@ -197,11 +197,22 @@ def atomic_copy(source, destination):
             os.unlink(name)
 
 
-def arithmetic_manifest(bundle, two_prime=False):
-    name = "boinc-two-prime-manifest.json" if two_prime else "boinc-guard-manifest.json"
-    data = json.loads((bundle / name).read_text())
-    expected = "two" if two_prime else "three"
-    if data.get("version") != 2 or data.get("arithmetic") != expected:
+def routing_module(bundle):
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "gfn19_routing", bundle / "routing.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def arithmetic_manifest(bundle, base=28000000):
+    routes = routing_module(bundle)
+    kind = routes.arithmetic(base)
+    data = json.loads((bundle / routes.manifest_name(kind)).read_text())
+    if data.get("version") != 2 or data.get("arithmetic") != kind:
         raise ValidationError("Invalid arithmetic manifest")
     return data
 
@@ -224,21 +235,7 @@ def configure_runtime(
     env.pop("GENEFER_PACKED_KERNEL", None)
     env["GENEFER_ARITHMETIC"] = manifest["arithmetic"]
     kernel = str(bundle / manifest["kernel"])
-    if manifest["arithmetic"] == "three" or manifest["backend"] == "opencl":
-        env["GENEFER_KERNEL"] = kernel
-    else:
-        policy = json.loads((bundle / "runtime.json").read_text())
-        env.update(
-            CUDA_PTX=kernel,
-            CUDA_GRAPH="1",
-            CUDA_CACHE="50",
-            CUDA_INNER_CACHE=str(policy["inner"]),
-            CUDA_BRIDGE_CACHE=str(policy["bridge"]),
-            CUDA_GRAPH_SPAN=str(policy["graph_span"]),
-            CUDA_DUP_SPECIAL="1",
-        )
-        if policy["persist"]:
-            env["CUDA_DATA_PERSIST"] = str(policy["persist"])
+    env["GENEFER_KERNEL"] = kernel
     if manifest.get("packed_squaring") and base is not None:
         selected = packed_module(bundle).select_program(
             base, manifest["gpu"], bundle / "kernels"
@@ -279,7 +276,13 @@ def verify_tail(checkpoint, proof, base, device, work, conservative):
 
 
 def _execute_locked(
-    base, output, device=0, verify_existing=False, bundle=BUNDLE, two_prime=False
+    base,
+    output,
+    device=0,
+    verify_existing=False,
+    bundle=BUNDLE,
+    check_certificate=False,
+    check_tail=False,
 ):
     output = Path(output).resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -293,8 +296,6 @@ def _execute_locked(
     if verify_existing and not proof.is_file():
         raise ValidationError("No proof exists at " + str(proof))
     conservative = (bundle / "bin" / "genefer-conservative").resolve()
-    manifest = arithmetic_manifest(bundle, two_prime)
-    fast = (bundle / manifest["prover"]).resolve()
     deployment = json.loads((bundle / "deployment-manifest.json").read_text())
     for name, digest in deployment["files"].items():
         path = bundle / name
@@ -305,6 +306,8 @@ def _execute_locked(
             or sha256(path) != digest
         ):
             raise ValidationError("Bundle file changed: " + name)
+    manifest = arithmetic_manifest(bundle, base)
+    fast = (bundle / manifest["prover"]).resolve()
     kernel = (bundle / manifest["kernel"]).resolve()
 
     if not conservative.is_file():
@@ -351,29 +354,60 @@ def _execute_locked(
     report = dict(
         identity,
         validated=False,
+        certificate_verified=False,
+        tail_verified=False,
+        checks_requested=dict(
+            certificate=check_certificate or verify_existing, tail=check_tail
+        ),
         fallback_reason=state.get("fallback_reason"),
         backend_identity=backend,
     )
     if verify_existing:
+        prior = json.loads(report_path.read_text()) if report_path.exists() else {}
+        original_mode = prior.get("proof_mode", prior.get("mode"))
+        if original_mode not in ("fast", "upstream", "conservative-fallback"):
+            original_mode = (
+                "conservative-fallback"
+                if state.get("fast_rejected")
+                else ("upstream" if manifest["arithmetic"] == "upstream" else "fast")
+            )
         report.update(verify(proof, base, device, work, conservative))
-        report["mode"] = "verified-existing"
+        report["certificate_verified"] = True
+        if check_tail:
+            report.update(
+                verify_tail(
+                    work / original_mode / "gproof.tail",
+                    proof,
+                    base,
+                    device,
+                    work,
+                    conservative,
+                )
+            )
+        report.update(proof_mode=original_mode, mode="verified-existing")
     else:
         source = None
         modes = (
-            ("conservative-fallback",)
-            if state.get("fast_rejected")
-            else ("fast", "conservative-fallback")
+            ("upstream",)
+            if manifest["arithmetic"] == "upstream"
+            else (
+                ("conservative-fallback",)
+                if state.get("fast_rejected")
+                else ("fast", "conservative-fallback")
+            )
         )
         for mode in modes:
             directory = work / mode
             directory.mkdir(exist_ok=True)
             prefix = directory / "gproof"
             env = clean_environment()
-            binary = conservative
+            binary = bundle / "bin/genefer-gfn19-upstream"
             packed_info = {}
-            if mode == "fast":
+            if mode in ("fast", "upstream"):
                 binary = fast
                 configure_runtime(env, bundle, manifest, base, directory, packed_info)
+            if check_tail:
+                env["GENEFER_CHECK_TAIL"] = "1"
             try:
                 text, seconds = command(
                     binary,
@@ -390,8 +424,30 @@ def _execute_locked(
                     raise ValidationError(
                         "Prover did not complete successfully; see " + str(directory)
                     )
-                certificate = verify(generated, base, device, work, conservative)
-                if mode == "fast":
+                proof_header(generated, base)
+                candidate = str(base) + "^{2^19} + 1 is "
+                if (
+                    candidate + "a probable prime" not in text
+                    and candidate + "composite" not in text
+                ):
+                    raise ValidationError(
+                        "Prover did not report the requested candidate"
+                    )
+                key, residue = PKEY.search(text), RESIDUE.search(text)
+                report.update(
+                    probable_prime=candidate + "a probable prime" in text,
+                    proof_key=key[1].upper() if key else None,
+                    residue64=residue[1].upper() if residue else None,
+                )
+                if check_certificate:
+                    checked = verify(generated, base, device, work, conservative)
+                    for field in ("probable_prime", "proof_key", "residue64"):
+                        if report[field] != checked[field]:
+                            raise ValidationError(
+                                "Native/certificate mismatch: " + field
+                            )
+                    report.update(checked, certificate_verified=True)
+                if check_tail:
                     report.update(
                         verify_tail(
                             Path(str(prefix) + ".tail"),
@@ -402,35 +458,38 @@ def _execute_locked(
                             conservative,
                         )
                     )
-                report.update(certificate, mode=mode, prover_seconds=seconds)
+                report.update(mode=mode, proof_mode=mode, prover_seconds=seconds)
                 if mode == "fast" and packed_info:
                     report["packed_squaring"] = packed_info
                 source = generated
                 break
             except (ValidationError, OSError) as exc:
                 if mode != "fast":
-                    raise ValidationError("Conservative retry failed: " + str(exc))
+                    raise ValidationError("Upstream calculation failed: " + str(exc))
                 report["fallback_reason"] = str(exc)
                 write_json(
                     state_path, {"fast_rejected": True, "fallback_reason": str(exc)}
                 )
                 print(
-                    "Fast path failed validation; retrying conservatively: " + str(exc),
+                    "Optimized calculation or requested check failed; retrying with upstream: "
+                    + str(exc),
                     flush=True,
                 )
         if source is None:
-            raise ValidationError("No verified proof was generated")
+            raise ValidationError("No completed proof was generated")
         atomic_copy(source, proof)
-    atomic_copy(report["certificate_path"], Path(str(output) + ".cert"))
+    if report.get("certificate_path"):
+        atomic_copy(report["certificate_path"], Path(str(output) + ".cert"))
     report.update(
-        validated=True,
+        completed=True,
+        validated=report["certificate_verified"] and report["tail_verified"],
         proof_sha256=sha256(proof),
         total_seconds=time.monotonic() - started,
         working_directory=str(work),
     )
     write_json(report_path, report)
     print(
-        "Verified {}: {} ({:.2f}s total)".format(
+        "Completed {}: {} ({:.2f}s total)".format(
             base, report["mode"], report["total_seconds"]
         ),
         flush=True,
@@ -440,7 +499,13 @@ def _execute_locked(
 
 
 def execute(
-    base, output, device=0, verify_existing=False, bundle=BUNDLE, two_prime=False
+    base,
+    output,
+    device=0,
+    verify_existing=False,
+    bundle=BUNDLE,
+    check_certificate=False,
+    check_tail=False,
 ):
     output = Path(output).resolve()
     work = Path(str(output) + ".work")
@@ -450,7 +515,9 @@ def execute(
             fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise ValidationError("Another runner is using " + str(work))
-        return _execute_locked(base, output, device, verify_existing, bundle, two_prime)
+        return _execute_locked(
+            base, output, device, verify_existing, bundle, check_certificate, check_tail
+        )
 
 
 def main(argv=None):
@@ -465,20 +532,30 @@ def main(argv=None):
         help="Verify PREFIX.proof without recomputing it",
     )
     p.add_argument(
-        "--two-prime",
+        "--check-certificate",
         action="store_true",
-        help="Use experimental two-prime arithmetic (base at most30million)",
+        help="Generate and verify a certificate using the original implementation",
+    )
+    p.add_argument(
+        "--check-tail",
+        action="store_true",
+        help="Recompute and compare the final calculation segment using the original implementation",
     )
     args = p.parse_args(argv)
     b = args.base
-    maximum = 30000000 if args.two_prime else 528220156
+    maximum = 2000000000
     if b < 1024 or b > maximum or b % 2 or b & (b - 1) == 0:
         p.error("base must be even, 1024..{} and not a power of two".format(maximum))
     if args.device != 0:
         p.error("Only device 0 is supported")
     try:
         execute(
-            b, args.output, args.device, args.verify_existing, two_prime=args.two_prime
+            b,
+            args.output,
+            args.device,
+            args.verify_existing,
+            check_certificate=args.check_certificate,
+            check_tail=args.check_tail,
         )
     except KeyboardInterrupt:
         print(

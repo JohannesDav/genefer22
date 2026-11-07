@@ -1,14 +1,14 @@
 #include <chrono>
 #include <iostream>
 #include <memory>
-#if defined(GENEFER_THREE_PRIME)
+#if defined(GENEFER_REFERENCE_FIELDS)
+#include "transformGPU.h"
+constexpr size_t fields=GENEFER_REFERENCE_FIELDS;
+using ArithmeticBase=transformGPUs<fields,GENEFER_REFERENCE_WIDE>;
+#else
 #include "gfn19_three/packed.h"
 using ArithmeticBase=packed_transform;
 constexpr size_t fields=3;
-#else
-#include "cuda/transform.h"
-constexpr size_t fields=2;
-using ArithmeticBase=transformGPUs<2,false>;
 #endif
 #include "reference.h"
 class ArithmeticTest : public ArithmeticBase

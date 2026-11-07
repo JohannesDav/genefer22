@@ -1,6 +1,7 @@
-// Recompute the final proof segment with the original three-prime transform.
+// Recompute the final proof segment with the original three-prime arithmetic.
 #include <filesystem>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <vector>
 #include "transformGPU.h"
@@ -23,7 +24,7 @@ int main(int argc, char **argv)
         if (argc != 4)
             throw std::runtime_error("Usage: genefer-tail-check BASE CHECKPOINT1 PROOF");
         const auto requested = std::stoull(argv[1]);
-        if (requested < 1024 || requested > 528220156 || requested % 2 ||
+        if (requested < 1024 || requested > 2000000000 || requested % 2 ||
             !(requested & (requested - 1)))
             throw std::runtime_error("Unsupported GFN-19 base");
         const uint32_t base = uint32_t(requested);
@@ -61,13 +62,15 @@ int main(int argc, char **argv)
         mpz_ui_pow_ui(exponent, base, size);
         const size_t bits = mpz_sizeinbase(exponent, 2);
         const size_t steps = ((bits - 1) >> depth) + 1;
-        transformGPUs<3, false> arithmetic(base, 19, false, 0, 3, 0, 0, false);
-        arithmetic.setInt(start);
+        std::unique_ptr<transform> arithmetic(base <= 1000000000
+            ? static_cast<transform *>(new transformGPUs<3, false>(base, 19, false, 0, 3, 0, 0, false))
+            : static_cast<transform *>(new transformGPUs<3, true>(base, 19, false, 0, 3, 0, 0, false)));
+        arithmetic->setInt(start);
         for (size_t i = steps; i-- > 0;)
-            arithmetic.squareDup(mpz_tstbit(exponent, i) != 0);
+            arithmetic->squareDup(mpz_tstbit(exponent, i) != 0);
         mpz_clear(exponent);
         gint computed(size, base);
-        arithmetic.getInt(computed);
+        arithmetic->getInt(computed);
         computed.unbalance();
         target.unbalance();
         const bool equal = std::equal(computed.data(), computed.data() + size, target.data());
