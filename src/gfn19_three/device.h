@@ -1,5 +1,6 @@
 // OpenCL execution for the three-prime transform.
 #pragma once
+#include <cstring>
 #include "device_selection.h"
 class three_device : oclObject
 {
@@ -126,7 +127,6 @@ private:
 	}
 
 public:
-	template<class F> void runSquareGraph(bool, F launch) { launch(); }
 
 public:
 	void resetProfiles()
@@ -318,9 +318,9 @@ protected:
 protected:
 	void _readBuffer(cl_mem & mem, void * const ptr, const size_t size, const size_t offset = 0)
 	{
-		// Fill the buffer with random numbers to generate an error even if clEnqueueReadBuffer fails without error.
+		// Poison readback with invalid residue words without per-byte random-number calls.
 		char * const cptr = static_cast<char *>(ptr);
-		for (size_t i = 0; i < size; ++i) cptr[i] = static_cast<char>(std::rand());
+		std::memset(cptr, 0xff, size);
 		_sync();
 		oclFatal(clEnqueueReadBuffer(_queue, mem, CL_TRUE, offset, size, ptr, 0, nullptr, nullptr));
 	}

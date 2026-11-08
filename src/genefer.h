@@ -606,7 +606,7 @@ private:
 
 		// d(t)^{2^B} * 2^res ?= d(t + 1)
 		pTransform->getInt(gi);
-#if defined(GENEFER_GFN19) || defined(GENEFER_CUDA)
+#if defined(GENEFER_GFN19)
         gi.unbalance();
         const std::vector<int32_t> first(gi.data(), gi.data()+gi.getSize());
         pTransform->copy(0, 2);
@@ -636,6 +636,14 @@ private:
 		gint & gi = *_gi;
 
 		clearline(); pio::display("Generating proof...\r");
+		struct proof_generation_scope
+		{
+			transform * arithmetic;
+			explicit proof_generation_scope(transform * value) : arithmetic(value)
+			{ arithmetic->setProofGeneration(true); }
+			~proof_generation_scope() { arithmetic->setProofGeneration(false); }
+		} phase(pTransform);
+
 
 		watch chrono;
 
@@ -773,9 +781,10 @@ private:
 			_transform->getInt(gi);
 			isPrp = gi.isOne(res64, old64);
 		}
-#if defined(GENEFER_GFN19) || defined(GENEFER_CUDA)
+#if defined(GENEFER_GFN19)
         // Keep checkpoint1 before proof generation removes intermediate files.
-        std::filesystem::copy_file(ckptFilename(1), _mainFilename+".tail", std::filesystem::copy_options::overwrite_existing);
+        if (const char *check = std::getenv("GENEFER_CHECK_TAIL"); check && std::string(check) == "1")
+            std::filesystem::copy_file(ckptFilename(1), _mainFilename+".tail", std::filesystem::copy_options::overwrite_existing);
 #endif
 		const EReturn rGL = GL(exponent, B_GL, validTime);
 		if (rGL != EReturn::Success) return rGL;

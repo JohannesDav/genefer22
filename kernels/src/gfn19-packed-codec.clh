@@ -1,0 +1,103 @@
+// Exact conversion between packed b^8 RNS digits and ordinary base-b digits.
+// CRT sums use signed96 accumulators, then exact constant-base long division.
+typedef struct {
+    ulong low;
+    int high;
+} PgWide;
+INLINE void pg_wide_add(__private PgWide *sum, long term) {
+    ulong old = sum->low;
+    sum->low += (ulong)term;
+    sum->high += (term < 0 ? -1 : 0) + (sum->low < old);
+}
+__kernel void packed_encode(__global const int *digits, __global uint *state,
+                            __global uint *error) {
+    uint index = get_global_id(0), field = index / 65536, j = index % 65536, p = pg_cp.p[field],
+         q = pg_codec_bq[field], value = 0;
+    for (int k = 7; k >= 0; --k) {
+        int digit = digits[8 * j + k];
+        uint absolute = digit < 0 ? (uint)(-digit) : (uint)digit;
+        if (absolute > PG_BASE + 2u) {
+            atomic_or(error, 16u);
+            return;
+        }
+        uint a = digit < 0 && absolute ? p - absolute : absolute;
+        value = pg_shoup(value, PG_BASE, q, p) + a;
+        if (value >= p)
+            value -= p;
+    }
+    state[index] = value;
+}
+__kernel void packed_decode(__global const uint *state, __global int *digits, __global int *carries,
+                            __global uint *error) {
+    const uint j = get_global_id(0);
+    int t[PG_K];
+    long total = 0;
+#pragma unroll
+    for (int f = 0; f < PG_K; ++f) {
+        uint p = pg_cp.p[f], input = state[f * 65536 + j];
+        if (input >= p)
+            atomic_or(error, 32u);
+        uint u = pg_shoup(input, pg_cp.scale[0][f], pg_cp.scaleq[0][f], p);
+        t[f] = u > p / 2 ? (int)((long)u - p) : (int)u;
+        total += t[f];
+    }
+    const int rank = (int)((total + (1l << 29)) >> 30);
+    uint words[PG_CODEC_LIMBS];
+    long carry = 0;
+    for (int limb = 0; limb < PG_CODEC_LIMBS; ++limb) {
+        PgWide sum = {(ulong)carry, carry < 0 ? -1 : 0};
+#pragma unroll
+        for (int f = 0; f < PG_K; ++f)
+            pg_wide_add(&sum, (long)t[f] * pg_codec_h[f][limb]);
+        pg_wide_add(&sum, -(long)rank * pg_codec_p[limb]);
+        words[limb] = (uint)sum.low;
+        carry = as_long((sum.low >> 32) | ((ulong)(long)sum.high << 32));
+    }
+    if (carry != 0 && carry != -1)
+        atomic_or(error, 1u);
+    const bool negative = carry < 0;
+    if (negative) {
+        ulong c = 1;
+        for (int limb = 0; limb < PG_CODEC_LIMBS; ++limb) {
+            ulong value = (ulong)(~words[limb]) + c;
+            words[limb] = (uint)value;
+            c = value >> 32;
+        }
+    }
+    for (int limb = 8; limb < PG_CODEC_LIMBS; ++limb)
+        if (words[limb])
+            atomic_or(error, 2u);
+    bool nonzero = false;
+    for (int digit = 0; digit < 8; ++digit) {
+        uint remainder = 0;
+        for (int limb = 7; limb >= 0; --limb) {
+            const ulong value = ((ulong)remainder << 32) | words[limb],
+                        quotient = value / (ulong)PG_BASE;
+            remainder = (uint)(value - quotient * PG_BASE);
+            words[limb] = (uint)quotient;
+        }
+        digits[8 * j + digit] = negative ? -(int)remainder : (int)remainder;
+        nonzero = nonzero || remainder != 0;
+    }
+    for (int limb = 1; limb < 8; ++limb)
+        if (words[limb])
+            atomic_or(error, 4u);
+    if (words[0] > PG_DIGIT_RATIO || (words[0] == PG_DIGIT_RATIO && nonzero))
+        atomic_or(error, 4u);
+    carries[j] = negative ? -(int)words[0] : (int)words[0];
+}
+__kernel void packed_repair(__global int *digits, __global const int *carries,
+                            __global uint *error) {
+    const uint j = get_global_id(0);
+    int carry = j ? carries[j - 1] : -carries[65535];
+    for (int k = 0; k < 7; ++k) {
+        carry += digits[8 * j + k];
+        const int quotient = carry / (int)PG_BASE;
+        digits[8 * j + k] = carry - quotient * (int)PG_BASE;
+        carry = quotient;
+    }
+    carry += digits[8 * j + 7];
+    digits[8 * j + 7] = carry;
+    if (carry < -(int)(PG_BASE + 2) || carry > (int)(PG_BASE + 2))
+        atomic_or(error, 8u);
+}

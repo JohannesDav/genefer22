@@ -38,7 +38,7 @@ def main():
     bundle = None
     forward = []
     force = False
-    two_prime = False
+    checks = []
     index = 0
     while index < len(words):
         word = words[index]
@@ -47,10 +47,14 @@ def main():
             bundle = Path(words[index + 1]).resolve()
             index += 2
             continue
-        if word == "--two-prime":
-            two_prime = True
+        if word in ("--check-certificate", "--check-tail"):
+            checks.append(word)
             index += 1
             continue
+        require(
+            word != "--two-prime",
+            "--two-prime was removed; arithmetic is selected automatically",
+        )
         if word == "--upstream":
             force = True
             index += 1
@@ -87,21 +91,38 @@ def main():
     mode = "p" if "-p" in forward else "c" if "-c" in forward else None
     ordinary = base is not None and base % 2 == 0 and base & (base - 1) != 0
     optimized = (
-        not force
-        and "-boinc" in forward
+        "-boinc" in forward
         and n == 19
         and device == 0
         and ordinary
         and (
-            (mode == "p" and 1024 <= base <= 528220156)
+            (mode == "p" and 1024 <= base <= 2000000000)
             or (mode == "c" and 1024 <= base <= 2000000000)
         )
     )
-    arithmetic="two" if two_prime and base is not None and base<=30000000 else "three"
+    require(
+        not checks or optimized,
+        "optional checks require a supported GFN-19 request on device 0",
+    )
+    optimized = optimized and (not force or bool(checks))
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("routing", bundle / "routing.py")
+    routes = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(routes)
+    arithmetic = routes.arithmetic(base) if optimized and not force else "upstream"
     backend = (
         bundle
         / "bin"
-        / ("genefer-boinc-two-prime" if optimized and arithmetic=="two" else "genefer-boinc-checked" if optimized else "genefer-boinc-stock")
+        / (
+            {
+                "two": "genefer-boinc-two",
+                "three": "genefer-boinc-checked",
+                "upstream": "genefer-boinc-upstream",
+            }[arithmetic]
+            if optimized
+            else "genefer-boinc-stock"
+        )
     )
     env = dict(os.environ)
     env["LD_LIBRARY_PATH"] = str(bundle / "lib") + (
@@ -132,7 +153,9 @@ def main():
     temporary = Path(".gfn19-dispatch-" + str(os.getpid()) + ".new")
     temporary.write_text(json.dumps(diagnostic, indent=2) + "\n")
     temporary.replace(".gfn19-dispatch.json")
-    arguments = forward + (["--guard-bundle", str(bundle)] if optimized else [])
+    arguments = forward + (
+        ["--guard-bundle", str(bundle)] + checks if optimized else []
+    )
     os.execve(str(backend), [str(backend)] + arguments, env)
 
 

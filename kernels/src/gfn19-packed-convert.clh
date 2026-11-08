@@ -1,0 +1,100 @@
+
+INLINE uint pg_shoup(uint x, uint w, uint q, uint p) {
+    uint y = x * w - mul_hi(x, q) * p;
+    return y >= p ? y - p : y;
+}
+INLINE uint pg_canon(long x, uint p) {
+    if (x < 0)
+        x += p;
+    if (x < 0)
+        x += p;
+    if (x >= p)
+        x -= p;
+    if (x >= p)
+        x -= p;
+    return (uint)x;
+}
+INLINE uint pg_redc(long dot, uint p, uint pinv) {
+    uint m = (uint)dot * pinv;
+    long z = (dot >> 32) + (long)p - mul_hi(m, p);
+    return pg_canon(z, p);
+}
+INLINE uint pg_up(uint v, uint delta) {
+    uint out;
+    asm volatile("shfl.sync.up.b32 %0, %1, %2, 0, -1;" : "=r"(out) : "r"(v), "r"(delta));
+    return out;
+}
+INLINE void pg_convert(__global const uint *in, __global uint *out, const int dup, const uint tid) {
+    const int lane = tid & 31, j = (int)(tid >> 5) * 30 + lane - 2;
+    int src = j;
+    if (src < 0)
+        src += 65536;
+    if (src >= 65536)
+        src -= 65536;
+    int t[PG_K];
+    long sum = 0;
+#pragma unroll
+    for (int f = 0; f < PG_K; ++f) {
+        uint p = pg_cp.p[f],
+             v = pg_shoup(in[f * 65536 + src], pg_cp.scale[dup][f], pg_cp.scaleq[dup][f], p);
+        t[f] = v > p / 2 ? (int)((long)v - p) : (int)v;
+        sum += t[f];
+    }
+    const int m = (int)((sum + (1l << 29)) >> 30);
+    long qsum[PG_GROUPS] = {0}, tsum[PG_GROUPS] = {0}, qint = 0;
+    ulong tint = 0;
+#pragma unroll
+    for (int f = 0; f < PG_K; ++f) {
+        qsum[f % PG_GROUPS] += (long)t[f] * pg_cq.qw[f];
+        tsum[f % PG_GROUPS] += (long)t[f] * pg_cq.tw[f];
+        qint += (long)t[f] * pg_cq.qi[f];
+        tint += (ulong)(long)t[f] * pg_cq.ti[f];
+    }
+    qsum[0] -= (long)m * pg_cq.qpw;
+    tsum[0] -= (long)m * pg_cq.tpw;
+    long qfraction = 0, tfraction = 0;
+    ulong qlow = 1ul << (PG_BITS - 1), tlow = 1ul << (PG_BITS - 1);
+#pragma unroll
+    for (int g = 0; g < PG_GROUPS; ++g) {
+        qfraction += qsum[g] >> PG_BITS;
+        tfraction += tsum[g] >> PG_BITS;
+        qlow += (ulong)qsum[g] & ((1ul << PG_BITS) - 1);
+        tlow += (ulong)tsum[g] & ((1ul << PG_BITS) - 1);
+    }
+    qfraction += (long)(qlow >> PG_BITS);
+    tfraction += (long)(tlow >> PG_BITS);
+    const long q = qint - (long)m * pg_cq.qpi + qfraction;
+    const int T = as_int((uint)(tint - (ulong)(long)m * pg_cq.tpi + (ulong)tfraction));
+    int tp = as_int(pg_up(as_uint(T), 2));
+    if (j < 2)
+        tp = -tp;
+#pragma unroll
+    for (int f = 0; f < PG_K; ++f) {
+        const uint p = pg_cp.p[f];
+        long dot = 0;
+#pragma unroll
+        for (int k = 0; k < PG_K; ++k)
+            dot += (long)t[k] * pg_cp.matrix[f][k];
+        dot -= (long)m * pg_cp.epm[f] + q * pg_cp.bm[f];
+        uint rem = pg_redc(dot, p, pg_cp.pinv[f]);
+        uint c =
+            pg_shoup(t[f] < 0 ? (uint)((long)t[f] + p) : (uint)t[f], pg_cp.h[f], pg_cp.hq[f], p);
+        uint u = pg_shoup(c >= rem ? c - rem : c + p - rem, pg_cp.binv[f], pg_cp.binvq[f], p),
+             bt = pg_shoup(T < 0 ? (uint)((long)T + p) : (uint)T, pg_cp.b[f], pg_cp.bq[f], p);
+        u = u >= bt ? u - bt : u + p - bt;
+        long up = pg_up(u, 1);
+        if (j == 0)
+            up = -up;
+        uint digit = pg_canon((long)rem + up + tp, p);
+        if (lane >= 2 && j < 65536)
+            out[f * 65536 + j] = digit;
+    }
+}
+__kernel __attribute__((reqd_work_group_size(128, 1, 1))) void
+packed_convert_dup0(__global const uint *in, __global uint *out) {
+    pg_convert(in, out, 0, (uint)get_global_id(0));
+}
+__kernel __attribute__((reqd_work_group_size(128, 1, 1))) void
+packed_convert_dup1(__global const uint *in, __global uint *out) {
+    pg_convert(in, out, 1, (uint)get_global_id(0));
+}

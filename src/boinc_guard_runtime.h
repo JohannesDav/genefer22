@@ -23,7 +23,7 @@
 #include <unistd.h>
 
 #if !defined(BOINC) || !defined(GENEFER_GFN19) || !defined(GPU)
-#error The guarded coordinator requires the real BOINC API and GFN-19 GPU build.
+#error The guarded coordinator requires the real BOINC API and OpenCL GPU build.
 #endif
 #if defined(GENEFER_GUARD_3090) == defined(GENEFER_GUARD_4060)
 #error Select exactly one GFN-19 GPU profile.
@@ -135,6 +135,7 @@ class coordinator
     uint32_t base_;
     size_t device_;
     bool check_mode_;
+    bool check_certificate_ = false, check_tail_ = false;
 
     static void install_environment(const fs::path &bundle)
     {
@@ -153,15 +154,14 @@ class coordinator
             require(::setenv(name, value.c_str(), 1) == 0, "cannot set GPU runtime policy");
         };
 #if defined(GENEFER_THREE_PRIME)
-        set("GENEFER_ARITHMETIC","three");
-        set("GENEFER_KERNEL",(bundle/"kernels/gfn19-three.cl").string());
+        set("GENEFER_ARITHMETIC", "three");
+        set("GENEFER_KERNEL", (bundle / "kernels/gfn19-three.cl").string());
+#elif defined(GENEFER_EXACT_TWO)
+        set("GENEFER_ARITHMETIC", "two");
+        set("GENEFER_KERNEL", (bundle / "kernels/gfn19-two.cl").string());
 #else
-        set("GENEFER_ARITHMETIC","two");
-#if defined(GENEFER_GUARD_3090)
-        set("GENEFER_KERNEL", (bundle / "kernels/gfn19-3090.ptx").string());
-#else
-        set("GENEFER_KERNEL", (bundle / "kernels/gfn19-4060.ptx").string());
-#endif
+        set("GENEFER_ARITHMETIC", "upstream");
+        set("GENEFER_KERNEL", (bundle / "kernels/gfn19-two.cl").string());
 #endif
     }
 
@@ -320,17 +320,15 @@ class coordinator
         : public_prefix_(public_prefix.empty() ? "g19_" + std::to_string(base) : public_prefix),
           base_(base), device_(device), check_mode_(certificate_check)
     {
-        auto maximum = check_mode_ ? 2000000000u :
-#if defined(GENEFER_THREE_PRIME)
-            528220156u;
-#else
-            30000000u;
-#endif
+        const uint32_t maximum = 2000000000u;
         require(n == 19 && device == 0 && base >= 1024 && base <= maximum && base % 2 == 0 &&
                     (base & (base - 1)) != 0,
                 "request outside the single-GPU GFN-19 specialization");
         for (size_t index = 0; index < arguments.size(); ++index)
         {
+            if (arguments[index] == "--check-certificate") check_certificate_ = true;
+            if (arguments[index] == "--check-tail") check_tail_ = true;
+            require(arguments[index] != "--two-prime", "--two-prime was removed");
             if (arguments[index] == "--guard-bundle")
             {
                 require(bundle_.empty() && index + 1 < arguments.size(),
@@ -343,6 +341,9 @@ class coordinator
                   (std::string(check_mode_ ? ".gfn_checked_c_19_" : ".gfn_checked_19_") +
                    std::to_string(base));
         install_environment(bundle_);
+        require(::setenv("GENEFER_CHECK_CERTIFICATE", check_certificate_ ? "1" : "0", 1) == 0 &&
+                ::setenv("GENEFER_CHECK_TAIL", check_tail_ ? "1" : "0", 1) == 0,
+                "cannot install verification policy");
     }
 
     std::string private_prefix() const
@@ -351,7 +352,17 @@ class coordinator
     }
     outcome prepare()
     {
-        return helper("prepare", false);
+        const auto result = helper("prepare", false);
+#if defined(GENEFER_THREE_PRIME) || defined(GENEFER_EXACT_TWO)
+        if (result == outcome::success && !check_mode_)
+        {
+            const auto path = prefix_.string() + ".packed.cl";
+            if (fs::exists(path))
+                require(::setenv("GENEFER_PACKED_KERNEL", path.c_str(), 1) == 0,
+                        "cannot install packed kernel path");
+        }
+#endif
+        return result;
     }
 
     outcome finish(const std::string &result_text)
@@ -366,7 +377,7 @@ class coordinator
             return verified;
         if (cancelled())
             return outcome::interrupted;
-        // No public proof or result exists before successful independent check.
+        // Publish only after the requested checks and input-identity checks pass.
         auto public_proof = physical_target(public_prefix_ + ".proof");
         auto public_result = physical_target("results.txt");
         require(public_proof != public_result, "output aliases collide");
@@ -378,7 +389,7 @@ class coordinator
         atomic_text(public_result, result_text);
         if (cancelled())
             return outcome::interrupted;
-        pio::print("BOINC guard: verified proof and result published.\n");
+        pio::print("BOINC guard: completed proof and result published.\n");
         return outcome::success;
     }
 

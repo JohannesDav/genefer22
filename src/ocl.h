@@ -272,10 +272,8 @@ public:
 	cl_device_id getDevice(const size_t d) const { return _devices[d].device_id; }
 };
 
-#if defined(GENEFER_THREE_PRIME)
+#if defined(GENEFER_THREE_PRIME) || defined(GENEFER_EXACT_TWO)
 #include "gfn19_three/device.h"
-#elif defined(GENEFER_GFN19)
-#include "gfn19/device.h"
 #else
 class device : oclObject
 {
@@ -593,7 +591,12 @@ protected:
 	{
 		// Fill the buffer with random numbers to generate an error even if clEnqueueReadBuffer fails without error.
 		char * const cptr = static_cast<char *>(ptr);
-		for (size_t i = 0; i < size; ++i) cptr[i] = static_cast<char>(std::rand());
+		#if defined(GENEFER_EXACT_TWO)
+        // All-ones words exceed every modulus; retain readback poisoning cheaply.
+        std::memset(cptr, 0xff, size);
+#else
+        for (size_t i = 0; i < size; ++i) cptr[i] = static_cast<char>(std::rand());
+#endif
 		_sync();
 		oclFatal(clEnqueueReadBuffer(_queue, mem, CL_TRUE, offset, size, ptr, 0, nullptr, nullptr));
 	}
@@ -677,4 +680,4 @@ protected:
 	}
 };
 
-#endif // GENEFER_GFN19
+#endif // optimized GFN-19 execution

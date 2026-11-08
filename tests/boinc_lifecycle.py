@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Offline BOINC proof, checkpoint, suspend/resume and certificate-check test."""
+
 import argparse
 import json
 from pathlib import Path
@@ -12,7 +13,6 @@ def main():
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--initializer", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--two-prime", action="store_true")
     args = parser.parse_args()
     bundle, output = args.bundle.resolve(), args.output.resolve()
     output.mkdir()
@@ -34,7 +34,12 @@ def main():
 
     episodes = []
     episode = Episode(
-        slot, public, bundle, args.initializer.resolve(), "p", "checkpoint", two_prime=args.two_prime
+        slot,
+        public,
+        bundle,
+        args.initializer.resolve(),
+        "p",
+        "checkpoint",
     )
     try:
         episode.wait(lambda: bool(episode.samples), 30)
@@ -54,8 +59,50 @@ def main():
     assert (slot / ".gfn_checked_19_28000000.ctx").is_file()
     assert episodes[-1]["returncode"] == 0
     print("Checkpoint/quit passed", flush=True)
+    manifest = json.loads((bundle / "boinc-guard-manifest.json").read_text())
+    if manifest.get("packed_squaring"):
+        rejected_root = output / "changed-kernel"
+        rejected_root.mkdir()
+        rejected_slot = rejected_root / "slot"
+        rejected_project = rejected_root / "project"
+        shutil.copytree(slot, rejected_slot)
+        rejected_project.mkdir()
+        generated = rejected_slot / ".gfn_checked_19_28000000.packed.cl"
+        generated.write_text(generated.read_text() + "\n// changed kernel\n")
+        rejected = Episode(
+            rejected_slot,
+            rejected_project,
+            bundle,
+            args.initializer.resolve(),
+            "p",
+            "changed-kernel",
+        )
+        try:
+            # An intentional preparation failure can precede the first periodic
+            # progress message. Its error and absence of outputs are checked below.
+            outcome = rejected.finish(60, require_status=False)
+        finally:
+            if rejected.process.poll() is None:
+                rejected.process.kill()
+                rejected.process.wait()
+        assert outcome["returncode"] != 0
+        assert not (rejected_project / "output.proof").exists()
+        assert not (rejected_project / "result.out").exists()
+        assert (
+            "generated packed kernel changed"
+            in (
+                rejected_slot / ".gfn_checked_19_28000000.helper-prepare.log"
+            ).read_text()
+        )
+        print("Changed packed kernel refused before resuming", flush=True)
+
     episode = Episode(
-        slot, public, bundle, args.initializer.resolve(), "p", "resume-proof", two_prime=args.two_prime
+        slot,
+        public,
+        bundle,
+        args.initializer.resolve(),
+        "p",
+        "resume-proof",
     )
     try:
         episode.wait(
@@ -94,7 +141,12 @@ def main():
     (check_slot / "gproof.cert").symlink_to("../check-project/input.cert")
     (check_slot / "results.txt").symlink_to("../check-project/result.out")
     episode = Episode(
-        check_slot, check_public, bundle, args.initializer.resolve(), "c", "certificate", two_prime=args.two_prime
+        check_slot,
+        check_public,
+        bundle,
+        args.initializer.resolve(),
+        "c",
+        "certificate",
     )
     try:
         episodes.append(episode.finish(150))

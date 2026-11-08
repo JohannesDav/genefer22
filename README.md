@@ -4,16 +4,18 @@ All modifications in this fork are AI-generated and should not be considered saf
 
 Based on [Yves Gallot’s genefer22](https://github.com/galloty/genefer22). This fork targets only PrimeGrid’s **GFN-19** subproject on the **RTX 3090** and **RTX 4060 Ti 16GB**, on Linux x86-64.
 
-Three-prime arithmetic is the default, with coefficient and carry bounds through base **528,220,156**. The faster **`--two-prime`** option is experimental and limited to base **30,000,000**: it lacks a worst-case arithmetic guarantee, and the risk of an undetected error has not been quantified. Both modes require additional local checks.
+Arithmetic is selected automatically using worst-case bounds. Exact packed squaring supports bases from **1,026 through 528,220,156**. Other operations use two or three prime moduli according to the base. Higher bases use the original implementation through upstream’s limit of **2,000,000,000**.
 
-Upstream times cover proof generation; modified times also include the extra local checks. Each run tests one candidate.
+Each benchmark tests one candidate and includes proof generation. Optional certificate verification and tail recomputation are excluded.
 
-| GPU | Base | Upstream | Three primes (default) | Two primes (experimental) |
-|---|---:|---:|---:|---:|
-| RTX 3090 | 28,000,000 | 1,091 s | 905 s (1.20×) | 512 s (2.13×) |
-| RTX 4060 Ti 16GB | 28,000,000 | 1,186 s | 910 s (1.30×) | 559 s (2.12×) |
+At base **28,000,000**:
 
-The optimized transforms combine stages to reduce memory traffic and synchronization. Smaller prime moduli allow fewer modular reductions, and root tables and carry arithmetic are tuned for these cards.
+| GPU | Upstream | This fork | Time saved |
+|---|---:|---:|---:|
+| RTX 3090 | 17m58s | 10m30s | 42% |
+| RTX 4060 Ti 16GB | 19m45s | 13m40s | 31% |
+
+The main squaring loop packs eight digits into each coefficient, reducing the transform length by a factor of eight. It uses enough prime moduli to reconstruct every coefficient exactly. General multiplication, final proof construction and checkpoints keep the ordinary two- or three-prime representation. Combining transform stages reduces memory traffic.
 
 Build for the RTX 3090 and test a candidate:
 
@@ -22,6 +24,6 @@ python3 build.py --gpu 3090 --output build/3090
 python3 build/3090/run_checked.py -b 28000000 -f /absolute/path/gproof
 ```
 
-Use `--gpu 4060` for the 4060 Ti. Add `--two-prime` to the second command to select the experimental mode. Both GPU profiles and arithmetic modes use the same host source.
+Use `--gpu 4060` for the 4060 Ti. Both cards are built from this codebase. Add `--check-certificate` to independently generate and verify a certificate, or `--check-tail` to recompute the final calculation segment. Both checks are off by default.
 
-Supported bases are even and exclude powers of two. Only one-GPU setups have been tested. See the [build and BOINC instructions](doc/gfn19.md) for dependencies, kernel source and mode selection.
+Supported bases are even and exclude powers of two. Only one-GPU setups have been tested. See the [build and BOINC instructions](doc/gfn19.md) for dependencies, kernel source and arithmetic ranges.

@@ -197,7 +197,7 @@ INLINE uint_32 shoup_root(uint_32 a, ulong root, uint2_32 pq) {
  #if GFN19_ROOT_BITS == 64
  uint_32 w=(uint_32)root, q=mul_hi(a,(uint_32)(root>>32));
 #else
- uint_32 rq=(uint_32)root, w=mul_hi(rq,pq.s0)+(rq!=0), q=mul_hi(a,rq);
+ uint_32 rq=(uint_32)root, w=mul_hi(rq,pq.s0)+1u, q=mul_hi(a,rq);
 #endif
  uint_32 r=a*w-q*pq.s0;
  return r;
@@ -1107,6 +1107,67 @@ INLINE uint_32 quartic_redc(const ulong t,const uint2_32 pq){
  const uint_32 h=(uint_32)(t>>32),m=mul_hi((uint_32)t*pq.s1,pq.s0);
  return fold2(h+pq.s0-m,pq.s0);
 }
+INLINE uint_32 octic_redc(const long t, const uint2_32 pq) {
+    int h = (int)(t >> 32);
+    if (h < 0)
+        h += (int)(2 * pq.s0);
+    const uint_32 m = mul_hi((uint_32)t * pq.s1, pq.s0);
+    return fold2((uint_32)h + pq.s0 - m, pq.s0);
+}
+INLINE int octic_center(const uint_32 x, const uint_32 p) {
+    const uint_32 y = x - (x >> 30) * p;
+    return (int)y - (y > p / 2 ? (int)p : 0);
+}
+INLINE void octic_dot(const uint2_32 pq, uint4_32 z[2], const uint_32 gamma, const uint_32 qgamma) {
+    const uint_32 p = pq.s0;
+    const int a0 = octic_center(z[0].s0, p);
+    const int a1 = octic_center(z[0].s1, p);
+    const int a2 = octic_center(z[0].s2, p);
+    const int a3 = octic_center(z[0].s3, p);
+    const int a4 = octic_center(z[1].s0, p);
+    const int a5 = octic_center(z[1].s1, p);
+    const int a6 = octic_center(z[1].s2, p);
+    const int a7 = octic_center(z[1].s3, p);
+    const uint_32 raw4 = z[1].s0;
+    const int u4 = octic_center(raw4 * gamma - mul_hi(raw4, qgamma) * p, p);
+    const uint_32 raw5 = z[1].s1;
+    const int u5 = octic_center(raw5 * gamma - mul_hi(raw5, qgamma) * p, p);
+    const uint_32 raw6 = z[1].s2;
+    const int u6 = octic_center(raw6 * gamma - mul_hi(raw6, qgamma) * p, p);
+    const uint_32 raw7 = z[1].s3;
+    const int u7 = octic_center(raw7 * gamma - mul_hi(raw7, qgamma) * p, p);
+    uint4_32 result[2];
+    result[0].s0 = octic_redc((long)(2 * a0) * (2 * a0) + (long)(4 * a1) * (2 * u7) +
+                                  (long)(4 * a2) * (2 * u6) + (long)(4 * a3) * (2 * u5) +
+                                  (long)(2 * a4) * (2 * u4),
+                              pq);
+    result[0].s1 = octic_redc((long)(4 * a0) * (2 * a1) + (long)(4 * a2) * (2 * u7) +
+                                  (long)(4 * a3) * (2 * u6) + (long)(4 * a4) * (2 * u5),
+                              pq);
+    result[0].s2 = octic_redc((long)(4 * a0) * (2 * a2) + (long)(2 * a1) * (2 * a1) +
+                                  (long)(4 * a3) * (2 * u7) + (long)(4 * a4) * (2 * u6) +
+                                  (long)(2 * a5) * (2 * u5),
+                              pq);
+    result[0].s3 = octic_redc((long)(4 * a0) * (2 * a3) + (long)(4 * a1) * (2 * a2) +
+                                  (long)(4 * a4) * (2 * u7) + (long)(4 * a5) * (2 * u6),
+                              pq);
+    result[1].s0 = octic_redc((long)(4 * a0) * (2 * a4) + (long)(4 * a1) * (2 * a3) +
+                                  (long)(2 * a2) * (2 * a2) + (long)(4 * a5) * (2 * u7) +
+                                  (long)(2 * a6) * (2 * u6),
+                              pq);
+    result[1].s1 = octic_redc((long)(4 * a0) * (2 * a5) + (long)(4 * a1) * (2 * a4) +
+                                  (long)(4 * a2) * (2 * a3) + (long)(4 * a6) * (2 * u7),
+                              pq);
+    result[1].s2 = octic_redc((long)(4 * a0) * (2 * a6) + (long)(4 * a1) * (2 * a5) +
+                                  (long)(4 * a2) * (2 * a4) + (long)(2 * a3) * (2 * a3) +
+                                  (long)(2 * a7) * (2 * u7),
+                              pq);
+    result[1].s3 = octic_redc((long)(4 * a0) * (2 * a7) + (long)(4 * a1) * (2 * a6) +
+                                  (long)(4 * a2) * (2 * a5) + (long)(4 * a3) * (2 * a4),
+                              pq);
+    z[0] = result[0];
+    z[1] = result[1];
+}
 INLINE uint4_32 quartic_dot(const uint2_32 pq,const uint4_32 input,const uint_32 gamma,const uint_32 qgamma){
  const uint_32 p=pq.s0;uint4_32 a=fold24(input,p);
  a.s0-=a.s0>=p?p:0;a.s1-=a.s1>=p?p:0;a.s2-=a.s2>=p?p:0;a.s3-=a.s3>=p?p:0;
@@ -1123,7 +1184,7 @@ INLINE void quartic_square8(const uint2_32 pq,uint4_32 z[2],const ulong w1,const
  #if GFN19_ROOT_BITS == 64
  const uint_32 q=(uint_32)(w1>>32),gamma=(uint_32)w1;
 #else
- const uint_32 q=(uint_32)w1,gamma=mul_hi(q,pq.s0)+(q!=0);
+ const uint_32 q=(uint_32)w1,gamma=mul_hi(q,pq.s0)+1u;
 #endif
  FWD2v4(z[0],z[1],w1);
  z[0]=quartic_dot(pq,z[0],gamma,q);
@@ -1138,8 +1199,14 @@ INLINE void square_8x2(const uint2_32 pq, __local uint4_32 * restrict const Z,
 	DECLARE_WIN1_2(sji);
 	barrier(CLK_LOCAL_MEM_FENCE);
 	uint4_32 zl[4]; _loadl4(4, zl, Z, 1);
-	quartic_square8(pq,&zl[0],w1[0],win1[0]);
-	quartic_square8(pq,&zl[2],w1[1],win1[1]);
+	const ulong root=w[sj];
+#if GFN19_ROOT_BITS == 64
+ const uint q=(uint)(root>>32),gamma=(uint)root;
+#else
+ const uint q=(uint)root,gamma=mul_hi(q,pq.s0)+1u;
+#endif
+octic_dot(pq,&zl[0],gamma,q);octic_dot(pq,&zl[2],pq.s0-gamma,~q);
+
 	_storel4(4, Z, 1, zl);
 }
 
@@ -1989,7 +2056,14 @@ INLINE void warp_tail(const uint2_32 pq,__local uint4_32 *Z,__global const root_
  {DECLARE_W12(sj/2);_forward4(pq,a,w1,w2);}
  tail_to_leaf(a,lane);
  {DECLARE_W1_2(sj);DECLARE_WIN1_2(sji);
-  quartic_square8(pq,&a[0],w1[0],win1[0]);quartic_square8(pq,&a[2],w1[1],win1[1]);}
+  const ulong root=w[sj];
+#if GFN19_ROOT_BITS == 64
+ const uint q=(uint)(root>>32),gamma=(uint)root;
+#else
+ const uint q=(uint)root,gamma=mul_hi(q,pq.s0)+1u;
+#endif
+octic_dot(pq,&a[0],gamma,q);octic_dot(pq,&a[2],pq.s0-gamma,~q);
+}
  tail_from_leaf(a,lane);
  {DECLARE_WIN12(sji/2);_backward4(pq,a,win1,win2);}
  _storel4(4,&Z[base],2,a);
@@ -2472,6 +2546,37 @@ INLINE uint_32 crt_shoup(const uint_32 a,const uint_32 w,const uint_32 q,const u
  const uint_32 r=a*w-mul_hi(a,q)*p;
  return r>=p?r-p:r;
 }
+// Centered Garner digits with an unsigned final residue. The host bounds
+// their products and the residual passed to the signed64 division below.
+INLINE int3 crt_digits(uint r1, uint r2, uint r3) {
+    const uint u13 = crt_shoup(submod(r1, r3, P1), 939058287u, 3817749617u, P1);
+    const uint u23 = crt_shoup(submod(r2, r3, P2), 526909943u, 2147485695u, P2);
+    const uint u123 = crt_shoup(submod(u13, u23, P1), 403u, 1638u, P1);
+    const int c = (int)r3;
+
+    const uint adjusted = u23;
+    const int neg2 = adjusted >= P2 / 2, t = (int)adjusted - (neg2 ? (int)P2 : 0);
+    int k = (int)(u123 + neg2);
+    k -= k >= (int)(P1 / 2) ? (int)P1 : 0;
+    return (int3)(k, t, c);
+}
+INLINE int crt_divide(uint r1, uint r2, uint r3, const uint b, const uint inverse, const int shift,
+                      const bool doubled, __private long *carry) {
+    const int3 v = crt_digits(r1, r2, r3);
+    long quotient = (long)v.s0 * CRT_QPAIR + (long)v.s1 * CRT_QTHIRD;
+    long residual = (long)v.s0 * CRT_RPAIR + (long)v.s1 * CRT_RTHIRD + v.s2;
+    if (doubled) {
+        quotient += quotient;
+        residual += residual;
+    }
+    residual += *carry;
+    const bool negative = residual < 0;
+    const ulong absolute = negative ? (ulong)(-residual) : (ulong)residual;
+    uint q;
+    const uint remainder = barrett(absolute, b, inverse, shift, &q);
+    *carry = quotient + (negative ? -(long)q : (long)q);
+    return negative ? -(int)remainder : (int)remainder;
+}
 INLINE int96 garner3(const uint_32 r1, const uint_32 r2, const uint_32 r3)
 {
 	const uint_32 u13 = GFN_CRT_SELECT(crt_shoup(submod(r1,r3,P1),939058287u,3817749617u,P1), mulmod(submod(r1, r3, P1), INVP3_P1, PQ1));
@@ -2532,16 +2637,11 @@ INLINE int4_32 normalize_1(__global uint4_32 * restrict const zi, __global int_6
 
 	const uint4_32 u3 = mulmod4(zi[2 * N_SZ / 4], NORM3, PQ3);
 
-	int96 l0 = garner3(u1.s0, u2.s0, u3.s0), l1 = garner3(u1.s1, u2.s1, u3.s1);
-	int96 l2 = garner3(u1.s2, u2.s2, u3.s2), l3 = garner3(u1.s3, u2.s3, u3.s3);
-
-	if (dup) { l0 = int96_add(l0, l0); l1 = int96_add(l1, l1);  l2 = int96_add(l2, l2); l3 = int96_add(l3, l3); }
-
-	int96 f96 = l0; r.s0 = reduce96(&f96, b, b_inv, b_s);
-	f96 = int96_add(f96, l1); r.s1 = reduce96(&f96, b, b_inv, b_s);
-	f96 = int96_add(f96, l2); r.s2 = reduce96(&f96, b, b_inv, b_s);
-	f96 = int96_add(f96, l3); r.s3 = reduce96(&f96, b, b_inv, b_s);
-	int_64 f = int96_get_si(f96);
+ int_64 f=0;
+ r.s0=crt_divide(u1.s0,u2.s0,u3.s0,b,b_inv,b_s,dup,&f);
+ r.s1=crt_divide(u1.s1,u2.s1,u3.s1,b,b_inv,b_s,dup,&f);
+ r.s2=crt_divide(u1.s2,u2.s2,u3.s2,b,b_inv,b_s,dup,&f);
+ r.s3=crt_divide(u1.s3,u2.s3,u3.s3,b,b_inv,b_s,dup,&f);
 
 #endif
 
@@ -2570,8 +2670,8 @@ INLINE void normalize_2(__global uint4_32 * restrict const zi, __local int_64 * 
 }
 
 __kernel __attribute__((reqd_work_group_size(NORM_WG_SZ, 1, 1)))
-void normalize1(__global uint4_32 * restrict const z, __global int_64 * restrict const c,
-	const uint_32 b_param, const uint_32 b_inv_param, const int b_s_param, const int_32 dup)
+void normalize1dup0(__global uint4_32 * restrict const z, __global int_64 * restrict const c,
+	const uint_32 b_param, const uint_32 b_inv_param, const int b_s_param, const int_32 dup_param)
 {
 #if defined(GFN19_FIXED_B)
  const uint_32 b=GFN19_FIXED_B,b_inv=GFN19_FIXED_INV;const int b_s=GFN19_FIXED_SHIFT;
@@ -2583,12 +2683,34 @@ void normalize1(__global uint4_32 * restrict const z, __global int_64 * restrict
 	__global uint4_32 * restrict const zi = &z[gid];
 	__local int_64 cl[NORM_WG_SZ];
 
-	const int4_32 r = normalize_1(zi, c, cl, gid, lid, b, b_inv, b_s, dup != 0);
+	const int4_32 r = normalize_1(zi, c, cl, gid, lid, b, b_inv, b_s, 0);
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	normalize_2(zi, cl, lid, r, b, b_inv, b_s);
 }
+
+__kernel __attribute__((reqd_work_group_size(NORM_WG_SZ, 1, 1)))
+void normalize1dup1(__global uint4_32 * restrict const z, __global int_64 * restrict const c,
+	const uint_32 b_param, const uint_32 b_inv_param, const int b_s_param, const int_32 dup_param)
+{
+#if defined(GFN19_FIXED_B)
+ const uint_32 b=GFN19_FIXED_B,b_inv=GFN19_FIXED_INV;const int b_s=GFN19_FIXED_SHIFT;
+#else
+ const uint_32 b=b_param,b_inv=b_inv_param;const int b_s=b_s_param;
+#endif
+
+	const sz_t gid = (sz_t)get_global_id(0), lid = gid % NORM_WG_SZ;
+	__global uint4_32 * restrict const zi = &z[gid];
+	__local int_64 cl[NORM_WG_SZ];
+
+	const int4_32 r = normalize_1(zi, c, cl, gid, lid, b, b_inv, b_s, 1);
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	normalize_2(zi, cl, lid, r, b, b_inv, b_s);
+}
+
 
 __kernel
 void normalize2(__global uint4_32 * restrict const z, __global const int_64 * restrict const c, 

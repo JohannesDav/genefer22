@@ -528,7 +528,7 @@ public:
                 if (verified == boinc_guard::outcome::interrupted) ret = genefer::EReturn::Aborted;
                 else if (verified != boinc_guard::outcome::success)
                 {
-                    pio::error("BOINC guard conservative verification failed; nothing unchecked is published");
+                    pio::error("BOINC result checks failed; no result was published");
                     ret = genefer::EReturn::Failed;
                 }
             }

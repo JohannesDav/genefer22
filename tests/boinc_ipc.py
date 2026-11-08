@@ -4,7 +4,6 @@
 Tests actual native binary and controls, not a substitute for a real-client test.
 """
 import hashlib
-import json
 import mmap
 import os
 import subprocess
@@ -26,7 +25,8 @@ class Episode:
         label,
         client_pid=None,
         candidate=28000000,
-        two_prime=False,
+        check_certificate=True,
+        check_tail=True,
     ):
         self.slot, self.label = slot, label
         subprocess.run(
@@ -56,7 +56,9 @@ class Episode:
                 "gproof",
                 "--guard-bundle",
                 str(bundle),
-            ] + (["--two-prime"] if two_prime else []),
+            ]
+            + (["--check-certificate"] if check_certificate else [])
+            + (["--check-tail"] if check_tail else []),
             cwd=slot,
             stdout=self.log,
             stderr=subprocess.STDOUT,
@@ -103,7 +105,7 @@ class Episode:
         end = time.monotonic() + seconds
         self.wait(lambda: time.monotonic() >= end, seconds + 5)
 
-    def finish(self, seconds=120):
+    def finish(self, seconds=120, require_status=True):
         deadline = time.monotonic() + seconds
         while self.process.poll() is None:
             assert time.monotonic() < deadline, (self.label, "finish deadline")
@@ -113,7 +115,8 @@ class Episode:
         self.file.close()
         stderr = (self.slot / "stderr.txt").read_text()
         assert "running in standalone mode" not in stderr
-        assert self.samples, (self.label, "no actual IPC app-status messages")
+        if require_status:
+            assert self.samples, (self.label, "no actual IPC app-status messages")
         return dict(
             label=self.label,
             returncode=self.process.returncode,

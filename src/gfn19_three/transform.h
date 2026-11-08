@@ -252,7 +252,7 @@ private:
 	cl_kernel _fwd512p = nullptr, _fwd1024p = nullptr, _fwd2048p = nullptr, _fwd4096p = nullptr;
 	cl_kernel _mul32 = nullptr, _mul64 = nullptr, _mul128 = nullptr, _mul256 = nullptr;
 	cl_kernel _mul512 = nullptr, _mul1024 = nullptr, _mul2048 = nullptr, _mul4096 = nullptr;
-	cl_kernel _normalize1 = nullptr, _normalize2 = nullptr, _mulscalar = nullptr;
+	cl_kernel _normalize1dup0 = nullptr, _normalize1dup1 = nullptr, _normalize2 = nullptr, _mulscalar = nullptr;
 	cl_kernel _set = nullptr, _copy = nullptr, _copyp = nullptr;
 #if defined(TUNE)
 	splitter * _pSplit = nullptr;
@@ -423,7 +423,8 @@ public:
 		const uint32 b_ui = static_cast<uint32>(b);
 		const int32 b_s = static_cast<int32>(31 - __builtin_clz(b) - 1);
 		const uint32 b_inv = static_cast<uint32>((static_cast<uint64_t>(1) << (b_s + 32)) / b);
-		CREATE_NORMALIZE_KERNEL(normalize1, b_ui, b_inv, b_s);
+		CREATE_NORMALIZE_KERNEL(normalize1dup0, b_ui, b_inv, b_s);
+        CREATE_NORMALIZE_KERNEL(normalize1dup1, b_ui, b_inv, b_s);
 		CREATE_NORMALIZE_KERNEL(normalize2, b_ui, b_inv, b_s);
 		CREATE_NORMALIZE_KERNEL(mulscalar, b_ui, b_inv, b_s);
 
@@ -464,7 +465,7 @@ public:
 		_releaseKernel(_mul32); _releaseKernel(_mul64); _releaseKernel(_mul128); _releaseKernel(_mul256);
 		_releaseKernel(_mul512); _releaseKernel(_mul1024); _releaseKernel(_mul2048); _releaseKernel(_mul4096);
 
-		_releaseKernel(_normalize1); _releaseKernel(_normalize2); _releaseKernel(_mulscalar);
+		_releaseKernel(_normalize1dup0); _releaseKernel(_normalize1dup1); _releaseKernel(_normalize2); _releaseKernel(_mulscalar);
 
 		_releaseKernel(_set); _releaseKernel(_copy); _releaseKernel(_copyp);
 	}
@@ -838,8 +839,9 @@ public:
 		const int32 idup = dup ? 1 : 0;
 		const size_t size = _n / 4;
 
-		_setKernelArg(_normalize1, 5, sizeof(int32), &idup);
-		_executeKernel(_normalize1, size, 1u << _lnormWGsize);
+		cl_kernel kernel = dup ? _normalize1dup1 : _normalize1dup0;
+        _setKernelArg(kernel, 5, sizeof(int32), &idup);
+        _executeKernel(kernel, size, 1u << _lnormWGsize);
 		_executeKernel(_normalize2, size >> _lnormWGsize);
 	}
 
@@ -1058,6 +1060,23 @@ public:
         const int shift=31-__builtin_clz(b)-1;
         const uint32_t inverse=uint32_t((uint64_t(1)<<(shift+32))/b);
         src << "#define GFN19_FIXED_B " << b << "u\n#define GFN19_FIXED_INV " << inverse << "u\n#define GFN19_FIXED_SHIFT " << shift << "\n";
+        // Reconstruct C = k*(p2*p3) + t*p3 + r3, and divide using bounded
+        // signed64 residuals. Check the entire supported coefficient interval.
+        const int64_t pair = int64_t(P2S) * P3S;
+        const int64_t qpair = (pair + b/2) / b, rpair = pair - qpair*b;
+        const int64_t qthird = (int64_t(P3S) + b/2) / b, rthird = int64_t(P3S) - qthird*b;
+        using wide = gfn19_guaranteed::wide;
+        const wide coefficient = gfn19_guaranteed::coefficient_bound(b);
+        const wide kmax = gfn19_guaranteed::ceil_div(coefficient, wide(pair)) + 2;
+        const wide tmax = uint64_t(P2S)/2 + 1, rmax = uint64_t(P3S)-1;
+        const wide carry = gfn19_guaranteed::carry_bound(b);
+        auto magnitude = [](int64_t x) { return uint64_t(x < 0 ? -x : x); };
+        if (2*(kmax*magnitude(rpair) + tmax*magnitude(rthird) + rmax) + carry >= wide(b)*(wide(1)<<29)
+            || 2*(kmax*uint64_t(qpair) + tmax*uint64_t(qthird)) + (wide(1)<<29) >= (wide(1)<<63)
+            || coefficient >= wide(P1S/2-4)*wide(pair))
+            throw std::runtime_error("Three-prime CRT division range check failed");
+        src << "#define CRT_QPAIR " << qpair << "l\n#define CRT_RPAIR " << rpair << "l\n";
+        src << "#define CRT_QTHIRD " << qthird << "l\n#define CRT_RTHIRD " << rthird << "l\n";
         const char *path = std::getenv("GENEFER_KERNEL");
         if (!path) throw std::runtime_error("GENEFER_KERNEL must point to the three-prime kernel source");
         std::ifstream kernel(path, std::ios::binary);
@@ -1208,7 +1227,7 @@ public:
 
 	void squareDup(const bool dup) override
     {
-        _pEngine->runSquareGraph(dup, [&] { _pEngine->square(); _pEngine->baseMod(dup); });
+        _pEngine->square(); _pEngine->baseMod(dup);
     }
 
 	void squareMul(const int32_t a) override
