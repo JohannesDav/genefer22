@@ -215,7 +215,7 @@ def program(base, fields=15, kernel_directory=None, root_bits=32, outer_chunk=8)
         "unsupported GFN-19 base",
     )
     require(
-        fields in (14, 15, 16, 17),
+        fields in range(7, 18),
         "unsupported packed representation",
     )
     a = parameters(base, fields, bits)
@@ -361,9 +361,7 @@ def select_program(base, gpu, kernel_directory):
     no packed parameter set meets every reconstruction and accumulator bound.
     """
     require(gpu in ("3090", "4060"), "unsupported GPU profile")
-    if base < 4194304:
-        return None
-    for fields in (14, 15, 16, 17):
+    for fields in range(7, 18):
         try:
             return program(
                 base,

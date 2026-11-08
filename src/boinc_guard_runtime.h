@@ -353,7 +353,7 @@ class coordinator
     outcome prepare()
     {
         const auto result = helper("prepare", false);
-#if defined(GENEFER_THREE_PRIME)
+#if defined(GENEFER_THREE_PRIME) || defined(GENEFER_EXACT_TWO)
         if (result == outcome::success && !check_mode_)
         {
             const auto path = prefix_.string() + ".packed.cl";

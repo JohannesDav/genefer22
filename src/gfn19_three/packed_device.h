@@ -1,5 +1,9 @@
 #pragma once
+#if defined(GENEFER_EXACT_TWO)
+#include "../transformGPU.h"
+#else
 #include "transform.h"
+#endif
 #include <array>
 #include <cuda.h>
 #include <fstream>
@@ -185,7 +189,7 @@ class packed_device {
         if (root_bits_ != 32 && root_bits_ != 64)
             throw std::runtime_error("Invalid packed root width");
         if (base != literal(source, "PG_BASE") ||
-            (fields_ != 14 && fields_ != 15 && fields_ != 16 && fields_ != 17))
+            (fields_ < 7 || fields_ > 17))
             throw std::runtime_error("Packed kernel does not match the candidate base");
         try {
             three_cuda_check(cuInit(0));

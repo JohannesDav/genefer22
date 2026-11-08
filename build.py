@@ -174,7 +174,7 @@ def main():
             "run_checked.py",
             "routing.py",
         ]
-        if arithmetic == "three":
+        if arithmetic in ("two", "three"):
             required.extend(PACKED_ASSETS)
         manifest = dict(
             version=2,
@@ -186,7 +186,7 @@ def main():
             prover="bin/" + prover,
             files={name: sha(output / name) for name in required},
         )
-        if arithmetic == "three":
+        if arithmetic in ("two", "three"):
             manifest["packed_squaring"] = True
         filename = {
             "three": "boinc-guard-manifest.json",

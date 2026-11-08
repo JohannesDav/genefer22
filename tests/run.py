@@ -116,7 +116,7 @@ def main():
                 "SQUARE_AFTER_MULTIPLY": "1",
             },
         ]
-        if kind == "three":
+        if kind in ("two", "three"):
             cases += [
                 {
                     "PROOF_PHASE": "1",

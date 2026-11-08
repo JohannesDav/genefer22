@@ -41,6 +41,13 @@ for bits in [30, 32]:
 # These representations must be admitted; random cases below may legitimately
 # choose a different field count when a bound rejects their parameters.
 for base, fields in [
+    (1026, 7),
+    (10000, 8),
+    (30000, 9),
+    (100000, 10),
+    (400000, 11),
+    (2000000, 12),
+    (4038248, 13),
     (28000000, 14),
     (31296290, 14),
     (38000000, 15),
@@ -52,6 +59,13 @@ for base, fields in [
     m.parameters(base, fields)
 eligible = []
 for K, maximum, bits in [
+    (7, 2046, 32),
+    (8, 10000, 32),
+    (9, 30000, 32),
+    (10, 100000, 32),
+    (11, 400000, 32),
+    (12, 2072558, 32),
+    (13, 4038248, 32),
     (14, 31296290, 32),
     (15, 114484426, 32),
     (16, 418735722, 32),

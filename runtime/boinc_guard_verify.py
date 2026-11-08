@@ -94,7 +94,7 @@ def load_inputs(bundle, prefix, base, device, operation, preparing=False):
     }
     if manifest.get("packed_squaring"):
         require(
-            arithmetic == "three" and manifest["backend"] == "cuda",
+            arithmetic in ("two", "three") and manifest["backend"] == "cuda",
             "invalid packed backend",
         )
         required.update(checked.PACKED_ASSETS)

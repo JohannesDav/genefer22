@@ -6,7 +6,7 @@ There are two ways to use the build. For a standalone calculation, you choose a 
 
 ## 1. Prepare the machine
 
-The optimizations target the RTX 3090 and RTX 4060 Ti 16GB on Linux x86-64. Only configurations with one GPU available to the application have been tested. The optimized prover accepts GFN-19 candidates with even bases between 1,024 and 528,220,156, excluding powers of two. For example, the command later in this guide tests `28000000^(2^19) + 1`.
+The optimizations target the RTX 3090 and RTX 4060 Ti 16GB on Linux x86-64. Only configurations with one GPU available to the application have been tested. The build accepts GFN-19 candidates with even bases from 1,026 through 2,000,000,000, excluding powers of two. Optimized arithmetic covers bases through 528,220,156; above that, it selects the original upstream implementation. For example, the command later in this guide tests `28000000^(2^19) + 1`.
 
 You will need Python 3.9 or later, a compiler supporting C++17, and glibc 2.34 or later. The build also needs GMP for large-integer arithmetic, the OpenCL development files and NVIDIA OpenCL runtime, the NVIDIA CUDA toolkit, and the BOINC application development libraries. The BOINC libraries are required by this build script even if you only intend to run standalone calculations, because it builds the BOINC applications as well.
 
@@ -96,23 +96,22 @@ This explicitly runs certificate generation and checking again. You can also pas
 
 ## Automatic arithmetic selection
 
-Both launchers select the arithmetic from the base. There is no experimental arithmetic option.
+Both launchers select the arithmetic from the base. Squaring can use the shorter packed transform throughout the optimized range; the table below describes the ordinary representation used for general operations, proof construction and checkpoints. There is no experimental arithmetic option.
 
 | Even, non-power-of-two bases | Calculation |
 |---|---|
-| 1,026–2,072,558 | Upstream’s 31-bit two-prime arithmetic, executed with CUDA graphs |
-| 2,072,560–4,038,248 | Upstream’s 32-bit two-prime arithmetic, executed with CUDA graphs |
-| 4,038,250–4,194,302 | Optimized ordinary three-prime arithmetic |
-| 4,194,306–528,220,156 | Packed exact squaring, with ordinary three-prime general operations |
+| 1,026–2,072,558 | Packed squaring; upstream’s 31-bit two-prime arithmetic for other operations |
+| 2,072,560–4,038,248 | Packed squaring; upstream’s 32-bit two-prime arithmetic for other operations |
+| 4,038,250–528,220,156 | Packed squaring; optimized three-prime arithmetic for other operations |
 | 528,220,158–2,000,000,000 | Original upstream arithmetic |
 
 The two-prime thresholds reproduce upstream’s integer comparison exactly: `b*b < (p1*p2/2)/2^19`, with integer divisions. The prime pairs are `(2130706433, 2113929217)` and `(4194304001, 4076863489)`. This uses the same arithmetic assumptions and margin as upstream, without extending the range through parity information or sampled coefficient distributions. The selection is in `runtime/routing.py` and the C++ factory.
 
-The packed path groups eight base-b digits into each coefficient, reducing the transform length from 524,288 to 65,536. Larger coefficients need more prime moduli; `runtime/packed_kernel.py` selects enough and checks deterministic bounds on reconstruction, intermediate calculations and carries. General multiplication and checkpoints retain the ordinary three-prime representation. Proof construction also uses that representation, avoiding repeated conversions during its short powers and multiplications.
+The packed path groups eight base-b digits into each coefficient, reducing the transform length from 524,288 to 65,536. Larger coefficients need more prime moduli; `runtime/packed_kernel.py` selects enough and checks deterministic bounds on reconstruction, intermediate calculations and carries. General multiplication and checkpoints retain the ordinary two- or three-prime representation selected above. Proof construction also uses that representation, avoiding repeated conversions during its short powers and multiplications.
 
-If a packed representation fails an admission bound, ordinary exact three-prime arithmetic is used instead. Its bounds are in `src/gfn19_three/bounds.h`. The upper optimized limit keeps ordinary digits inside that implementation’s signed decoding range. Above it, the original implementation chooses its own three-prime variants, including its switch at base 1,000,000,000.
+If no packed representation passes every admission bound, squaring uses the ordinary exact arithmetic selected for that base. The optimized three-prime bounds are in `src/gfn19_three/bounds.h`. The upper optimized limit keeps ordinary digits inside that implementation’s signed decoding range. Above it, the original implementation chooses its own three-prime variants, including its switch at base 1,000,000,000.
 
-The number 4,194,304 is a kernel/representation threshold, not upstream’s two-prime safety limit. It is itself a power of two and therefore not a supported candidate. The arithmetic bounds do not establish that the implementation, compiler or GPU is free of errors.
+The packed generator selects 7–17 prime channels as needed. Its digit bounds apply independently of the two-prime thresholds, which govern the ordinary representation. The arithmetic bounds do not establish that the implementation, compiler or GPU is free of errors.
 
 ## 4. Use the build with BOINC
 
@@ -173,4 +172,14 @@ It generates a base-1,026 proof with both checks, compares it with the saved ups
 
 Benchmarks compare one complete proof-generation run with upstream commit `56905b2` on the same machine and base. They exclude the optional certificate and tail checks for this fork. The original Gerbicz–Li check and proof construction are included in both timings. Driver caches and variable clocks can affect results.
 
-The test machines use a Xeon W-3223 with PCIe 3.0 ×16 for the 3090, and an EPYC 7532 with PCIe 4.0 ×4 for the 4060 Ti. Both small-base two-prime and large-base packed paths must be benchmarked independently; the speedup from one range should not be assumed for another.
+The test machines use a Xeon W-3223 with PCIe 3.0 ×16 for the 3090, and an EPYC 7532 with PCIe 4.0 ×4 for the 4060 Ti. Performance varies with the base and the number of packed prime channels. The README shows runs at base 28,000,000; these smaller-base runs show the effect of extending packed squaring to the lower range. All times below include proof generation and exclude the optional checks.
+
+| GPU | Base | Upstream | This fork |
+|---|---:|---:|---:|
+
+| RTX 3090 | 1,026 | 326 s | 137 s (2.37×) |
+| RTX 3090 | 2,072,558 | 671 s | 429 s (1.56×) |
+| RTX 3090 | 4,038,248 | 714 s | 491 s (1.45×) |
+| RTX 4060 Ti 16GB | 1,026 | 349 s | 155 s (2.25×) |
+| RTX 4060 Ti 16GB | 2,072,558 | 723 s | 488 s (1.48×) |
+| RTX 4060 Ti 16GB | 4,038,248 | 767 s | 549 s (1.40×) |

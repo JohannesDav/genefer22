@@ -1,11 +1,16 @@
 #pragma once
 #include "packed_device.h"
+#if defined(GENEFER_EXACT_TWO)
+#include "../transformGPU.h"
+#else
 #include "transform.h"
+#endif
 #include <memory>
 // Pack eight base-b digits per coefficient for squaring. General operations
-// and checkpoint storage use the three-prime transform.
-class packed_transform : public transformGPUs<3, false> {
-    using baseline = transformGPUs<3, false>;
+// and checkpoint storage retain the selected upstream two- or three-prime transform.
+template<size_t Fields = 3, bool Wide = false>
+class packed_transform : public transformGPUs<Fields, Wide> {
+    using baseline = transformGPUs<Fields, Wide>;
     mutable std::unique_ptr<packed_device> packed_;
     mutable bool packed_current_ = false, baseline_current_ = true;
     bool proof_generation_ = false;

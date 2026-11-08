@@ -1,14 +1,19 @@
 #include <chrono>
 #include <iostream>
 #include <memory>
-#if defined(GENEFER_REFERENCE_FIELDS)
+#if defined(GENEFER_REFERENCE_FIELDS) && !defined(GENEFER_EXACT_TWO)
 #include "transformGPU.h"
 constexpr size_t fields=GENEFER_REFERENCE_FIELDS;
 using ArithmeticBase=transformGPUs<fields,GENEFER_REFERENCE_WIDE>;
 #else
 #include "gfn19_three/packed.h"
-using ArithmeticBase=packed_transform;
+#if defined(GENEFER_EXACT_TWO)
+using ArithmeticBase=packed_transform<2, GENEFER_REFERENCE_WIDE>;
+constexpr size_t fields=2;
+#else
+using ArithmeticBase=packed_transform<3, false>;
 constexpr size_t fields=3;
+#endif
 #endif
 #include "reference.h"
 class ArithmeticTest : public ArithmeticBase
