@@ -8,10 +8,12 @@ Arithmetic is selected automatically using worst-case bounds. Exact packed squar
 
 Each benchmark tests one candidate and includes proof generation. Optional certificate verification and tail recomputation are excluded.
 
-| GPU | Base | Upstream | This fork |
+At base **28,000,000**:
+
+| GPU | Upstream | This fork | Time saved |
 |---|---:|---:|---:|
-| RTX 3090 | 28,000,000 | 1,099 s | 605 s (1.82×) |
-| RTX 4060 Ti 16GB | 28,000,000 | 1,176 s | 682 s (1.72×) |
+| RTX 3090 | 18m19s | 10m05s | 45% |
+| RTX 4060 Ti 16GB | 19m36s | 11m22s | 42% |
 
 The main squaring loop packs eight digits into each coefficient, reducing the transform length by a factor of eight. It uses enough prime moduli to reconstruct every coefficient exactly. General multiplication, final proof construction and checkpoints keep the ordinary two- or three-prime representation. Combining transform stages reduces memory traffic, and CUDA graphs reduce launch overhead.
 
