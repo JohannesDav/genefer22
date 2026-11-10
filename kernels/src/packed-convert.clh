@@ -28,19 +28,19 @@ INLINE void pg_convert(__global const uint *in, __global uint *out, const int du
     const int lane = tid & 31, j = (int)(tid >> 5) * 30 + lane - 2;
     int src = j;
     if (src < 0)
-        src += 65536;
-    if (src >= 65536)
-        src -= 65536;
+        src += N_SZ;
+    if (src >= N_SZ)
+        src -= N_SZ;
     int t[PG_K];
     long sum = 0;
 #pragma unroll
     for (int f = 0; f < PG_K; ++f) {
         uint p = pg_cp.p[f],
-             v = pg_shoup(in[f * 65536 + src], pg_cp.scale[dup][f], pg_cp.scaleq[dup][f], p);
+             v = pg_shoup(in[f * N_SZ + src], pg_cp.scale[dup][f], pg_cp.scaleq[dup][f], p);
         t[f] = v > p / 2 ? (int)((long)v - p) : (int)v;
         sum += t[f];
     }
-    const int m = (int)((sum + (1l << 29)) >> 30);
+    const int m = (int)((sum + (1l << (PG_PRIME_BITS-1))) >> PG_PRIME_BITS);
     long qsum[PG_GROUPS] = {0}, tsum[PG_GROUPS] = {0}, qint = 0;
     ulong tint = 0;
 #pragma unroll
@@ -86,8 +86,8 @@ INLINE void pg_convert(__global const uint *in, __global uint *out, const int du
         if (j == 0)
             up = -up;
         uint digit = pg_canon((long)rem + up + tp, p);
-        if (lane >= 2 && j < 65536)
-            out[f * 65536 + j] = digit;
+        if (lane >= 2 && j < N_SZ)
+            out[f * N_SZ + j] = digit;
     }
 }
 __kernel __attribute__((reqd_work_group_size(128, 1, 1))) void

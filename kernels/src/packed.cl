@@ -16,13 +16,13 @@ hope that it will be useful.
 #define PTX_ASM 1
 #endif
 
-#define N_SZ 65536u
-#define LN_SZ 16
+#define N_SZ PG_N
+#define LN_SZ PG_LN
 #define RNS_SZ PG_K
 #define VSIZE 4
 #define LVSIZE 2
-#define W_SHFT 32768u
-#define WI_SHFT 32768u
+#define W_SHFT (N_SZ/2)
+#define WI_SHFT (N_SZ/2)
 #define MAX_WG_SZ 1024
 
 typedef uint sz_t;
@@ -1544,7 +1544,10 @@ packed_backward(__global VTYPE *restrict const zg, __global const root_word_t *r
         v[k] = lscalar4(fold24(v[k], pq.s0), g_packed_norm[lid], pq);
     _storeg(4, zo, 16 << lm, v);
 }
-#define BLK1024 1
+#if !defined(PG_INNER_BLOCKS)
+#define PG_INNER_BLOCKS 1
+#endif
+#define BLK1024 PG_INNER_BLOCKS
 #define L1024S (1024 / VSIZE)
 
 // if BLK1024 != 1 then const sz_t i1024 = (local_id & ~(L1024S / 4 - 1)) * 4, i256 = local_id %
@@ -1557,7 +1560,7 @@ packed_backward(__global VTYPE *restrict const zg, __global const root_word_t *r
     const sz_t j = id, sj = N_SZ / 4 / VSIZE + j;                                                  \
     DECLARE_IVAR(N_SZ / 4 / VSIZE, j);                                                             \
                                                                                                    \
-    const sz_t i1024 = 0, i256 = local_id;                                                         \
+    const sz_t i1024 = (local_id & ~(L1024S / 4 - 1)) * 4, i256 = local_id % (L1024S / 4);         \
     const sz_t k1024 = group_id * L1024S * BLK1024 + i1024 + i256;                                 \
                                                                                                    \
     __global VTYPE *restrict const zk = &z[k1024];                                                 \

@@ -1,12 +1,8 @@
 #pragma once
 #include "packed_device.h"
-#if defined(GENEFER_EXACT_TWO)
 #include "../transformGPU.h"
-#else
-#include "transform.h"
-#endif
 #include <memory>
-// Pack eight base-b digits per coefficient for squaring. General operations
+// Pack a power-of-two number of base-b digits per coefficient for squaring. General operations
 // and checkpoint storage retain the selected upstream two- or three-prime transform.
 template<size_t Fields = 3, bool Wide = false>
 class packed_transform : public transformGPUs<Fields, Wide> {
@@ -45,20 +41,33 @@ class packed_transform : public transformGPUs<Fields, Wide> {
 
   public:
     packed_transform(uint32_t b, uint32_t n, bool boinc, size_t device, size_t registers,
-                     cl_platform_id platform_id, cl_device_id device_id, bool verbose)
+                     cl_platform_id platform_id, cl_device_id device_id, bool verbose,
+                     const std::string &embedded_kernel = {}, int shared_memory_preference = 50)
         : baseline(b, n, boinc, device, registers, platform_id, device_id, verbose),
           digits_(size_t(1) << n) {
-        if (const char *path = std::getenv("GENEFER_PACKED_KERNEL")) {
-            if (n != 19 || device != 0)
-                throw std::runtime_error("Packed CUDA arithmetic requires GFN-19 on device 0");
+        const char *path = embedded_kernel.empty() ? nullptr : embedded_kernel.c_str();
+#if !defined(GENEFER_AUTOMATIC_CUDA)
+        // Developer probes can load generated kernels; the shipped automatic
+        // selector uses only sources admitted and generated inside the binary.
+        if (!path) path = std::getenv("GENEFER_PACKED_KERNEL");
+#endif
+        if (path) {
+            if (n < 16 || n > 22)
+                throw std::runtime_error("Packed CUDA arithmetic requires a supported GFN exponent and device");
             if (boinc && platform_id && device_id)
-                packed_ = std::make_unique<packed_device>(b, device_id, path, verbose);
+                packed_ = std::make_unique<packed_device>(b, device_id, path, verbose, size_t(1) << n,
+                                                         !embedded_kernel.empty(), shared_memory_preference);
             else {
                 platform parent;
-                packed_ = std::make_unique<packed_device>(b, three_prime_device(parent, device),
-                                                          path, verbose);
+                packed_ = std::make_unique<packed_device>(b, nvidia_device(parent, device),
+                                                          path, verbose, size_t(1) << n,
+                                                          !embedded_kernel.empty(), shared_memory_preference);
             }
         }
+    }
+    void synchronizeForCalibration() const override {
+        if (packed_) packed_->synchronize();
+        baseline::synchronizeForCalibration();
     }
     void setProofGeneration(bool enabled) override {
         if (enabled) {

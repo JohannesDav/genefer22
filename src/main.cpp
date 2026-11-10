@@ -27,9 +27,6 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #include "ocl.h"
 #endif
 #include "genefer.h"
-#if defined(GENEFER_BOINC_GUARD)
-#include "boinc_guard_runtime.h"
-#endif
 
 class application
 {
@@ -40,9 +37,6 @@ private:
 	static void quit(int)
 	{
 		genefer::getInstance().quit();
-#if defined(GENEFER_BOINC_GUARD)
-		boinc_guard::request_quit();
-#endif
 	}
 
 private:
@@ -179,6 +173,10 @@ private:
 #endif
 #endif
 		ss << "  -f <filename>               main filename (without extension) of input and output files" << std::endl;
+#if defined(GENEFER_AUTOMATIC_CUDA)
+        ss << "  --check-certificate         verify the generated proof with original arithmetic" << std::endl;
+        ss << "  --check-tail                recompute the final segment with original arithmetic" << std::endl;
+#endif
 		ss << "  -v or -V                    print the startup banner and exit" << std::endl;
 #if defined(BOINC)
 		ss << "  -boinc                      operate as a BOINC client app" << std::endl;
@@ -208,9 +206,6 @@ public:
 			BOINC_OPTIONS boinc_options;
 			boinc_options_defaults(boinc_options);
 			boinc_options.direct_process_action = 0;
-#if defined(GENEFER_BOINC_GUARD)
-			boinc_options.multi_process = 1;
-#endif
 #if defined(GPU)
 			boinc_options.normal_thread_priority = 1;
 #endif
@@ -241,6 +236,9 @@ public:
 #if defined(BOINC) && defined(GPU)
 		bool ext_device = false;
 #endif
+#if defined(GENEFER_AUTOMATIC_CUDA)
+        bool check_certificate=false,check_tail=false;
+#endif
 		std::string mainFilename = "", impl = "";
 		const int depth = 7;
 
@@ -248,6 +246,10 @@ public:
 		for (size_t i = 0, size = args.size(); i < size; ++i)
 		{
 			const std::string & arg = args[i];
+#if defined(GENEFER_AUTOMATIC_CUDA)
+            if(arg=="--check-certificate") check_certificate=true;
+            if(arg=="--check-tail") check_tail=true;
+#endif
 
 			if ((arg.substr(0, 2) == "-b") && (arg.substr(0, 3) != "-bo"))
 			{
@@ -364,41 +366,11 @@ public:
 		g.setBoincParam(boinc_platform_id, boinc_device_id);
 #endif
 		g.setFilename(mainFilename);
-
-#if defined(GENEFER_BOINC_GUARD)
-        std::unique_ptr<boinc_guard::coordinator> guarded;
-        if (bBoinc)
-        {
-            if (mode != genefer::EMode::Proof && mode != genefer::EMode::Check)
-            {
-                pio::error("Guarded BOINC bundle accepts GFN19 proving and certificate checks");
-                boinc_finish(EXIT_CHILD_FAILED);
-                return;
-            }
-            try
-            {
-                guarded.reset(new boinc_guard::coordinator(args, b, n, device, mainFilename,
-                                                          mode == genefer::EMode::Check));
-                auto prepared = guarded->prepare();
-                if (prepared == boinc_guard::outcome::interrupted) return;
-                if (prepared != boinc_guard::outcome::success)
-                {
-                    pio::error("BOINC guard private input/owner check failed");
-                    boinc_finish(EXIT_CHILD_FAILED);
-                    return;
-                }
-                g.setFilename(guarded->private_prefix());
-                pio::quarantineResults();
-            }
-            catch (const std::exception& error)
-            {
-                pio::error(error.what());
-                boinc_finish(EXIT_CHILD_FAILED);
-                return;
-            }
-        }
+#if defined(GENEFER_AUTOMATIC_CUDA)
+        if((check_certificate || check_tail) && mode!=genefer::EMode::Proof)
+            throw std::runtime_error("Extra checks require proof generation (-p)");
+        g.setExtraChecks(check_certificate,check_tail);
 #endif
-
 
 		if ((mode == genefer::EMode::Bench) || (mode == genefer::EMode::Limit))
 		{
@@ -496,55 +468,19 @@ public:
 			return;
 		}
 
-
         genefer::EReturn ret;
-#if defined(GENEFER_BOINC_GUARD)
-        if (guarded && mode == genefer::EMode::Check)
-        {
-            try
-            {
-                auto checked = guarded->check_certificate();
-                ret = checked == boinc_guard::outcome::success ? genefer::EReturn::Success :
-                      checked == boinc_guard::outcome::interrupted ? genefer::EReturn::Aborted :
-                      genefer::EReturn::Failed;
-            }
-            catch (const std::exception& error)
-            {
-                pio::error(error.what());
-                ret = genefer::EReturn::Failed;
-            }
-        }
-        else
-#endif
         ret = g.check(b, n, mode, device, nthreads, impl, depth);
-
-
-#if defined(GENEFER_BOINC_GUARD)
-        if (guarded && mode == genefer::EMode::Proof && ret == genefer::EReturn::Success)
-        {
-            try
-            {
-                auto verified = guarded->finish(pio::quarantinedResult());
-                if (verified == boinc_guard::outcome::interrupted) ret = genefer::EReturn::Aborted;
-                else if (verified != boinc_guard::outcome::success)
-                {
-                    pio::error("BOINC result checks failed; no result was published");
-                    ret = genefer::EReturn::Failed;
-                }
-            }
-            catch (const std::exception& error)
-            {
-                pio::error(error.what());
-                ret = genefer::EReturn::Failed;
-            }
-        }
-#endif
 
 		if (bBoinc)
 		{
 			if (ret == genefer::EReturn::Success) boinc_finish(BOINC_SUCCESS);
 			if (ret == genefer::EReturn::Failed) boinc_finish(EXIT_CHILD_FAILED);
 		}
+
+#if defined(GENEFER_AUTOMATIC_CUDA)
+        if(!bBoinc && ret==genefer::EReturn::Failed)
+            throw std::runtime_error("Candidate calculation or verification failed");
+#endif
 
 		if (ret == genefer::EReturn::Aborted)
 		{

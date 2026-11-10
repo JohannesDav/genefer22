@@ -272,8 +272,8 @@ public:
 	cl_device_id getDevice(const size_t d) const { return _devices[d].device_id; }
 };
 
-#if defined(GENEFER_THREE_PRIME) || defined(GENEFER_EXACT_TWO)
-#include "gfn19_three/device.h"
+#if defined(GENEFER_GENERAL_CUDA)
+#include "cuda/device.h"
 #else
 class device : oclObject
 {
@@ -314,6 +314,7 @@ private:
 	std::map<cl_kernel, profile> _profileMap;
 
 public:
+    void synchronizeForCalibration() { _sync(); }
 	device(const platform & parent, const size_t d, const bool verbose) : _platform(parent.getPlatform(d)), _device(parent.getDevice(d))
 #if defined(ocl_debug)
 		, _d(d)

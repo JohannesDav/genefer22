@@ -3,6 +3,7 @@
 
 Tests actual native binary and controls, not a substitute for a real-client test.
 """
+
 import hashlib
 import mmap
 import os
@@ -19,7 +20,6 @@ class Episode:
         self,
         slot,
         public,
-        bundle,
         initializer,
         mode,
         label,
@@ -54,8 +54,6 @@ class Episode:
                 str(candidate),
                 "-f",
                 "gproof",
-                "--guard-bundle",
-                str(bundle),
             ]
             + (["--check-certificate"] if check_certificate else [])
             + (["--check-tail"] if check_tail else []),

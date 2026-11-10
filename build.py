@@ -1,207 +1,221 @@
 #!/usr/bin/env python3
-"""Build exact GFN-19 with automatic arithmetic selection."""
+"""Build one GPU executable with CUDA acceleration and original OpenCL fallback."""
 
 import argparse
+import concurrent.futures
 import hashlib
 import json
 import os
 from pathlib import Path
-import shutil
+import shlex
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parent
-CUDA_BACKEND = True
-PACKED_ASSETS = (
-    "packed_kernel.py",
-    "kernels/gfn19-packed.cl",
-    "kernels/gfn19-packed-convert.clh",
-    "kernels/gfn19-packed-codec.clh",
-)
+SOURCES = [
+    "main.cpp",
+    "transform_ocl.cpp",
+    "transform_cuda_small3.cpp",
+    "transform_opencl.cpp",
+    "cuda/kernel.cpp",
+    "cuda/profiles.cpp",
+]
 
 
-def sha(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def locate(candidates, description):
+    for path in candidates:
+        if path.is_file():
+            return path.resolve()
+    raise RuntimeError(
+        "Missing " + description + ": " + ", ".join(map(str, candidates))
+    )
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--gpu", choices=("3090", "4060"), required=True)
+    parser.add_argument("--output", type=Path, default=ROOT / "build/geneferg")
     parser.add_argument(
-        "--output", type=Path, required=True, help="new build directory"
+        "--cuda",
+        type=Path,
+        default=Path(os.environ.get("CUDA_PATH", "/usr/local/cuda")),
+        help="CUDA SDK prefix, needed only for its headers",
     )
     parser.add_argument(
-        "--sdk", type=Path, default=Path("/usr"), help="BOINC SDK prefix"
+        "--sdk",
+        type=Path,
+        default=Path("/usr"),
+        help="BOINC installation or source prefix",
     )
-    if CUDA_BACKEND:
-        parser.add_argument("--cuda", type=Path, default=Path("/usr/local/cuda"))
+    parser.add_argument(
+        "--without-boinc", action="store_true", help="omit the BOINC interface"
+    )
+    parser.add_argument("--jobs", type=int, default=min(2, os.cpu_count() or 1))
     args = parser.parse_args()
-    output, sdk = (args.output.resolve(), args.sdk.resolve())
-    if output.exists():
-        parser.error("output already exists; choose a new build directory")
-    if output == ROOT or ROOT.is_relative_to(output):
-        parser.error("output must not contain the source directory")
-    libraries = sdk / "lib/x86_64-linux-gnu"
-    dependencies = [
-        sdk / "include/boinc/api/boinc_api.h",
-        libraries / "libboinc_api.so",
-        libraries / "libboinc_opencl.so",
-    ]
-    if CUDA_BACKEND:
-        dependencies.append(args.cuda / "include/cuda.h")
-    for path in dependencies:
-        if not path.is_file():
-            parser.error("missing build dependency: " + str(path))
-    for folder in ["bin", "kernels", "lib", "licenses"]:
-        (output / folder).mkdir(parents=True)
-    shutil.copy2(ROOT / "LICENSE", output / "LICENSE")
-    for name in ["run_checked.py", "boinc_guard_verify.py", "routing.py"]:
-        shutil.copy2(ROOT / "runtime" / name, output / name)
-    for name in PACKED_ASSETS:
-        source = (
-            ROOT / "runtime/packed_kernel.py"
-            if name == "packed_kernel.py"
-            else ROOT / "kernels/src" / Path(name).name
-        )
-        shutil.copy2(source, output / name)
-    shutil.copy2(ROOT / "runtime/dispatch.py", output / "genefer-boinc")
-    (output / "genefer-boinc").chmod(493)
-    three_kernel = "kernels/gfn19-three.cl"
-    shutil.copy2(ROOT / "kernels/src/gfn19-three.cl", output / three_kernel)
-    two_kernel = "kernels/gfn19-two.cl"
-    shutil.copy2(ROOT / "ocl/kernel.cl", output / two_kernel)
-    for name in ["boinc", "boinc_api", "boinc_opencl"]:
-        library = (libraries / ("lib" + name + ".so.7")).resolve(strict=True)
-        shutil.copy2(library, output / "lib" / library.name)
-        link = output / "lib" / ("lib" + name + ".so.7")
-        if link.name != library.name:
-            link.symlink_to(library.name)
-    notices = [sdk / "share/doc/libboinc-app-dev/copyright"] + list(
-        (sdk / "licenses").glob("*copyright")
+    if args.jobs < 1:
+        parser.error("--jobs must be positive")
+    output = args.output.resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    build = output.parent / (output.name + "-build")
+    build.mkdir(exist_ok=True)
+    generated = build / "generated"
+    subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "tools/embed_cuda_kernels.py"),
+            str(generated / "cuda/embedded_kernels.h"),
+        ],
+        check=True,
     )
-    notice = next((p for p in notices if p.is_file()), None)
-    if notice is None:
-        parser.error("BOINC library copyright notice missing under SDK prefix")
-    shutil.copy2(notice, output / "licenses/boinc-copyright")
+    cuda = args.cuda.resolve()
+    header = locate(
+        [cuda / "include/cuda.h", cuda / "targets/x86_64-linux/include/cuda.h"],
+        "CUDA headers",
+    )
+    compiler = shlex.split(os.environ.get("CXX", "g++"))
     common = [
-        os.environ.get("CXX", "g++"),
         "-std=c++17",
         "-O3",
         "-pthread",
         "-D_GNU_SOURCE",
         "-DGPU",
-        "-I",
-        str(ROOT / "src"),
-        "-I",
-        str(ROOT / "Khronos"),
+        "-DGENEFER_GENERAL_CUDA",
+        "-DGENEFER_GENERAL_PACKED",
+        "-DGENEFER_GENERAL_SMALL3_AVAILABLE",
+        "-DGENEFER_AUTOMATIC_CUDA",
+        "-I" + str(ROOT / "src"),
+        "-I" + str(ROOT / "Khronos"),
+        "-I" + str(generated),
+        "-I" + str(header.parent),
     ]
-    sources = [str(ROOT / "src/main.cpp"), str(ROOT / "src/transform_ocl.cpp")]
-    libs = ["-lOpenCL", "-lgmp"]
-    boinc = [
-        "-DBOINC",
-        "-I",
-        str(sdk / "include/boinc"),
-        "-I",
-        str(sdk / "include/boinc/api"),
-        "-I",
-        str(sdk / "include/boinc/lib"),
-        "-L",
-        str(libraries),
-        "-Wl,-rpath,$ORIGIN/../lib",
-    ]
-    boinc_libs = ["-lboinc_api", "-lboinc_opencl", "-lboinc", "-ldl", "-lrt"]
-    optimized = ["-DGENEFER_GFN19", "-DGENEFER_GUARD_" + args.gpu]
-    gpu_libs = []
-    if CUDA_BACKEND:
-        optimized += [
-            "-DGENEFER_CUDA",
-            "-I",
-            str(args.cuda / "include"),
-            "-L",
-            str(args.cuda / "lib64/stubs"),
+    gmp_name = subprocess.check_output(
+        compiler + ["-print-file-name=libgmp.a"], text=True
+    ).strip()
+    gmp = locate([Path(gmp_name)], "static GMP library")
+    libraries = [str(gmp)]
+    if not args.without_boinc:
+        sdk = args.sdk.resolve()
+        locate(
+            [
+                sdk / "include/boinc/api/boinc_api.h",
+                sdk / "include/boinc/boinc_api.h",
+                sdk / "api/boinc_api.h",
+            ],
+            "BOINC API headers",
+        )
+        common += ["-DBOINC"]
+        for directory in [
+            sdk / "include/boinc",
+            sdk / "include/boinc/api",
+            sdk / "include/boinc/lib",
+            sdk,
+            sdk / "api",
+            sdk / "lib",
+        ]:
+            common.append("-I" + str(directory))
+        directories = [
+            sdk / "lib/x86_64-linux-gnu",
+            sdk / "lib64",
+            sdk / "lib",
+            sdk / "api",
         ]
-        gpu_libs = ["-lcuda"]
-    commands = [
-        (common + sources + libs, "genefer-conservative"),
-        (common + boinc + sources + libs + boinc_libs, "genefer-boinc-stock"),
-        (common + [str(ROOT / "src/tail_check.cpp")] + libs, "genefer-tail-check"),
-    ]
-    names = {
-        "three": (
-            "genefer-gfn19",
-            "genefer-boinc-checked",
-            three_kernel,
-            ["-DGENEFER_THREE_PRIME"],
-        ),
-        "two": (
-            "genefer-gfn19-two",
-            "genefer-boinc-two",
-            two_kernel,
-            ["-DGENEFER_EXACT_TWO"],
-        ),
-        "upstream": (
-            "genefer-gfn19-upstream",
-            "genefer-boinc-upstream",
-            two_kernel,
-            [],
-        ),
-    }
-    for arithmetic, (prover, native, kernel, extra) in names.items():
-        flags = optimized + extra
-        commands += [
-            (common + flags + sources + libs + gpu_libs, prover),
-            (
-                common
-                + flags
-                + boinc
-                + ["-DGENEFER_BOINC_GUARD"]
-                + sources
-                + libs
-                + gpu_libs
-                + boinc_libs,
-                native,
+        libraries += [
+            str(
+                locate(
+                    [d / "libboinc_api.a" for d in directories],
+                    "static BOINC API library",
+                )
+            ),
+            str(
+                locate(
+                    [d / "libboinc_opencl.a" for d in directories],
+                    "static BOINC OpenCL library",
+                )
+            ),
+            str(
+                locate([d / "libboinc.a" for d in directories], "static BOINC library")
             ),
         ]
-    for command, name in commands:
-        print("Building " + name, flush=True)
-        subprocess.run(command + ["-o", str(output / "bin" / name)], check=True)
-    for arithmetic, (prover, native, kernel, _) in names.items():
-        required = [
-            "bin/" + native,
-            "bin/genefer-conservative",
-            "bin/genefer-tail-check",
-            kernel,
-            "boinc_guard_verify.py",
-            "run_checked.py",
-            "routing.py",
-        ]
-        if arithmetic in ("two", "three"):
-            required.extend(PACKED_ASSETS)
-        manifest = dict(
-            version=2,
-            gpu=args.gpu,
-            backend="opencl" if arithmetic == "upstream" else "cuda",
-            arithmetic=arithmetic,
-            profile=arithmetic,
-            kernel=kernel,
-            prover="bin/" + prover,
-            files={name: sha(output / name) for name in required},
+    # The CUDA driver is resolved lazily; never link against libcuda or libcudart.
+    loader_candidates = [
+        Path(
+            subprocess.check_output(
+                compiler + ["-print-file-name=" + name], text=True
+            ).strip()
         )
-        if arithmetic in ("two", "three"):
-            manifest["packed_squaring"] = True
-        filename = {
-            "three": "boinc-guard-manifest.json",
-            "two": "boinc-two-prime-manifest.json",
-            "upstream": "boinc-upstream-manifest.json",
-        }[arithmetic]
-        (output / filename).write_text(json.dumps(manifest, indent=2) + "\n")
-    files = {
-        str(p.relative_to(output)): sha(p) for p in output.rglob("*") if p.is_file()
-    }
-    (output / "deployment-manifest.json").write_text(
-        json.dumps(dict(version=1, gpu=args.gpu, files=files), indent=2) + "\n"
+        for name in ["libOpenCL.so", "libOpenCL.so.1"]
+    ]
+    opencl = locate(loader_candidates, "OpenCL loader")
+    libraries = [
+        "-Wl,--start-group",
+        *libraries,
+        "-Wl,--end-group",
+        str(opencl),
+        "-ldl",
+        "-lrt",
+    ]
+    stamp = hashlib.sha256()
+    for path in sorted((ROOT / "src").rglob("*.h")) + [
+        ROOT / "profiles/nvidia.json",
+        generated / "cuda/embedded_kernels.h",
+    ]:
+        stamp.update(path.read_bytes())
+    stamp.update(json.dumps(compiler + common).encode())
+    headers_hash = stamp.hexdigest()
+
+    def compile_source(name):
+        source = ROOT / "src" / name
+        obj = build / (name.replace("/", "-") + ".o")
+        receipt = obj.with_suffix(".json")
+        identity = hashlib.sha256(
+            (headers_hash + hashlib.sha256(source.read_bytes()).hexdigest()).encode()
+        ).hexdigest()
+        if (
+            obj.exists()
+            and receipt.exists()
+            and json.loads(receipt.read_text()).get("identity") == identity
+        ):
+            return obj
+        print("Building " + name, flush=True)
+        subprocess.run(
+            compiler + common + ["-c", str(source), "-o", str(obj)], check=True
+        )
+        receipt.write_text(json.dumps(dict(identity=identity)) + "\n")
+        return obj
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
+        objects = list(pool.map(compile_source, SOURCES))
+    subprocess.run(
+        compiler
+        + [
+            "-pthread",
+            "-static-libgcc",
+            "-static-libstdc++",
+            *map(str, objects),
+            *libraries,
+            "-o",
+            str(output),
+        ],
+        check=True,
     )
-    print("Built " + str(output))
+    metadata = dict(
+        boinc=not args.without_boinc,
+        executable_sha256=hashlib.sha256(output.read_bytes()).hexdigest(),
+        sources={
+            name: hashlib.sha256((ROOT / "src" / name).read_bytes()).hexdigest()
+            for name in SOURCES
+        },
+        profiles_sha256=hashlib.sha256(
+            (ROOT / "profiles/nvidia.json").read_bytes()
+        ).hexdigest(),
+    )
+    output.with_name(output.name + ".build.json").write_text(
+        json.dumps(metadata, indent=2) + "\n"
+    )
+    print("Built " + str(output), flush=True)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
+        raise SystemExit(str(error))

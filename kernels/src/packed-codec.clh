@@ -1,5 +1,8 @@
-// Exact conversion between packed b^8 RNS digits and ordinary base-b digits.
+// Exact conversion between packed base-b digits and ordinary base-b digits.
 // CRT sums use signed96 accumulators, then exact constant-base long division.
+#if PG_CODEC_LIMBS < PG_PACK
+#error Packed codec requires at least one word per base digit
+#endif
 typedef struct {
     ulong low;
     int high;
@@ -11,10 +14,10 @@ INLINE void pg_wide_add(__private PgWide *sum, long term) {
 }
 __kernel void packed_encode(__global const int *digits, __global uint *state,
                             __global uint *error) {
-    uint index = get_global_id(0), field = index / 65536, j = index % 65536, p = pg_cp.p[field],
+    uint index = get_global_id(0), field = index / N_SZ, j = index % N_SZ, p = pg_cp.p[field],
          q = pg_codec_bq[field], value = 0;
-    for (int k = 7; k >= 0; --k) {
-        int digit = digits[8 * j + k];
+    for (int k = PG_PACK - 1; k >= 0; --k) {
+        int digit = digits[PG_PACK * j + k];
         uint absolute = digit < 0 ? (uint)(-digit) : (uint)digit;
         if (absolute > PG_BASE + 2u) {
             atomic_or(error, 16u);
@@ -34,14 +37,14 @@ __kernel void packed_decode(__global const uint *state, __global int *digits, __
     long total = 0;
 #pragma unroll
     for (int f = 0; f < PG_K; ++f) {
-        uint p = pg_cp.p[f], input = state[f * 65536 + j];
+        uint p = pg_cp.p[f], input = state[f * N_SZ + j];
         if (input >= p)
             atomic_or(error, 32u);
         uint u = pg_shoup(input, pg_cp.scale[0][f], pg_cp.scaleq[0][f], p);
         t[f] = u > p / 2 ? (int)((long)u - p) : (int)u;
         total += t[f];
     }
-    const int rank = (int)((total + (1l << 29)) >> 30);
+    const int rank = (int)((total + (1l << (PG_PRIME_BITS-1))) >> PG_PRIME_BITS);
     uint words[PG_CODEC_LIMBS];
     long carry = 0;
     for (int limb = 0; limb < PG_CODEC_LIMBS; ++limb) {
@@ -64,22 +67,22 @@ __kernel void packed_decode(__global const uint *state, __global int *digits, __
             c = value >> 32;
         }
     }
-    for (int limb = 8; limb < PG_CODEC_LIMBS; ++limb)
+    for (int limb = PG_PACK; limb < PG_CODEC_LIMBS; ++limb)
         if (words[limb])
             atomic_or(error, 2u);
     bool nonzero = false;
-    for (int digit = 0; digit < 8; ++digit) {
+    for (int digit = 0; digit < PG_PACK; ++digit) {
         uint remainder = 0;
-        for (int limb = 7; limb >= 0; --limb) {
+        for (int limb = PG_PACK - 1; limb >= 0; --limb) {
             const ulong value = ((ulong)remainder << 32) | words[limb],
                         quotient = value / (ulong)PG_BASE;
             remainder = (uint)(value - quotient * PG_BASE);
             words[limb] = (uint)quotient;
         }
-        digits[8 * j + digit] = negative ? -(int)remainder : (int)remainder;
+        digits[PG_PACK * j + digit] = negative ? -(int)remainder : (int)remainder;
         nonzero = nonzero || remainder != 0;
     }
-    for (int limb = 1; limb < 8; ++limb)
+    for (int limb = 1; limb < PG_PACK; ++limb)
         if (words[limb])
             atomic_or(error, 4u);
     if (words[0] > PG_DIGIT_RATIO || (words[0] == PG_DIGIT_RATIO && nonzero))
@@ -89,15 +92,15 @@ __kernel void packed_decode(__global const uint *state, __global int *digits, __
 __kernel void packed_repair(__global int *digits, __global const int *carries,
                             __global uint *error) {
     const uint j = get_global_id(0);
-    int carry = j ? carries[j - 1] : -carries[65535];
-    for (int k = 0; k < 7; ++k) {
-        carry += digits[8 * j + k];
+    int carry = j ? carries[j - 1] : -carries[N_SZ - 1];
+    for (int k = 0; k < PG_PACK - 1; ++k) {
+        carry += digits[PG_PACK * j + k];
         const int quotient = carry / (int)PG_BASE;
-        digits[8 * j + k] = carry - quotient * (int)PG_BASE;
+        digits[PG_PACK * j + k] = carry - quotient * (int)PG_BASE;
         carry = quotient;
     }
-    carry += digits[8 * j + 7];
-    digits[8 * j + 7] = carry;
+    carry += digits[PG_PACK * j + PG_PACK - 1];
+    digits[PG_PACK * j + PG_PACK - 1] = carry;
     if (carry < -(int)(PG_BASE + 2) || carry > (int)(PG_BASE + 2))
         atomic_or(error, 8u);
 }

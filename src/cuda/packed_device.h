@@ -1,11 +1,7 @@
 #pragma once
-#if defined(GENEFER_EXACT_TWO)
 #include "../transformGPU.h"
-#else
-#include "transform.h"
-#endif
 #include <array>
-#include <cuda.h>
+#include "driver_api.h"
 #include <fstream>
 #include <iterator>
 #include <map>
@@ -13,8 +9,9 @@
 #include <vector>
 
 class packed_device {
-    static constexpr unsigned n = 65536;
+    unsigned n = 65536;
     unsigned outer_threads_ = 256, inner_threads_ = 64;
+    unsigned packed_digits_ = 8;
     unsigned base_, fields_, root_bits_ = 32, root_words_ = 32768, current_ = 0, pending_ = 0,
                              mask_ = 0, start_ = 0;
     CUdevice device_{};
@@ -98,7 +95,7 @@ class packed_device {
         }
     }
     void launch(CUfunction function, unsigned blocks, unsigned threads, void **args) {
-        three_cuda_check(
+        cuda_check(
             cuLaunchKernel(function, blocks, 1, 1, threads, 1, 1, 0, stream_, args, nullptr));
     }
     void addNode(CUgraph graph, CUgraphNode &previous, CUfunction fn, unsigned blocks,
@@ -111,7 +108,7 @@ class packed_device {
         p.blockDimY = p.blockDimZ = 1;
         p.kernelParams = args;
         CUgraphNode node;
-        three_cuda_check(cuGraphAddKernelNode(&node, graph, previous ? &previous : nullptr,
+        cuda_check(cuGraphAddKernelNode(&node, graph, previous ? &previous : nullptr,
                                               previous ? 1 : 0, &p));
         previous = node;
     }
@@ -123,7 +120,7 @@ class packed_device {
             auto &exec = graphs_[key];
             if (!exec) {
                 CUgraph graph;
-                three_cuda_check(cuGraphCreate(&graph, 0));
+                cuda_check(cuGraphCreate(&graph, 0));
                 CUgraphNode previous{};
                 for (unsigned i = 0; i < 8; ++i) {
                     unsigned index = start_ ^ (i & 1), bit = (mask_ >> i) & 1;
@@ -139,10 +136,10 @@ class packed_device {
                     addNode(graph, previous, converters_[bit], ((n + 29) / 30 + 3) / 4, 128,
                             convertArgs);
                 }
-                three_cuda_check(cuGraphInstantiate(&exec, graph, 0));
-                three_cuda_check(cuGraphDestroy(graph));
+                cuda_check(cuGraphInstantiate(&exec, graph, 0));
+                cuda_check(cuGraphDestroy(graph));
             }
-            three_cuda_check(cuGraphLaunch(exec, stream_));
+            cuda_check(cuGraphLaunch(exec, stream_));
         } else
             for (unsigned i = 0; i < pending_; ++i) {
                 unsigned index = start_ ^ (i & 1), bit = (mask_ >> i) & 1;
@@ -158,22 +155,33 @@ class packed_device {
         mask_ = 0;
     }
     void checkFlags() {
-        three_cuda_check(cuStreamSynchronize(stream_));
+        cuda_check(cuStreamSynchronize(stream_));
         uint32_t bits = 0;
-        three_cuda_check(cuMemcpyDtoH(&bits, error_, sizeof(bits)));
+        cuda_check(cuMemcpyDtoH(&bits, error_, sizeof(bits)));
         if (bits)
             throw std::runtime_error("Packed digit conversion invariant failed: " +
                                      std::to_string(bits));
     }
 
   public:
-    packed_device(unsigned base, cl_device_id cldevice, const std::string &path, bool verbose)
+    packed_device(unsigned base, cl_device_id cldevice, const std::string &path, bool verbose,
+                  size_t expected_digits = size_t(1) << 19, bool embedded_source = false,
+                  int shared_memory_preference = 50)
         : base_(base) {
-        std::ifstream file(path);
-        if (!file)
-            throw std::runtime_error("Cannot read packed kernel source");
-        std::string source(std::istreambuf_iterator<char>(file), {});
+        std::string source;
+        if (embedded_source) source=path;
+        else {
+            std::ifstream file(path);
+            if (!file) throw std::runtime_error("Cannot read packed kernel source");
+            source.assign(std::istreambuf_iterator<char>(file), {});
+        }
+        if (source.find("#define PG_N ") != std::string::npos) n=literal(source,"PG_N");
+        if (n<16384 || n>4194304 || (n & (n-1))) throw std::runtime_error("Invalid packed transform length");
         fields_ = literal(source, "PG_K");
+        packed_digits_ = literal(source, "PG_PACK");
+        if (!packed_digits_ || packed_digits_ > 64 || (packed_digits_ & (packed_digits_-1)) ||
+            size_t(packed_digits_) * n != expected_digits)
+            throw std::runtime_error("Packed kernel does not match the GFN exponent");
         if (source.find("#define PG_OUTER_THREADS") != std::string::npos)
             outer_threads_ = literal(source, "PG_OUTER_THREADS");
         if (source.find("#define PG_INNER_THREADS") != std::string::npos)
@@ -189,20 +197,20 @@ class packed_device {
         if (root_bits_ != 32 && root_bits_ != 64)
             throw std::runtime_error("Invalid packed root width");
         if (base != literal(source, "PG_BASE") ||
-            (fields_ < 7 || fields_ > 17))
+            (fields_ < 2 || fields_ > 32))
             throw std::runtime_error("Packed kernel does not match the candidate base");
         try {
-            three_cuda_check(cuInit(0));
+            cuda_check(cuInit(0));
             std::array<unsigned char, 16> uuid{};
             checkCL(clGetDeviceInfo(cldevice, 0x106A, uuid.size(), uuid.data(), nullptr),
                     "packed device UUID");
             int count = 0, matches = 0;
-            three_cuda_check(cuDeviceGetCount(&count));
+            cuda_check(cuDeviceGetCount(&count));
             for (int index = 0; index < count; ++index) {
                 CUdevice candidate;
                 CUuuid other{};
-                three_cuda_check(cuDeviceGet(&candidate, index));
-                three_cuda_check(cuDeviceGetUuid(&other, candidate));
+                cuda_check(cuDeviceGet(&candidate, index));
+                cuda_check(cuDeviceGetUuid(&other, candidate));
                 if (std::memcmp(uuid.data(), other.bytes, uuid.size()) == 0) {
                     device_ = candidate;
                     ++matches;
@@ -210,38 +218,59 @@ class packed_device {
             }
             if (matches != 1)
                 throw std::runtime_error("Cannot match packed OpenCL and CUDA GPU");
-            three_cuda_check(cuDevicePrimaryCtxRetain(&context_, device_));
-            three_cuda_check(cuCtxSetCurrent(context_));
+            cuda_check(cuDevicePrimaryCtxRetain(&context_, device_));
+            cuda_check(cuCtxSetCurrent(context_));
             std::string binary = compile(cldevice, source);
-            three_cuda_check(cuCtxSetCurrent(context_));
-            three_cuda_check(cuModuleLoadData(&module_, binary.c_str()));
-            three_cuda_check(cuStreamCreate(&stream_, CU_STREAM_NON_BLOCKING));
+            cuda_check(cuCtxSetCurrent(context_));
+            cuda_check(cuModuleLoadData(&module_, binary.c_str()));
+            cuda_check(cuStreamCreate(&stream_, CU_STREAM_NON_BLOCKING));
             for (unsigned i = 0; i < 3; ++i)
-                three_cuda_check(cuModuleGetFunction(&transforms_[i], module_,
+                cuda_check(cuModuleGetFunction(&transforms_[i], module_,
                                                      i == 0   ? "packed_forward"
                                                      : i == 1 ? "packed_square1024"
                                                               : "packed_backward"));
             for (unsigned i = 0; i < 2; ++i)
-                three_cuda_check(cuModuleGetFunction(
+                cuda_check(cuModuleGetFunction(
                     &converters_[i], module_, i ? "packed_convert_dup1" : "packed_convert_dup0"));
-            three_cuda_check(cuModuleGetFunction(&encode_, module_, "packed_encode"));
-            three_cuda_check(cuModuleGetFunction(&decode_, module_, "packed_decode"));
-            three_cuda_check(cuModuleGetFunction(&repair_, module_, "packed_repair"));
+            cuda_check(cuModuleGetFunction(&encode_, module_, "packed_encode"));
+            cuda_check(cuModuleGetFunction(&decode_, module_, "packed_decode"));
+            cuda_check(cuModuleGetFunction(&repair_, module_, "packed_repair"));
+            cl_ulong local_memory=0;
+            checkCL(clGetDeviceInfo(cldevice,CL_DEVICE_LOCAL_MEM_SIZE,sizeof(local_memory),&local_memory,nullptr));
+            auto validate_function=[&](CUfunction fn,unsigned threads) {
+                int max_threads=0,shared_bytes=0;
+                cuda_check(cuFuncGetAttribute(&max_threads,CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK,fn));
+                cuda_check(cuFuncGetAttribute(&shared_bytes,CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES,fn));
+                if(max_threads<int(threads) || shared_bytes<0 || uint64_t(shared_bytes)>local_memory)
+                    throw std::runtime_error("Compiled kernel exceeds device resources");
+            };
+            validate_function(transforms_[0],outer_threads_);
+            validate_function(transforms_[1],inner_threads_);
+            validate_function(transforms_[2],outer_threads_);
+            for(auto fn:converters_) validate_function(fn,128);
+            for(auto fn:{encode_,decode_,repair_}) validate_function(fn,128);
+            int carveout = shared_memory_preference;
+            if (const char *value=std::getenv("GENEFER_CARVEOUT")) {
+                size_t used=0;
+                carveout=std::stoi(value,&used);
+                if (used!=std::strlen(value) || carveout < -1 || carveout > 100)
+                    throw std::runtime_error("Shared-memory preference must be -1 through 100");
+            }
             for (auto fn : transforms_)
-                three_cuda_check(
-                    cuFuncSetAttribute(fn, CU_FUNC_ATTRIBUTE_PREFERRED_SHARED_MEMORY_CARVEOUT, 50));
+                cuda_check(
+                    cuFuncSetAttribute(fn, CU_FUNC_ATTRIBUTE_PREFERRED_SHARED_MEMORY_CARVEOUT, carveout));
             for (auto &value : state_)
-                three_cuda_check(cuMemAlloc(&value, size_t(fields_) * n * 4));
-            three_cuda_check(cuMemAlloc(&roots_, size_t(fields_) * root_words_ * (root_bits_ / 8)));
-            three_cuda_check(cuMemAlloc(&digits_, 8 * n * 4));
-            three_cuda_check(cuMemAlloc(&carries_, n * 4));
-            three_cuda_check(cuMemAlloc(&error_, 4));
+                cuda_check(cuMemAlloc(&value, size_t(fields_) * n * 4));
+            cuda_check(cuMemAlloc(&roots_, size_t(fields_) * root_words_ * (root_bits_ / 8)));
+            cuda_check(cuMemAlloc(&digits_, packed_digits_ * n * 4));
+            cuda_check(cuMemAlloc(&carries_, n * 4));
+            cuda_check(cuMemAlloc(&error_, 4));
             std::vector<uint32_t> roots32(root_bits_ == 32 ? size_t(fields_) * root_words_ : 0);
             std::vector<uint64_t> roots64(root_bits_ == 64 ? size_t(fields_) * root_words_ : 0);
             for (unsigned field = 0; field < fields_; ++field) {
                 uint32_t p = literal(source, "PG_PRIME" + std::to_string(field)),
                          generator = literal(source, "PG_GENERATOR" + std::to_string(field));
-                if (uint64_t(p) * 4 >= (uint64_t(1) << 32) || (p - 1) % (2 * n) ||
+                if (uint64_t(p) * 4 >= (uint64_t(1) << 32) || (p - 1) % n ||
                     power(generator, (p - 1) / 2, p) == 1)
                     throw std::runtime_error("Invalid packed transform field");
                 for (unsigned s = 1; s < n / 2; s *= 2) {
@@ -259,12 +288,29 @@ class packed_device {
                 }
             }
             if (root_bits_ == 32)
-                three_cuda_check(cuMemcpyHtoD(roots_, roots32.data(), roots32.size() * 4));
+                cuda_check(cuMemcpyHtoD(roots_, roots32.data(), roots32.size() * 4));
             else
-                three_cuda_check(cuMemcpyHtoD(roots_, roots64.data(), roots64.size() * 8));
-            three_cuda_check(cuCtxSynchronize());
+                cuda_check(cuMemcpyHtoD(roots_, roots64.data(), roots64.size() * 8));
+            cuda_check(cuCtxSynchronize());
+            if (std::getenv("GENEFER_PACKED_WRAP_CHECK")) {
+                // Independent ring-boundary stimulus: x^N = -1. Every small
+                // carried coefficient shifts right once; the last changes sign.
+                std::vector<int32_t> zero(size_t(packed_digits_)*n,0),carry(n),actual(zero.size());
+                for(unsigned j=0;j<n;++j)carry[j]=int((uint64_t(j)*17+3)%9)-4;
+                cuda_check(cuMemcpyHtoD(digits_,zero.data(),zero.size()*4));
+                cuda_check(cuMemcpyHtoD(carries_,carry.data(),carry.size()*4));
+                cuda_check(cuMemsetD32(error_,0,1));
+                cuda_check(cuCtxSynchronize());
+                void *args[]={&digits_,&carries_,&error_};launch(repair_,n/128,128,args);checkFlags();
+                cuda_check(cuMemcpyDtoH(actual.data(),digits_,actual.size()*4));
+                for(unsigned j=0;j<n;++j)for(unsigned k=0;k<packed_digits_;++k) {
+                    const int expected=k?0:(j?carry[j-1]:-carry[n-1]);
+                    if(actual[size_t(j)*packed_digits_+k]!=expected)
+                        throw std::runtime_error("Packed negacyclic carry-wrap regression failed N="+std::to_string(n)+" j="+std::to_string(j)+" k="+std::to_string(k)+" actual="+std::to_string(actual[size_t(j)*packed_digits_+k])+" expected="+std::to_string(expected));
+                }
+            }
             if (verbose)
-                pio::print("GFN-19 exact packed-digit CUDA square (" + std::to_string(fields_) +
+                pio::print("Exact packed CUDA square (" + std::to_string(fields_) +
                            " prime channels)\n");
 
         } catch (...) {
@@ -304,13 +350,13 @@ class packed_device {
   public:
     void synchronize() {
         flush();
-        three_cuda_check(cuStreamSynchronize(stream_));
+        cuda_check(cuStreamSynchronize(stream_));
     }
     void setDigits(const int32_t *input) {
         synchronize();
-        three_cuda_check(cuMemcpyHtoD(digits_, input, 8 * n * 4));
-        three_cuda_check(cuMemsetD32(error_, 0, 1));
-        three_cuda_check(cuCtxSynchronize());
+        cuda_check(cuMemcpyHtoD(digits_, input, packed_digits_ * n * 4));
+        cuda_check(cuMemsetD32(error_, 0, 1));
+        cuda_check(cuCtxSynchronize());
         current_ = 0;
         CUdeviceptr out = state_[0];
         void *args[] = {&digits_, &out, &error_};
@@ -319,15 +365,15 @@ class packed_device {
     }
     void getDigits(int32_t *output) {
         synchronize();
-        three_cuda_check(cuMemsetD32(error_, 0, 1));
-        three_cuda_check(cuCtxSynchronize());
+        cuda_check(cuMemsetD32(error_, 0, 1));
+        cuda_check(cuCtxSynchronize());
         CUdeviceptr input = state_[current_];
         void *args[] = {&input, &digits_, &carries_, &error_};
         launch(decode_, n / 128, 128, args);
         void *repairArgs[] = {&digits_, &carries_, &error_};
         launch(repair_, n / 128, 128, repairArgs);
         checkFlags();
-        three_cuda_check(cuMemcpyDtoH(output, digits_, 8 * n * 4));
+        cuda_check(cuMemcpyDtoH(output, digits_, packed_digits_ * n * 4));
     }
     void square(bool doubled) {
         if (!pending_)
@@ -340,6 +386,6 @@ class packed_device {
     }
     size_t memory() const {
         return size_t(fields_) * n * 8 + size_t(fields_) * root_words_ * (root_bits_ / 8) +
-               (9 * n + 1) * 4;
+               ((packed_digits_ + 1) * n + 1) * 4;
     }
 };
