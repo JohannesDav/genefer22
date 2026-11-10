@@ -1,8 +1,10 @@
 # Calibrated NVIDIA GPUs
 
-All listed configurations were calibrated for GFN-16 through GFN-22, using GMP arithmetic checks and repeated calculation-loop measurements. Complete proof comparisons are listed separately in the [benchmark results](benchmarks.md); their coverage varies by GFN.
+The executable includes settings tested on each GPU and memory configuration below, for every size from GFN-16 through GFN-22. To choose these settings, we compared different calculation layouts in short, repeated tests and checked their arithmetic against GMP. This is what we call calibration.
 
-| GPU (OpenCL device name) | Memory | Architecture | Validation coverage |
+For some cards, we also ran complete primality tests and compared their proof files with Gallot’s version. The last column distinguishes that additional testing from calibration alone. It does not mean every GFN size received a complete test on that card; the [benchmark results](benchmarks.md) list the exact combinations tested.
+
+| GPU (name reported by the driver) | Memory | GPU generation | Tests completed |
 |---|---:|---|---|
 | NVIDIA GeForce GTX 1080 Ti | 11 GB | Pascal | Calibration and complete proof comparisons |
 | NVIDIA GeForce GTX TITAN X | 12 GB | Maxwell | Calibration and complete proof comparisons |
@@ -43,4 +45,6 @@ All listed configurations were calibrated for GFN-16 through GFN-22, using GMP a
 | NVIDIA TITAN V | 12 GB | Volta | Calibration and GMP checks |
 | NVIDIA GeForce RTX 4070 Ti | 12 GB | Ada | Calibration and GMP checks |
 
-Other NVIDIA models use architecture or GFN defaults, subject to the same arithmetic and device-resource checks. Driver and ECC reservations can reduce the memory reported by OpenCL; nominal capacities distinguish variants such as the 8GB and 16GB RTX 4060 Ti.
+On an NVIDIA model not listed here, the executable first tries settings chosen for other cards of the same generation. If the generation is unknown, it tries general settings for the requested GFN size. It checks the arithmetic bounds and GPU requirements before using either choice. See [how settings are selected](cuda.md#how-settings-are-selected).
+
+Memory capacities in the table are the advertised capacities. The driver can report less usable memory because some is reserved, including for ECC. Separate entries distinguish cards such as the 8GB and 16GB RTX 4060 Ti.

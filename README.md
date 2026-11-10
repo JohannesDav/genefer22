@@ -2,15 +2,15 @@
 
 The modifications in this fork are entirely AI-generated and should not be considered safe or stable.
 
-Based on [Yves Gallot’s genefer22](https://github.com/galloty/genefer22). This fork adds CUDA optimizations for PrimeGrid’s GFN-16, GFN-17-Mega, GFN-18, GFN-19, GFN-20, GFN-21 and GFN-22 subprojects. The [tested NVIDIA GPUs](doc/calibrated-gpus.md) span several generations. Testing was performed on Linux x86-64. Other GPUs use the original OpenCL implementation; CPU builds remain separate.
+Based on [Yves Gallot’s genefer22](https://github.com/galloty/genefer22). This fork speeds up PrimeGrid’s GFN-16, GFN-17-Mega, GFN-18, GFN-19, GFN-20, GFN-21 and GFN-22 tests on NVIDIA GPUs. It has been tested on Linux x86-64 across [38 GPU and memory configurations](doc/calibrated-gpus.md).
 
-One GPU executable selects tested GPU settings, then architecture or subproject defaults for unfamiliar cards. It checks the arithmetic bounds for each candidate and retains original arithmetic where an optimized configuration is unavailable. No calibration or Python installation is required to run it.
+The same executable works across GPU models and selects its calculation settings automatically. It checks worst-case arithmetic bounds for each candidate and falls back to the original arithmetic where an optimization cannot be used.
 
-The optimized kernels pack several digits into each coefficient where useful, allowing shorter transforms. Smaller prime moduli make modular arithmetic cheaper; enough are used to keep reconstruction exact. Transform layouts vary with the GPU and GFN size, and CUDA graphs reduce kernel launch overhead.
+The main changes are shorter transforms that process several digits together, faster modular arithmetic using smaller primes, and transform layouts chosen for the GPU and test size. Enough primes are used to reconstruct results exactly. CUDA graphs also reduce the overhead of launching GPU kernels.
 
 ## Performance
 
-Complete runs including proof generation, with optional extra checks disabled. Each cell is **upstream → this fork in seconds (time saved)**. The reference is compiled upstream commit `56905b2`, not PrimeGrid's distributed binary.
+Each cell shows **Gallot’s version → this fork, in seconds (percentage of time saved)**. These are complete tests including proof generation. The comparison uses compiled upstream commit `56905b2`, rather than PrimeGrid’s distributed binary. The fork’s optional additional checks are disabled.
 
 | GPU | GFN-16 | GFN-17 | GFN-18 | GFN-19 |
 |---|---:|---:|---:|---:|
@@ -34,15 +34,15 @@ Complete runs including proof generation, with optional extra checks disabled. E
 | RTX 5070 | 3083.0 → 1616.4 (47.6%) | 13223.3 → 5761.2 (56.4%) | — |
 | RTX 5090 | 1122.6 → 669.2 (40.4%) | 5304.4 → 2306.2 (56.5%) | 14611.3 → 6840.8 (53.2%) |
 
-— means no complete benchmark was run because of testing time/cost; the combination remains supported.
+— means we did not run a complete benchmark because of the time and cost involved. Those GPU/subproject combinations are still supported.
 
-Bases for GFN-16 through GFN-22: 620,000,000, 520,000,000, 100,000,000, 30,000,000, 8,000,000, 2,800,000, 660,000.
+All GPUs used the same benchmark candidate for each subproject. The bases tested were **620,000,000 for GFN-16**, **520,000,000 for GFN-17**, **100,000,000 for GFN-18**, **30,000,000 for GFN-19**, **8,000,000 for GFN-20**, **2,800,000 for GFN-21** and **660,000 for GFN-22**. These are benchmark inputs, not limits on supported bases.
 
-All 65 complete comparisons produced identical proofs and passed upstream certificate checks. [Full results and methodology](doc/benchmarks.md).
+In all 65 complete comparisons, this fork and Gallot’s version produced identical proof files. Those proofs also passed Gallot’s certificate checks. See the [full results and test method](doc/benchmarks.md).
 
 ## Build and use
 
-Build instructions, optional checks and the standalone calibration tool are documented in [doc/cuda.md](doc/cuda.md). The GPU executable is named `geneferg`, matching upstream. Its normal command-line and BOINC interfaces are retained.
+See [build and usage instructions](doc/cuda.md). The executable is named `geneferg` and accepts the same command-line options as Gallot’s GPU version, with two optional verification flags added. For example, to test a GFN-19 candidate with base 28,000,000 and save its proof:
 
 ```sh
 ./build/geneferg -n 19 -b 28000000 -p -f candidate
