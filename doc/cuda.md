@@ -73,7 +73,7 @@ Every test runs Gallot’s Gerbicz–Li check, which detects computation errors 
 ```
 
 - `--check-certificate` converts the proof into a certificate and checks it. It uses Gallot’s certificate-generation and checking routines.
-- `--check-tail` repeats approximately the last 1/128 of the squarings, starting from a saved intermediate value, and compares the result with the proof.
+- `--check-tail` repeats the last 1/128 of the squarings, starting from a saved intermediate value, and compares the result with the proof.
 
 You can use either check or both. Each repeats only a small part of the test. If a check fails, the test is reported as failed.
 
