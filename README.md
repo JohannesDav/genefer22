@@ -1,16 +1,33 @@
-# genefer22: experimental CUDA GPU optimizations
+# genefer22: experimental CUDA speedups for NVIDIA GPUs
 
-The modifications in this fork are entirely AI-generated and should not be considered safe or stable.
+**Warning:** all changes in this fork were written by AI and have not been independently reviewed. Treat it as experimental software.
 
-Based on [Yves Gallot’s genefer22](https://github.com/galloty/genefer22). This fork speeds up PrimeGrid’s GFN-16, GFN-17-Mega, GFN-18, GFN-19, GFN-20, GFN-21 and GFN-22 tests on NVIDIA GPUs. It has been tested on Linux x86-64 across [38 GPU and memory configurations](doc/calibrated-gpus.md).
+This is a fork of [Yves Gallot’s genefer22](https://github.com/galloty/genefer22), the program PrimeGrid uses to test numbers of the form b<sup>2<sup>n</sup></sup> + 1 (generalized Fermat numbers) for primality. It changes only the GPU version, and only on NVIDIA cards. It targets PrimeGrid’s GFN-16 to GFN-22 subprojects, where n is 16 to 22.
 
-The same executable works across GPU models and selects its calculation settings automatically. It checks worst-case arithmetic bounds for each candidate and falls back to the original arithmetic where an optimization cannot be used.
+In our measurements, a complete test took about 20–60% less time than with Gallot’s version, depending on the GPU and the GFN size. The results are the same: in all 65 comparisons, both versions wrote identical proof files.
 
-The main changes are shorter transforms that process several digits together, faster modular arithmetic using smaller primes, and transform layouts chosen for the GPU and test size. Enough primes are used to reconstruct results exactly. CUDA graphs also reduce the overhead of launching GPU kernels.
+## What changed
+
+Most of a test is spent squaring a very large number millions of times. Genefer stores the number as a list of base-b digits and squares it with number-theoretic transforms (an exact, integer counterpart of the FFT) computed modulo two or three primes. It then combines those results into the exact answer with the Chinese remainder theorem.
+
+This fork changes how that squaring runs on NVIDIA GPUs:
+
+- **Packed squaring.** Several consecutive base-b digits (up to 16) are combined into each transform element, so the transform is that many times shorter. The elements are larger, so more primes are needed to recover the exact result. The number of primes is chosen for each candidate from a worst-case bound.
+- **Alternative three-prime arithmetic.** On some GPUs, mostly for GFN-16 and GFN-17, it is faster to keep Gallot’s transform but use three primes just below 2<sup>30</sup>. These leave room in 32-bit words to postpone modular reductions.
+- **Settings for each GPU.** The GPU code has several possible layouts. The program contains the fastest settings measured on [38 GPU models and memory sizes](doc/calibrated-gpus.md) and picks them automatically, so one executable serves every supported card.
+- **Less launch overhead.** Work is submitted to the GPU in batches using CUDA graphs, instead of one kernel launch at a time.
+
+## Exactness and fallbacks
+
+None of these changes trade accuracy for speed. Before using an optimization for a candidate, the program checks worst-case bounds showing that every intermediate value stays within the range the arithmetic can represent exactly. Two-prime arithmetic is only used below Gallot’s own limit for it.
+
+If a check fails, the program uses Gallot’s arithmetic instead. It also runs Gallot’s original code, unchanged, on non-NVIDIA GPUs, for GFN sizes outside 16–22, or if CUDA cannot start.
+
+Every test still runs Gallot’s Gerbicz–Li error check. Two optional checks can also verify the finished result with his original code; see [optional extra checks](doc/cuda.md#optional-extra-checks).
 
 ## Performance
 
-Each cell shows **Gallot’s version → this fork, in seconds (percentage of time saved)**. These are complete tests including proof generation. The comparison uses compiled upstream commit `56905b2`, rather than PrimeGrid’s distributed binary. The fork’s optional additional checks are disabled.
+Times are for one complete test, including proof generation, in seconds: **Gallot’s version → this fork (time saved)**. Gallot’s version was compiled from commit `56905b2`.
 
 | GPU | GFN-16 | GFN-17 | GFN-18 | GFN-19 |
 |---|---:|---:|---:|---:|
@@ -34,18 +51,18 @@ Each cell shows **Gallot’s version → this fork, in seconds (percentage of ti
 | RTX 5070 | 3083.0 → 1616.4 (47.6%) | 13223.3 → 5761.2 (56.4%) | — |
 | RTX 5090 | 1122.6 → 669.2 (40.4%) | 5304.4 → 2306.2 (56.5%) | 14611.3 → 6840.8 (53.2%) |
 
-— means we did not run a complete benchmark because of the time and cost involved. Those GPU/subproject combinations are still supported.
+A dash means we skipped that comparison because of the time and cost involved, not because the combination is unsupported.
 
-All GPUs used the same benchmark candidate for each subproject. The bases tested were **620,000,000 for GFN-16**, **520,000,000 for GFN-17**, **100,000,000 for GFN-18**, **30,000,000 for GFN-19**, **8,000,000 for GFN-20**, **2,800,000 for GFN-21** and **660,000 for GFN-22**. These are benchmark inputs, not limits on supported bases.
+Each subproject used the same candidate on every GPU, with a round base near PrimeGrid’s search range in November 2026: 620,000,000 for GFN-16, 520,000,000 for GFN-17-Mega, 100,000,000 for GFN-18, 30,000,000 for GFN-19, 8,000,000 for GFN-20, 2,800,000 for GFN-21 and 660,000 for GFN-22.
 
-In all 65 complete comparisons, this fork and Gallot’s version produced identical proof files. Those proofs also passed Gallot’s certificate checks. See the [full results and test method](doc/benchmarks.md).
+Every proof from these comparisons also passed Gallot’s certificate check. The [full results](doc/benchmarks.md) include seven more GPUs and describe the method.
 
-## Build and use
+## Building and running
 
-See [build and usage instructions](doc/cuda.md). The executable is named `geneferg` and accepts the same command-line options as Gallot’s GPU version, with two optional verification flags added. For example, to test a GFN-19 candidate with base 28,000,000 and save its proof:
+See [building and running the CUDA version](doc/cuda.md). The executable, `geneferg`, takes the same options as Gallot’s GPU version, plus two optional check flags. For example, this tests 28000000<sup>2<sup>19</sup></sup> + 1 and writes the proof to `candidate.proof`:
 
 ```sh
 ./build/geneferg -n 19 -b 28000000 -p -f candidate
 ```
 
-This remains experimental software. Proof compatibility and arithmetic tests are not a substitute for independent review or broader deployment testing.
+Only Linux x86-64 has been tested. PrimeGrid does not distribute this version, so using it for PrimeGrid work means setting up BOINC to run it yourself.

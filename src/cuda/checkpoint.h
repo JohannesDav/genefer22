@@ -30,6 +30,19 @@ inline checkpoint_representation upstream_checkpoint(uint32_t base, unsigned exp
         return {2, wide};
     return {3, base <= 1000000000 ? narrow : wide};
 }
+inline bool packed_handoff_fits(uint32_t base, unsigned exponent, unsigned pack) {
+    const auto ordinary = upstream_checkpoint(base, exponent);
+    if (ordinary.fields != 2) return true;
+    // Repair leaves pack-1 digits bounded by b-1 and the last by b+2.
+    // For pack >= 4 and b >= 4 their squared norm is at most pack*b*b:
+    // (pack-1)*(b-1)^2 + (b+2)^2 - pack*b*b = (6-2*pack)*b+pack+3.
+    // Cauchy-Schwarz then preserves the original convolution bound.
+    if (pack >= 4 && base >= 4) return true;
+    const uint64_t digit = uint64_t(base) + 2;
+    // Division avoids overflowing N*(b+2)^2 and is exact for this inequality.
+    return digit * digit <= uint64_t(ordinary.primes[0]) * ordinary.primes[1] / 2 /
+                               (uint64_t(1) << exponent);
+}
 inline uint32_t digit_residue(int64_t digit, uint32_t prime) {
     // Admitted ordinary digits have magnitude below every original prime.
     if (digit <= -int64_t(prime) || digit >= int64_t(prime))

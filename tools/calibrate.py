@@ -45,6 +45,12 @@ def plans(m, src, n, b):
             continue
         N = 1 << ln
         pack = (1 << n) // N
+        # Match runtime admission for digits returned to ordinary arithmetic.
+        bits = upstream_two_prime_bits(b, n)
+        if bits is not None and pack < 4:
+            primes = (2130706433, 2113929217) if bits == 31 else (4194304001, 4076863489)
+            if (1 << n) * (b + 2) ** 2 > primes[0] * primes[1] // 2:
+                continue
         accepted = None
         for fields in range(2, 33):
             for ratio in (2, 3, 4):

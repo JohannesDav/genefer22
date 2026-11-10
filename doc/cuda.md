@@ -1,20 +1,28 @@
-# Building and using the GPU version
+# Building and running the CUDA version
 
-This guide covers building and running `geneferg`, the GPU executable. It supports all the NVIDIA models and GFN sizes listed in the README without a separate build for each card. The changes have been tested on Linux x86-64.
+This page explains how to build `geneferg`, the GPU executable in this fork, how to run it, and how it chooses its arithmetic for each GPU and candidate. One build covers every supported NVIDIA GPU. Only Linux x86-64 has been tested.
 
-## Build
+## Requirements
 
-Building requires Python 3.8 or newer, a C++17 compiler, GMP development files, the OpenCL development loader, CUDA SDK headers, and, for a BOINC build, the BOINC API development files. To run the executable, the target machine needs the NVIDIA driver with OpenCL support and an OpenCL loader. It does not need Python or the CUDA SDK.
+To build, you need:
 
-On Debian or Ubuntu, start with:
+- Python 3.8 or newer and a C++17 compiler.
+- GMP development files.
+- OpenCL headers and an OpenCL loader.
+- The headers from a CUDA 12 toolkit. Only `cuda.h` is used: the build does not run `nvcc` or link to the CUDA runtime library.
+- The BOINC API libraries, unless you build without BOINC support.
+
+On Debian or Ubuntu, this installs everything except the CUDA headers and BOINC:
 
 ```sh
 sudo apt install g++ python3 libgmp-dev ocl-icd-opencl-dev
 ```
 
-You also need a CUDA SDK with CUDA 12 headers. In the build command below, `--cuda` points to the SDK directory containing `include/cuda.h`. The build uses these headers to access CUDA through the NVIDIA driver; it does not use `nvcc` or link to the CUDA runtime library.
+The computer that runs `geneferg` only needs an NVIDIA driver, which provides both OpenCL and CUDA, and an OpenCL loader. It does not need Python or the CUDA toolkit.
 
-The default build includes BOINC support and needs its static libraries: `libboinc_api.a`, `libboinc_opencl.a`, and `libboinc.a`. A BOINC source build can provide these. From a BOINC source checkout, run:
+## Building
+
+For a BOINC build, first build the BOINC libraries (`libboinc_api.a`, `libboinc_opencl.a` and `libboinc.a`). From a BOINC source checkout:
 
 ```sh
 ./_autosetup
@@ -23,76 +31,93 @@ make -C lib
 make -C api
 ```
 
-From this repository’s root, build the GPU executable with the paths to those dependencies:
+Then, from this repository’s root:
 
 ```sh
 python3 build.py --cuda /usr/local/cuda --sdk /path/to/boinc
 ```
 
-The output is `build/geneferg`. If you only want to run tests directly from the command line, you can omit the BOINC dependency:
+`--cuda` is the CUDA toolkit directory containing `include/cuda.h`. It defaults to `$CUDA_PATH`, or `/usr/local/cuda` if that is not set. `--sdk` is the BOINC source or installation directory.
+
+To run tests from the command line only, you can leave out BOINC:
 
 ```sh
 python3 build.py --cuda /usr/local/cuda --without-boinc
 ```
 
-The GPU kernel sources are in `kernels/src/`. When a calculation starts, the program computes constants for the candidate and uses NVIDIA’s OpenCL compiler to produce PTX, NVIDIA’s intermediate assembly format. It then loads the compiled kernels through the CUDA driver and runs them using CUDA graphs. The compiler and PTX loader are supplied by the installed NVIDIA driver.
+Either command writes `build/geneferg`. The GPU kernel sources in `kernels/src/` and the GPU settings in `profiles/nvidia.json` are built into the executable, so rebuild after changing them.
 
-Kernel sources and the tested GPU settings in `profiles/nvidia.json` are embedded in the executable, so users do not need separate copies of those files. Rebuild after changing either of them. The Linux x86-64 makefile uses this build script for its GPU target; the CPU target still builds Gallot’s original CPU version separately.
+The GPU target of `genefer/makefile_linux_x64` calls this build script. Its CPU target still builds Gallot’s unchanged CPU version.
 
-## Running a candidate
+## Running a test
 
-For example, this tests the GFN-19 number `28000000^(2^19) + 1` and saves its proof as `candidate.proof`:
+This tests 28000000<sup>2<sup>19</sup></sup> + 1 and writes the proof to `candidate.proof`:
 
 ```sh
 ./build/geneferg -n 19 -b 28000000 -p -f candidate
 ```
 
-Run `./build/geneferg` without arguments to list the modes and options. A BOINC build uses the same application interface as Gallot’s version. To use it under BOINC, you must also configure BOINC to run the replacement application; building the executable alone does not change your PrimeGrid installation.
+Run `./build/geneferg` with no arguments to list all options. They are the same as in Gallot’s GPU version, plus the two checks below.
 
-The default run retains upstream’s Gerbicz–Li error check. Two additional checks are available separately, both disabled by default:
+At the start of each test, the program generates GPU kernels for that candidate, compiles them with the OpenCL compiler built into the NVIDIA driver, and runs them through the CUDA driver.
+
+A BOINC build uses the same BOINC interface as Gallot’s version. PrimeGrid does not distribute this executable, so to use it for PrimeGrid work you have to configure BOINC to run it in place of the official application, for example through BOINC’s anonymous platform (`app_info.xml`).
+
+## Optional extra checks
+
+Every test runs Gallot’s Gerbicz–Li check, which detects computation errors while the test runs. Two optional checks use Gallot’s original OpenCL code to verify the finished result independently of this fork’s arithmetic:
 
 ```sh
 ./build/geneferg -n 19 -b 28000000 -p -f candidate --check-certificate
 ./build/geneferg -n 19 -b 28000000 -p -f candidate --check-tail
 ```
 
-With `--check-certificate`, `geneferg` uses Gallot’s original OpenCL implementation to generate a certificate from the completed proof and check that certificate. With `--check-tail`, it uses the original implementation to repeat the final part of the calculation from a saved intermediate value and compare the result with the proof. You can enable either check or both. They add time and are excluded from the benchmark timings. If a requested check fails, the program reports a failure rather than a successful result. Temporary certificate files are removed afterward.
+- `--check-certificate` converts the proof into a certificate and checks it. It uses Gallot’s certificate-generation and checking routines.
+- `--check-tail` repeats approximately the last 1/128 of the squarings, starting from a saved intermediate value, and compares the result with the proof.
 
-## How settings are selected
+You can use either check or both. Each repeats only a small part of the test. If a check fails, the test is reported as failed.
 
-The program contains a table of calculation settings chosen by testing different transform layouts on real GPUs. Each entry is called a profile. There are separate choices for each GFN size because the best layout can change with the size of the calculation.
+## How the program chooses its arithmetic
 
-It first looks for settings tested on your GPU model and memory capacity. If there is no match, it tries settings selected for that GPU generation, such as Ampere or Ada. If the generation is also unknown, it tries general settings for the GFN size being tested. These choices are built into the executable; startup does not run a performance benchmark. The program prints the selected profile when it initializes the calculation.
+A *profile* is a set of GPU kernel settings for one GFN size, chosen by timing the alternatives on real cards (see [calibrating another GPU](#calibrating-another-gpu)). The executable contains profiles for specific GPU models and memory sizes, profiles for each GPU architecture (such as Pascal, Ampere or Ada), and a default profile for each GFN size.
 
-A100-class GPUs have separate settings from other Ampere cards because their measured performance favored different transform layouts. The [GPU list](calibrated-gpus.md) shows which models and memory variants have been tested directly.
+When a test starts:
 
-Before using a profile, the program checks worst-case arithmetic bounds for the candidate. These cover reconstruction from modular results, digit conversion, carries and intermediate integer operations. When several digits are packed together for squaring, it uses enough prime moduli to reconstruct the result exactly. If a layout cannot satisfy those bounds, it tries another. The implementation using three smaller primes is subject to its own worst-case bound. Two-prime calculations are never extended beyond their analytic bound.
+1. The program runs Gallot’s original OpenCL code, unchanged, if the GPU is not an NVIDIA card, the GFN size is outside 16–22, CUDA cannot be initialized, or the GPU lacks a required feature (32-thread warps, 1024-thread blocks and 48 KB of shared memory). Setting the environment variable `GENEFER_FORCE_OPENCL=1` also forces this.
+2. Otherwise, it considers up to three profiles in order: one for this exact GPU model and memory size, one for its architecture, and the default for the GFN size.
+3. It uses the first profile that passes two checks: the worst-case arithmetic bounds for this base, and the GPU’s memory and resource limits.
+4. If no profile passes, it runs Gallot’s arithmetic with his original kernels, launched through CUDA graphs.
 
-At smaller bases, the program uses upstream’s two-prime arithmetic wherever upstream’s bounds allow it, with the threshold calculated separately for each GFN size. It still uses CUDA graphs and can speed up squaring by packing several digits together. Packed squaring may need more primes than the rest of the calculation because its coefficients are larger; its prime count is selected separately using exact bounds.
+The program prints the profile it selected.
 
-If none of the optimized layouts can be used, the program runs the original arithmetic, using CUDA graphs where available. It uses Gallot’s original OpenCL implementation on non-NVIDIA GPUs, outside GFN-16 through GFN-22, or when CUDA initialization or device checks fail. Performance on an untested card may differ from that of tested cards in the same generation.
+Whatever the profile, everything except squaring uses Gallot’s arithmetic: multiplication, checkpoints and proof generation. It uses two primes exactly where Gallot’s version does, and three primes elsewhere. The one exception is the alternative three-prime arithmetic, which replaces Gallot’s three-prime arithmetic. It is only allowed where Gallot also uses three primes, and for bases up to 943,718,398.
 
-Device checks confirm that the GPU can run the kernels: they check work-group sizes, shared memory, GPU memory capacity and limits reported by the kernel compiler. For troubleshooting or comparison, setting `GENEFER_FORCE_OPENCL=1` runs the original OpenCL implementation instead.
+Packed squaring is added on top. Its number of primes is chosen for each base so that the largest value any transform element can reach is reconstructed exactly. The bounds also cover the carries and the conversion back to ordinary digits, including that the converted digits stay within the limits Gallot’s arithmetic relies on.
 
 ## Calibrating another GPU
 
-The calibration tool measures different calculation layouts on a GPU to help contributors add or improve the settings shipped in `geneferg`. It is a separate developer tool; running it does not change the executable’s settings.
+Calibration measures the alternative kernel layouts on a GPU to create or improve its profile:
 
 ```sh
 python3 tools/calibrate.py --cuda /usr/local/cuda --output calibration-results --memory-gib 16
 ```
 
-The tool builds small test programs, compares transform layouts for GFN-16 through GFN-22, then repeats the most promising choices with longer measurements. It checks arithmetic against GMP and tests multiplication, checkpoints and the operations used during proof generation. Use `--sizes 19` to test only GFN-19, or `--device 1` to select device 1 instead of device 0. `--plan-only` checks arithmetic bounds and generates kernel sources without running a GPU test.
+The tool builds small test programs and times each layout for GFN-16 to GFN-22 with short runs, then times the fastest candidates again with longer runs. It also checks the arithmetic against GMP, including multiplication, checkpoints and the operations used to generate proofs.
 
-Set `--memory-gib` to the card’s advertised memory capacity, such as `16` for a 16GB RTX 4060 Ti. The driver may report less usable memory because some is reserved. With this option, the tool writes a `profile.json` entry that you can add to the `devices` array in `profiles/nvidia.json` before rebuilding. Without it, the tool records measurements but does not write that entry.
+Useful options:
 
-The output directory contains generated sources, commands, logs, hardware information, arithmetic checks and timings. Only the selected profile entry belongs in `profiles/nvidia.json`; the generated files are test records. These short measurements help choose settings, but do not measure a complete primality test. Before publishing performance figures for a new profile, compare complete runs and proof files against Gallot’s version, as in the [benchmark results](benchmarks.md).
+- `--sizes 19` tests only GFN-19.
+- `--device 1` uses device 1 instead of device 0.
+- `--plan-only` only checks the arithmetic bounds and generates the kernel sources, without using a GPU.
+- `--memory-gib` gives the card’s advertised memory in GiB, such as `16` for a 16 GB RTX 4060 Ti.
 
-## Validation
+With `--memory-gib`, the tool writes a `profile.json` entry. To use it, add the entry to the `devices` list in `profiles/nvidia.json` and rebuild. The rest of the output directory is a record of the run.
 
-The tests in `tests/` compare arithmetic against GMP and check that the C++ bound calculations agree with a separate Python implementation. GPU tests also check that saved calculations can be resumed between the optimized and original implementations, and that complete runs produce the same proof files.
+Before publishing performance figures for a new profile, compare complete runs and proof files against Gallot’s version, as in the [benchmark results](benchmarks.md).
 
-You can check arithmetic bounds and automatic profile selection without a GPU. From the repository root, run:
+## Tests
+
+Three checks run on the CPU, without a GPU. They need the GMP development files. The first compares the C++ bound calculations with an independent Python implementation. The second checks profile selection for known GPU models, memory variants and unfamiliar GPUs. The third checks packed conversion bounds at the two-prime base limits. From the repository root:
 
 ```sh
 mkdir -p build/tests
@@ -101,6 +126,8 @@ g++ -std=c++17 -O2 -Isrc tests/cuda_parameters_probe.cpp -lgmp -o build/tests/pa
 python3 tests/test_cuda_parameters.py build/tests/parameters
 g++ -std=c++17 -O2 -Isrc -Ibuild/tests/generated tests/cuda_profiles.cpp src/cuda/profiles.cpp -lgmp -o build/tests/profiles
 ./build/tests/profiles
+g++ -std=c++17 -O2 -Isrc -Ibuild/tests/generated tests/cuda_handoff.cpp src/cuda/kernel.cpp -lgmp -o build/tests/handoff
+./build/tests/handoff
 ```
 
-The BOINC tests run locally using the real BOINC API and a simulated client. They check saving and resuming work, suspension, quitting, aborting, loss of contact with the client, renamed executables and BOINC’s file links. No tasks from this generalized version have been submitted to PrimeGrid for project validation. The local tests do not establish general correctness.
+The other tests in `tests/` need an NVIDIA GPU. They compare the arithmetic with GMP, check that a saved test can be resumed by either the optimized or the original code, and check that complete runs produce the same proof files as Gallot’s version. The BOINC tests use the real BOINC API with a simulated client. They cover saving and resuming, suspending, quitting, aborting, losing contact with the client, renamed executables and BOINC’s file links.

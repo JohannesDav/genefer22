@@ -1,12 +1,12 @@
-# Complete-run benchmarks
+# Benchmark results
 
-Each row compares the time taken by Gallot’s version and this fork to test the same candidate on the same machine. Durations are in seconds and include proof generation. Both versions use the standard Gerbicz–Li error check; this fork’s optional `--check-certificate` and `--check-tail` checks are disabled. “Upstream” means code compiled from Gallot’s commit `56905b2339b3fed056fc0c24d2e331d588d028bb`, rather than PrimeGrid’s distributed executable. GPU clocks, power limits, drivers and the rest of the machine can affect the times.
+Each row compares a complete test of the same candidate, run on the same machine with Gallot’s version and with this fork. Times are in seconds and include proof generation.
 
-The “Base” column identifies the candidate tested: for GFN size `n` and base `b`, the number is `b^(2^n) + 1`. We chose round benchmark bases near the ranges PrimeGrid was searching on 2026-11-10, according to its [project status page](https://www.primegrid.com/server_status_subprojects.php). These inputs do not define the program’s supported base range.
+- Gallot’s version was compiled from commit `56905b2339b3fed056fc0c24d2e331d588d028bb`.
+- Both versions ran Gallot’s Gerbicz–Li error check. This fork’s optional `--check-certificate` and `--check-tail` checks were off.
+- The candidate is b<sup>2<sup>n</sup></sup> + 1, where n is the GFN size and b is the base. We used round bases near the ranges PrimeGrid was searching on 10 November 2026, according to its [project status page](https://www.primegrid.com/server_status_subprojects.php).
 
-Every pair of runs produced byte-identical proof files. After timing the runs, we used Gallot’s original implementation to generate a certificate from each compared proof and check that certificate. Those separate checks passed and are not included in the timings.
-
-The table contains all 65 completed comparisons, including cards omitted from the shorter README table. Short tests used to choose GPU settings are not included here; the [calibrated GPU list](calibrated-gpus.md) describes that broader testing.
+In every row, the two versions wrote identical proof files, and each proof passed Gallot’s certificate check.
 
 | GPU | GFN | Base | Upstream (s) | This fork (s) | Time saved |
 |---|---:|---:|---:|---:|---:|
@@ -78,13 +78,11 @@ The table contains all 65 completed comparisons, including cards omitted from th
 
 ## Comparison with the earlier GFN-19-only version
 
-This separate test compares the earlier version tuned for GFN-19 on the RTX 3090 and RTX 4060 Ti with the version that supports GFN-16 through GFN-22. Both tested base 28,000,000. We measured two complete runs of each version on each card after warming the driver’s compilation cache, alternating the versions in earlier/new/new/earlier order. All proof files matched and the certificate checks passed.
-
-The machines differed from those used in the table above. These figures are useful for comparing the two versions within each row, rather than comparing absolute times between tables.
+Before this version, the fork supported only GFN-19, tuned for the RTX 3090 and the RTX 4060 Ti 16GB. To check that supporting more GPUs and GFN sizes did not slow those cards down, we ran both versions on each card at base 28,000,000. Each version ran twice, in the order earlier, new, new, earlier. The driver’s kernel cache was warmed first, to reduce the effect of kernel compilation on the times.
 
 | GPU | Earlier GFN-19-only version (s) | This version (s) | Change in duration |
 |---|---:|---:|---:|
 | RTX 3090 | 792.0 | 791.0 | -0.1% |
 | RTX 4060 Ti 16GB | 762.6 | 754.1 | -1.1% |
 
-The small differences are consistent with normal timing variation; these runs did not show a performance loss from adding support for other GPUs and GFN sizes.
+Both differences are consistent with normal run-to-run variation. All proof files matched.
