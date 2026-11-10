@@ -75,14 +75,3 @@ In every row, the two versions wrote identical proof files, and each proof passe
 | RTX 5090 | 22 | 660,000 | 14611.3 | 6840.8 | 53.2% |
 | Tesla V100 | 16 | 620,000,000 | 61.3 | 40.4 | 34.1% |
 | Tesla V100 | 17 | 520,000,000 | 145.3 | 95.3 | 34.4% |
-
-## Comparison with the earlier GFN-19-only version
-
-Before this version, the fork supported only GFN-19, tuned for the RTX 3090 and the RTX 4060 Ti 16GB. To check that supporting more GPUs and GFN sizes did not slow those cards down, we ran both versions on each card at base 28,000,000. Each version ran twice, in the order earlier, new, new, earlier. The driver’s kernel cache was warmed first, to reduce the effect of kernel compilation on the times.
-
-| GPU | Earlier GFN-19-only version (s) | This version (s) | Change in duration |
-|---|---:|---:|---:|
-| RTX 3090 | 792.0 | 791.0 | -0.1% |
-| RTX 4060 Ti 16GB | 762.6 | 754.1 | -1.1% |
-
-Both differences are consistent with normal run-to-run variation. All proof files matched.
