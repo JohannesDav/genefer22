@@ -1,6 +1,7 @@
 #include "cuda/checkpoint.h"
 #include "cuda/kernel.h"
 #include <cuda/embedded_kernels.h>
+#include <array>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -8,8 +9,10 @@
 int main() {
     using namespace cuda_gfn;
     for (unsigned n : {16u, 18u}) {
-        for (uint32_t b : (n == 16 ? std::initializer_list<uint32_t>{5862084, 11421892}
-                                   : std::initializer_list<uint32_t>{2931042, 5710946})) {
+        const std::array<uint32_t, 2> limits = n == 16
+            ? std::array<uint32_t, 2>{5862084, 11421892}
+            : std::array<uint32_t, 2>{2931042, 5710946};
+        for (uint32_t b : limits) {
             for (unsigned pack : {1u, 2u, 4u}) {
                 kernel_plan plan;
                 plan.pack = pack;
