@@ -1,6 +1,6 @@
 # genefer22: experimental CUDA speedups for NVIDIA GPUs
 
-**Warning:** all changes in this fork were written by AI and have not been independently reviewed. Treat it as experimental software.
+**Warning:** all changes in this fork were written by AI and have not been independently reviewed.
 
 This is a fork of [Yves Gallot’s genefer22](https://github.com/galloty/genefer22), the program PrimeGrid uses to test numbers of the form b<sup>2<sup>n</sup></sup> + 1 (generalized Fermat numbers) for primality. It changes only the GPU version, and only on NVIDIA cards. It targets PrimeGrid’s GFN-16 to GFN-22 subprojects, where n is 16 to 22. The test itself, the proofs and the error checks are all Gallot’s work. This fork only changes how the arithmetic runs on the GPU (see [exactness and fallbacks](#exactness-and-fallbacks)).
 
