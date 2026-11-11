@@ -10,6 +10,7 @@ typedef uint4 root_quad_t;
 #endif
 /*
 Copyright 2022, Yves Gallot
+Modified 2026.
 
 genefer is free source code, under the MIT license (see LICENSE). You can redistribute, use and/or modify it.
 Please give feedback to the authors if improvement is realized. It is distributed in the hope that it will be useful.
