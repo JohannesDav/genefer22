@@ -26,7 +26,7 @@ This fork changes how that squaring runs on NVIDIA GPUs:
 
 - **Packed squaring.** Several consecutive base-b digits (up to 16) are combined into each transform element, so the transform is that many times shorter. The elements are larger, so more primes are needed to recover the exact result. The number of primes is chosen for each candidate from a worst-case bound.
 - **Alternative three-prime arithmetic.** On some GPUs, mostly for GFN-16 and GFN-17, it is faster to keep Gallot’s transform but use three primes just below 2<sup>30</sup>. These leave room in 32-bit words to postpone modular reductions.
-- **Settings for each GPU.** The GPU code has several possible layouts. The program contains settings measured on [many GPU models](doc/calibrated-gpus.md) and picks them automatically, so one executable serves every supported card.
+- **Settings for each GPU.** The program picks the fastest settings measured on [many GPU models](doc/calibrated-gpus.md), using the closest match for other cards.
 - **Regular queue flushes.** The program sends queued work to the GPU every eight squarings, instead of leaving that to the driver.
 
 ## Exactness and fallbacks

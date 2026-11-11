@@ -28,12 +28,14 @@ Each cell shows the time in seconds with the original version → with this fork
 
 ## Comparison with CUDA
 
-This table compares the speedup of this OpenCL version with that of the [CUDA version](https://github.com/JohannesDav/genefer22) of the same optimizations. Each cell shows **OpenCL vs CUDA**. Each speedup compares that version with the original genefer22 on the same machine, but the OpenCL and CUDA measurements used different rented machines, drivers and power settings. Small differences are not meaningful.
+Each cell shows the time this OpenCL version saves as a percentage of the time the [CUDA version](https://github.com/JohannesDav/genefer22) saves, both compared with the original genefer22. **100% means both save the same amount of time.** Lower values show where the OpenCL version falls behind.
+
+The OpenCL and CUDA measurements used different rented machines, drivers and power settings, so small differences are not meaningful.
 
 | GPU | GFN-16 | GFN-17 | GFN-18 | GFN-19 | GFN-20 | GFN-21 | GFN-22 |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| RTX 2080 Ti | 1.2× vs 1.6× | 1.3× vs 1.3× | 1.5× vs 1.5× | 1.8× vs 1.9× | — | — | — |
-| RTX 3090 | 1.3× vs 1.6× | 1.4× vs 1.6× | 1.4× vs 1.7× | 1.7× vs 2.0× | 2.0× vs 2.1× | — | — |
-| RTX 4060 Ti | 1.2× vs 1.5× | 1.3× vs 1.5× | 1.5× vs 1.6× | 1.7× vs 1.7× | 1.9× vs 2.0× | — | — |
-| RTX 5070 | 1.3× vs 1.8× | 1.3× vs 1.4× | 1.4× vs 1.5× | 1.7× vs 1.7× | 1.9× vs 1.9× | — | — |
-| RTX 5090 | 1.1× vs 2.5× | 1.2× vs 2.2× | 1.2× vs 1.8× | 1.5× vs 1.5× | 1.6× vs 1.7× | 2.1× vs 2.3× | 1.9× vs 2.1× |
+| RTX 2080 Ti | 52% | 90% | 100% | 95% | — | — | — |
+| RTX 3090 | 61% | 73% | 75% | 84% | 97% | — | — |
+| RTX 4060 Ti | 50% | 65% | 87% | 96% | 96% | — | — |
+| RTX 5070 | 48% | 76% | 90% | 98% | 99% | — | — |
+| RTX 5090 | 21% | 24% | 43% | 91% | 91% | 92% | 89% |
