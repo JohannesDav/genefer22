@@ -36,7 +36,7 @@ Then, from this repository’s root:
 python3 build.py --boinc /path/to/boinc
 ```
 
-`--boinc` is the BOINC source or installation directory. `--sdk` is also accepted as an alias.
+`--boinc` is the BOINC source or installation directory.
 
 To run tests from the command line only, you can leave out BOINC:
 
