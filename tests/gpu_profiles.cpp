@@ -76,6 +76,11 @@ int main() {
             expect(previous.front() == frontier.front(),
                    "Small-base routing must not change a measured frontier profile");
             for (unsigned n = 16; n <= 22; ++n) {
+                const auto calibrated = profiles_for(device, n);
+                expect(!calibrated.empty() &&
+                           std::string(calibrated.front()->name) == profile.name &&
+                           calibrated.front()->memory_gib == profile.memory_gib,
+                       "Every calibrated model must cover GFN-16 through GFN-22");
                 for (uint32_t base : {1026u, 2046u, 100000u, 1000000u, 10000000u}) {
                     if (upstream_checkpoint(base, n).fields != 2) continue;
                     for (const auto *choice : profiles_for(device, n, base))

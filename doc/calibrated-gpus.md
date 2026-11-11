@@ -2,7 +2,7 @@
 
 The executable contains GPU settings measured with this OpenCL version on each GPU below, for every GFN size from 16 to 22. On each card, we timed the alternative kernel layouts in short runs, kept the fastest, and checked the arithmetic against GMP. Where the layout measured with the [CUDA version](https://github.com/JohannesDav/genefer22) was about as fast, we kept it.
 
-Other NVIDIA GPUs use settings measured with the CUDA version where those exist, or else settings chosen for other cards of the same architecture, or general settings for the GFN size. See [how the program chooses its arithmetic](opencl.md#how-the-program-chooses-its-arithmetic).
+On an NVIDIA GPU that is not listed, the program uses settings chosen for other cards of the same architecture, or general settings for the GFN size. See [how the program chooses its arithmetic](opencl.md#how-the-program-chooses-its-arithmetic).
 
 | GPU | Memory | Architecture |
 |---|---:|---|
