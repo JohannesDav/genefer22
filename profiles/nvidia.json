@@ -2958,6 +2958,5052 @@
           "digit_ratio": 2
         }
       }
+    },
+    {
+      "name": "NVIDIA GeForce GTX 1080",
+      "architecture": "pascal",
+      "memory_gib": 8,
+      "projects": {
+        "17": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 256,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "20": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 256,
+          "chunk": 1,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 524288,
+          "outer": 256,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 1048576,
+          "outer": 256,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "16": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 5060 Ti",
+      "architecture": "blackwell",
+      "memory_gib": 16,
+      "projects": {
+        "16": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        },
+        "17": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 16,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 75
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce GTX 1660",
+      "architecture": "turing",
+      "memory_gib": 6,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 2,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "20": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 16384,
+          "matrix_mad": false,
+          "outer": 16,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 2,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 2,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 4,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 2,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX A2000 12GB",
+      "architecture": "ampere",
+      "memory_gib": 12,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 16384,
+          "outer": 16,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "17": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 3060 Laptop GPU",
+      "architecture": "ampere",
+      "memory_gib": 12,
+      "projects": {
+        "16": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        },
+        "17": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "20": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 2060 SUPER",
+      "architecture": "turing",
+      "memory_gib": 8,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "20": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 16384,
+          "matrix_mad": false,
+          "outer": 16,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 2,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 4,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 2,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 3050",
+      "architecture": "ampere",
+      "memory_gib": 6,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "20": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "17": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce GTX 1650",
+      "architecture": "turing",
+      "memory_gib": 4,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "16": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 16384,
+          "matrix_mad": false,
+          "outer": 16,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 2,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 2,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 4,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 2,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "Quadro RTX 5000",
+      "architecture": "turing",
+      "memory_gib": 16,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 16384,
+          "matrix_mad": false,
+          "outer": 16,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 2,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 4,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 2,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+      "architecture": "ada",
+      "memory_gib": 8,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 16384,
+          "outer": 16,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "Tesla V100-SXM2-16GB",
+      "architecture": "volta",
+      "memory_gib": 16,
+      "projects": {
+        "16": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 16384,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 2,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 1048576,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 5060",
+      "architecture": "blackwell",
+      "memory_gib": 8,
+      "projects": {
+        "16": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 3060 Laptop GPU",
+      "architecture": "ampere",
+      "memory_gib": 6,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "17": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX 2000 Ada Generation",
+      "architecture": "ada",
+      "memory_gib": 16,
+      "projects": {
+        "16": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 2080",
+      "architecture": "turing",
+      "memory_gib": 8,
+      "projects": {
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 16384,
+          "matrix_mad": false,
+          "outer": 16,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 2,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 4,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 2,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX PRO 4000 Blackwell",
+      "architecture": "blackwell",
+      "memory_gib": 24,
+      "projects": {
+        "16": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 16,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 75
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 4080 SUPER",
+      "architecture": "ada",
+      "memory_gib": 32,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 5070 Ti",
+      "architecture": "blackwell",
+      "memory_gib": 16,
+      "projects": {
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 16,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": true,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 16,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 75
+        }
+      }
+    },
+    {
+      "name": "NVIDIA A16",
+      "architecture": "ampere",
+      "memory_gib": 16,
+      "projects": {
+        "16": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "17": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 5060 Ti",
+      "architecture": "blackwell",
+      "memory_gib": 8,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 16384,
+          "outer": 16,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 16,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 75
+        }
+      }
+    },
+    {
+      "name": "NVIDIA TITAN RTX",
+      "architecture": "turing",
+      "memory_gib": 24,
+      "projects": {
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 16384,
+          "matrix_mad": false,
+          "outer": 16,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 2,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 4,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 2,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA A10",
+      "architecture": "ampere",
+      "memory_gib": 24,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 16384,
+          "outer": 16,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "17": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "Quadro RTX 8000",
+      "architecture": "turing",
+      "memory_gib": 48,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 16384,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 2,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 2,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 4,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 2,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "Tesla PG500-216",
+      "architecture": "volta",
+      "memory_gib": 32,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 16384,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 1048576,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX PRO 4500 Blackwell",
+      "architecture": "blackwell",
+      "memory_gib": 32,
+      "projects": {
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 16,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 75
+        }
+      }
+    },
+    {
+      "name": "NVIDIA L40",
+      "architecture": "ada",
+      "memory_gib": 48,
+      "projects": {
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX 4000 Ada Generation",
+      "architecture": "ada",
+      "memory_gib": 20,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX A6000",
+      "architecture": "ampere",
+      "memory_gib": 48,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX A2000",
+      "architecture": "ampere",
+      "memory_gib": 6,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "17": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX 5000 Ada Generation",
+      "architecture": "ada",
+      "memory_gib": 32,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX 4500 Ada Generation",
+      "architecture": "ada",
+      "memory_gib": 24,
+      "projects": {
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 4090",
+      "architecture": "ada",
+      "memory_gib": 48,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "20": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "21": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX 6000 Ada Generation",
+      "architecture": "ada",
+      "memory_gib": 48,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX 5880 Ada Generation",
+      "architecture": "ada",
+      "memory_gib": 48,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA A100 80GB PCIe",
+      "architecture": "ampere_sm80",
+      "memory_gib": 80,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "20": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 5090 D",
+      "architecture": "blackwell",
+      "memory_gib": 32,
+      "projects": {
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 16,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": true,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 16,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 75
+        }
+      }
+    },
+    {
+      "name": "NVIDIA L40S",
+      "architecture": "ada",
+      "memory_gib": 48,
+      "projects": {
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "architecture": "blackwell",
+      "memory_gib": 96,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 16,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 75
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+      "architecture": "blackwell",
+      "memory_gib": 96,
+      "projects": {
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 16,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 75
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+      "architecture": "blackwell",
+      "memory_gib": 96,
+      "projects": {
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 16,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 75
+        }
+      }
+    },
+    {
+      "name": "NVIDIA H100 NVL",
+      "architecture": "hopper",
+      "memory_gib": 96,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "20": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 3090 Ti",
+      "architecture": "ampere",
+      "memory_gib": 24,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA H100 80GB HBM3",
+      "architecture": "hopper",
+      "memory_gib": 80,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "20": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        }
+      }
+    },
+    {
+      "name": "NVIDIA A100-SXM4-80GB",
+      "architecture": "ampere_sm80",
+      "memory_gib": 80,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 2,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "20": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        }
+      }
+    },
+    {
+      "name": "NVIDIA A40",
+      "architecture": "ampere",
+      "memory_gib": 48,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 8,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX PRO 5000 Blackwell",
+      "architecture": "blackwell",
+      "memory_gib": 48,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 16,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 75
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 3080",
+      "architecture": "ampere",
+      "memory_gib": 20,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "17": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 8,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA A100-SXM4-40GB",
+      "architecture": "ampere_sm80",
+      "memory_gib": 40,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 2,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "20": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 4070 Ti SUPER",
+      "architecture": "ada",
+      "memory_gib": 16,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA L4",
+      "architecture": "ada",
+      "memory_gib": 24,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX A3000 12GB Laptop GPU",
+      "architecture": "ampere",
+      "memory_gib": 12,
+      "projects": {
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 3070 Ti Laptop GPU",
+      "architecture": "ampere",
+      "memory_gib": 8,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "17": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 4070 SUPER",
+      "architecture": "ada",
+      "memory_gib": 12,
+      "projects": {
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "Quadro RTX 6000",
+      "architecture": "turing",
+      "memory_gib": 24,
+      "projects": {
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 16,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 16384,
+          "matrix_mad": false,
+          "outer": 16,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "21": {
+          "chunk": 2,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 4,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 2,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA A2",
+      "architecture": "ampere",
+      "memory_gib": 16,
+      "projects": {
+        "16": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "17": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA RTX PRO 4000 Blackwell SFF Edition",
+      "architecture": "blackwell",
+      "memory_gib": 24,
+      "projects": {
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 32768,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 4,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "20": {
+          "chunk": 4,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 16,
+          "digit_ratio": 4,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 75
+        }
+      }
+    },
+    {
+      "name": "NVIDIA GeForce RTX 4080 Laptop GPU",
+      "architecture": "ada",
+      "memory_gib": 12,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 16384,
+          "outer": 16,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 2,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "20": {
+          "chunk": 16,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 131072,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": true,
+          "outer": 64,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "NVIDIA H200",
+      "architecture": "hopper",
+      "memory_gib": 141,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "17": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "20": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        }
+      }
+    },
+    {
+      "name": "Tesla P40",
+      "architecture": "pascal",
+      "memory_gib": 24,
+      "projects": {
+        "16": {
+          "implementation": "packed",
+          "length": 32768,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 524288,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "17": {
+          "implementation": "three-prime",
+          "root_bits": 64
+        },
+        "20": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 1048576,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "Quadro P4000",
+      "architecture": "pascal",
+      "memory_gib": 8,
+      "projects": {
+        "16": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        },
+        "17": {
+          "implementation": "three-prime",
+          "root_bits": 32
+        },
+        "18": {
+          "implementation": "packed",
+          "length": 65536,
+          "outer": 64,
+          "chunk": 4,
+          "root_bits": 64,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "19": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 256,
+          "chunk": 2,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "20": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 256,
+          "chunk": 2,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 262144,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        },
+        "22": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 1048576,
+          "matrix_mad": false,
+          "outer": 256,
+          "root_bits": 32,
+          "shared_memory_preference": 50
+        }
+      }
+    },
+    {
+      "name": "Tesla V100-PCIE-32GB",
+      "architecture": "volta",
+      "memory_gib": 32,
+      "projects": {
+        "20": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 2,
+          "matrix_mad": true
+        },
+        "21": {
+          "implementation": "packed",
+          "length": 131072,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "22": {
+          "implementation": "packed",
+          "length": 262144,
+          "outer": 64,
+          "chunk": 8,
+          "root_bits": 32,
+          "inner_blocks": 1,
+          "digit_ratio": 3,
+          "matrix_mad": true
+        },
+        "16": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 16384,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "17": {
+          "chunk": 8,
+          "digit_ratio": 2,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "18": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 1,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        },
+        "19": {
+          "chunk": 8,
+          "digit_ratio": 3,
+          "implementation": "packed",
+          "inline_converter": false,
+          "inner_blocks": 2,
+          "length": 65536,
+          "matrix_mad": false,
+          "outer": 64,
+          "root_bits": 64,
+          "shared_memory_preference": 50
+        }
+      }
     }
   ],
   "architectures": {
