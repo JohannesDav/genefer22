@@ -23,3 +23,23 @@ Each cell shows seconds with the original version → this fork (time saved). A 
 | RTX 4060 Ti | 4376.0 → 2282.6 (47.8%) | — | — |
 | RTX 5070 | 3017.9 → 1594.2 (47.2%) | — | — |
 | RTX 5090 | 1378.7 → 870.9 (36.8%) | 5308.9 → 2547.7 (52.0%) | 15157.8 → 7961.4 (47.5%) |
+
+## Comparison with CUDA
+
+Each cell shows how much of CUDA's time saving this OpenCL version achieves. **100% means equal savings; higher is better.** For example, if CUDA saves 40% of upstream runtime and OpenCL saves 30%, the table shows 75%. Times include proof generation.
+
+The OpenCL and CUDA measurements used different rentals, drivers and power settings, so this is an approximate comparison.
+
+| GPU | GFN-16 | GFN-17 | GFN-18 | GFN-19 |
+|---|---:|---:|---:|---:|
+| RTX 2080 Ti | 51% | 90% | 100% | 95% |
+| RTX 4060 Ti | 50% | 65% | 87% | 96% |
+| RTX 5070 | 48% | 77% | 90% | 98% |
+| RTX 5090 | — | — | — | — |
+
+| GPU | GFN-20 | GFN-21 | GFN-22 |
+|---|---:|---:|---:|
+| RTX 2080 Ti | — | — | — |
+| RTX 4060 Ti | 96% | — | — |
+| RTX 5070 | 99% | — | — |
+| RTX 5090 | 91% | 92% | 89% |
