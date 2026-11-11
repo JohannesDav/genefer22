@@ -314,7 +314,7 @@ private:
 	std::map<cl_kernel, profile> _profileMap;
 
 public:
-    void synchronizeForCalibration() { _sync(); }
+	void synchronizeForCalibration() { _sync(); }
 	device(const platform & parent, const size_t d, const bool verbose) : _platform(parent.getPlatform(d)), _device(parent.getDevice(d))
 #if defined(ocl_debug)
 		, _d(d)

@@ -56,7 +56,7 @@ private:
 	std::atomic_bool _quit = false;
 	bool _isBoinc = false;
 #if defined(GENEFER_AUTOMATIC_OPENCL)
-    bool _extra_certificate = false, _extra_tail = false;
+	bool _extra_certificate = false, _extra_tail = false;
 #endif
 #if defined(GPU)
 	cl_platform_id _boinc_platform_id = 0;
@@ -86,9 +86,9 @@ public:
 
 	void setBoinc(const bool isBoinc) { _isBoinc = isBoinc; }
 #if defined(GENEFER_AUTOMATIC_OPENCL)
-    void setExtraChecks(bool certificate,bool tail) {
-        _extra_certificate=certificate; _extra_tail=tail;
-    }
+	void setExtraChecks(bool certificate,bool tail) {
+		_extra_certificate=certificate; _extra_tail=tail;
+	}
 #endif
 #if defined(GPU)
 	void setBoincParam(const cl_platform_id platform_id, const cl_device_id device_id)
@@ -614,11 +614,11 @@ private:
 
 		// d(t)^{2^B} * 2^res ?= d(t + 1)
 		pTransform->getInt(gi);
-        const uint64_t h1=gi.gethash64();
-        pTransform->copy(0,2);
-        pTransform->getInt(gi);
-        const uint64_t h2=gi.gethash64();
-        const bool success=h1==h2;
+		const uint64_t h1=gi.gethash64();
+		pTransform->copy(0,2);
+		pTransform->getInt(gi);
+		const uint64_t h2=gi.gethash64();
+		const bool success=h1==h2;
 
 		validTime = chrono.getElapsedTime();
 		return success ? EReturn::Success : EReturn::Failed;
@@ -780,21 +780,21 @@ private:
 		}
 
 #if defined(GENEFER_AUTOMATIC_OPENCL)
-        if(_extra_tail) {
-            if(fast_checkpoints) {
-                _transform->copy(2,0);
-                _transform->copy(0,4); // checkpoint 1, held in register 3+1
-                _transform->getInt(*_gi);
-                {
-                    file output(_mainFilename+".tail","wb",true);
-                    _gi->write(output); output.write_crc32();
-                }
-                _transform->copy(0,2);
-            } else {
-                std::filesystem::copy_file(pio::resolve(ckptFilename(1)),pio::resolve(_mainFilename+".tail"),
-                                          std::filesystem::copy_options::overwrite_existing);
-            }
-        }
+		if(_extra_tail) {
+			if(fast_checkpoints) {
+				_transform->copy(2,0);
+				_transform->copy(0,4); // checkpoint 1, held in register 3+1
+				_transform->getInt(*_gi);
+				{
+					file output(_mainFilename+".tail","wb",true);
+					_gi->write(output); output.write_crc32();
+				}
+				_transform->copy(0,2);
+			} else {
+				std::filesystem::copy_file(pio::resolve(ckptFilename(1)),pio::resolve(_mainFilename+".tail"),
+										  std::filesystem::copy_options::overwrite_existing);
+			}
+		}
 #endif
 		const EReturn rGL = GL(exponent, B_GL, validTime);
 		if (rGL != EReturn::Success) return rGL;
@@ -1397,92 +1397,92 @@ private:
 
 #if defined(GENEFER_AUTOMATIC_OPENCL)
 private:
-    static void requireCanonical(const gint &value) {
-        bool minus_one=value.data()[0]==-1;
-        for(size_t j=1;j<value.getSize() && minus_one;++j) minus_one=value.data()[j]==0;
-        if(minus_one) return;
-        for(size_t j=0;j<value.getSize();++j)
-            if(value.data()[j]<0 || uint32_t(value.data()[j])>=value.getBase())
-                throw std::runtime_error("Noncanonical verification integer");
-    }
-    EReturn extraChecks(uint32_t base,uint32_t exponent,size_t device,const mpz_t &power) {
-        deleteTransform();
-        _transform=transform::create_original_gpu(base,exponent,_isBoinc,device,4,
-                                                   _boinc_platform_id,_boinc_device_id,false);
-        const std::string original_prefix=_mainFilename;
-        if(_extra_tail) {
-            const size_t size=size_t(1)<<exponent;
-            gint start(size,base),target(size,base),temporary(size,base);
-            if(std::filesystem::file_size(pio::resolve(original_prefix+".tail"))!=12+4*size)
-                throw std::runtime_error("Tail checkpoint length");
-            {
-                file input(original_prefix+".tail","rb",true);
-                start.read(input); requireCanonical(start);
-                if(!input.check_crc32()) throw std::runtime_error("Tail checkpoint checksum");
-            }
-            int version=0,depth=0;
-            {
-                file input(original_prefix+".proof","rb",true);
-                if(!input.read(reinterpret_cast<char *>(&version),sizeof(version))
-                   || !input.read(reinterpret_cast<char *>(&depth),sizeof(depth))
-                   || version!=1 || depth<1 || depth>20)
-                    throw std::runtime_error("Tail proof format");
-                if(std::filesystem::file_size(pio::resolve(original_prefix+".proof"))!=12+(uint64_t(depth)+1)*(8+4*size))
-                    throw std::runtime_error("Tail proof length");
-                target.read(input); requireCanonical(target);
-                for(int j=0;j<depth;++j) { temporary.read(input); requireCanonical(temporary); }
-                if(!input.check_crc32()) throw std::runtime_error("Tail proof checksum");
-            }
-            const size_t steps=((mpz_sizeinbase(power,2)-1)>>depth)+1;
-            _transform->setInt(start);
-            for(size_t bit=steps;bit-- > 0;) {
-                if(_isBoinc) boincMonitor();
-                if(quitting()) return EReturn::Aborted;
-                _transform->squareDup(mpz_tstbit(power,mp_bitcnt_t(bit))!=0);
-            }
-            _transform->getInt(temporary); temporary.unbalance(); target.unbalance();
-            if(!std::equal(temporary.data(),temporary.data()+size,target.data()))
-                throw std::runtime_error("Tail recomputation differs from proof");
-            pio::print("Extra tail recomputation passed using original OpenCL arithmetic.\n");
-        }
-        if(_extra_certificate) {
-            // Verification uses fresh scratch files, leaving the proof's resume
-            // checkpoint untouched if optional checking is interrupted.
-            std::filesystem::path directory;
-            for(unsigned attempt=0;attempt<20;++attempt) {
-                directory=original_prefix+".verify-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
-                if(std::filesystem::create_directory(directory)) break;
-                directory.clear();
-            }
-            if(directory.empty()) throw std::runtime_error("Cannot create verification directory");
-            struct restore_scope {
-                std::string &target;
-                std::string saved;
-                std::filesystem::path directory;
-                ~restore_scope() {
-                    target.swap(saved);
-                    std::error_code error;
-                    std::filesystem::remove_all(directory,error);
-                }
-            } cleanup{_mainFilename,original_prefix,directory};
-            _mainFilename=(directory/"candidate").string();
-            const auto original_proof=std::filesystem::canonical(pio::resolve(original_prefix+".proof"));
-            std::error_code link_error;
-            std::filesystem::create_hard_link(original_proof,pio::resolve(proofFilename()),link_error);
-            if(link_error) std::filesystem::copy_file(original_proof,pio::resolve(proofFilename()));
-            double seconds=0;
-            bool prp=false;
-            uint64_t proof_key=0,certificate_key=0,checked_key=0,res64=0,old64=0;
-            EReturn result=server(power,seconds,prp,proof_key,certificate_key,res64,old64);
-            if(result!=EReturn::Success) return result;
-            result=check(seconds,checked_key);
-            if(result!=EReturn::Success) return result;
-            if(certificate_key!=checked_key) throw std::runtime_error("Certificate keys differ");
-            pio::print("Extra certificate verification passed using original OpenCL arithmetic.\n");
-        }
-        if(_extra_tail) std::filesystem::remove(pio::resolve(original_prefix+".tail"));
-        return EReturn::Success;
-    }
+	static void requireCanonical(const gint &value) {
+		bool minus_one=value.data()[0]==-1;
+		for(size_t j=1;j<value.getSize() && minus_one;++j) minus_one=value.data()[j]==0;
+		if(minus_one) return;
+		for(size_t j=0;j<value.getSize();++j)
+			if(value.data()[j]<0 || uint32_t(value.data()[j])>=value.getBase())
+				throw std::runtime_error("Noncanonical verification integer");
+	}
+	EReturn extraChecks(uint32_t base,uint32_t exponent,size_t device,const mpz_t &power) {
+		deleteTransform();
+		_transform=transform::create_original_gpu(base,exponent,_isBoinc,device,4,
+												   _boinc_platform_id,_boinc_device_id,false);
+		const std::string original_prefix=_mainFilename;
+		if(_extra_tail) {
+			const size_t size=size_t(1)<<exponent;
+			gint start(size,base),target(size,base),temporary(size,base);
+			if(std::filesystem::file_size(pio::resolve(original_prefix+".tail"))!=12+4*size)
+				throw std::runtime_error("Tail checkpoint length");
+			{
+				file input(original_prefix+".tail","rb",true);
+				start.read(input); requireCanonical(start);
+				if(!input.check_crc32()) throw std::runtime_error("Tail checkpoint checksum");
+			}
+			int version=0,depth=0;
+			{
+				file input(original_prefix+".proof","rb",true);
+				if(!input.read(reinterpret_cast<char *>(&version),sizeof(version))
+				   || !input.read(reinterpret_cast<char *>(&depth),sizeof(depth))
+				   || version!=1 || depth<1 || depth>20)
+					throw std::runtime_error("Tail proof format");
+				if(std::filesystem::file_size(pio::resolve(original_prefix+".proof"))!=12+(uint64_t(depth)+1)*(8+4*size))
+					throw std::runtime_error("Tail proof length");
+				target.read(input); requireCanonical(target);
+				for(int j=0;j<depth;++j) { temporary.read(input); requireCanonical(temporary); }
+				if(!input.check_crc32()) throw std::runtime_error("Tail proof checksum");
+			}
+			const size_t steps=((mpz_sizeinbase(power,2)-1)>>depth)+1;
+			_transform->setInt(start);
+			for(size_t bit=steps;bit-- > 0;) {
+				if(_isBoinc) boincMonitor();
+				if(quitting()) return EReturn::Aborted;
+				_transform->squareDup(mpz_tstbit(power,mp_bitcnt_t(bit))!=0);
+			}
+			_transform->getInt(temporary); temporary.unbalance(); target.unbalance();
+			if(!std::equal(temporary.data(),temporary.data()+size,target.data()))
+				throw std::runtime_error("Tail recomputation differs from proof");
+			pio::print("Extra tail recomputation passed using original OpenCL arithmetic.\n");
+		}
+		if(_extra_certificate) {
+			// Verification uses fresh scratch files, leaving the proof's resume
+			// checkpoint untouched if optional checking is interrupted.
+			std::filesystem::path directory;
+			for(unsigned attempt=0;attempt<20;++attempt) {
+				directory=original_prefix+".verify-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
+				if(std::filesystem::create_directory(directory)) break;
+				directory.clear();
+			}
+			if(directory.empty()) throw std::runtime_error("Cannot create verification directory");
+			struct restore_scope {
+				std::string &target;
+				std::string saved;
+				std::filesystem::path directory;
+				~restore_scope() {
+					target.swap(saved);
+					std::error_code error;
+					std::filesystem::remove_all(directory,error);
+				}
+			} cleanup{_mainFilename,original_prefix,directory};
+			_mainFilename=(directory/"candidate").string();
+			const auto original_proof=std::filesystem::canonical(pio::resolve(original_prefix+".proof"));
+			std::error_code link_error;
+			std::filesystem::create_hard_link(original_proof,pio::resolve(proofFilename()),link_error);
+			if(link_error) std::filesystem::copy_file(original_proof,pio::resolve(proofFilename()));
+			double seconds=0;
+			bool prp=false;
+			uint64_t proof_key=0,certificate_key=0,checked_key=0,res64=0,old64=0;
+			EReturn result=server(power,seconds,prp,proof_key,certificate_key,res64,old64);
+			if(result!=EReturn::Success) return result;
+			result=check(seconds,checked_key);
+			if(result!=EReturn::Success) return result;
+			if(certificate_key!=checked_key) throw std::runtime_error("Certificate keys differ");
+			pio::print("Extra certificate verification passed using original OpenCL arithmetic.\n");
+		}
+		if(_extra_tail) std::filesystem::remove(pio::resolve(original_prefix+".tail"));
+		return EReturn::Success;
+	}
 #endif
 
 public:
@@ -1623,10 +1623,10 @@ public:
 				double testTime = 0, validTime = 0, proofTime = 0; bool isPrp = false; uint64_t pkey = 0, res64 = 0, old64 = 0;
 				success = proof(exponent, depth, fast_checkpoints, testTime, validTime, proofTime, isPrp, pkey, res64, old64);
 #if defined(GENEFER_AUTOMATIC_OPENCL)
-                if(success==EReturn::Success && (_extra_certificate || _extra_tail)) {
-                    try { success=extraChecks(b,n,device,exponent); }
-                    catch(const std::exception &error) { pio::error(error.what()); success=EReturn::Failed; }
-                }
+				if(success==EReturn::Success && (_extra_certificate || _extra_tail)) {
+					try { success=extraChecks(b,n,device,exponent); }
+					catch(const std::exception &error) { pio::error(error.what()); success=EReturn::Failed; }
+				}
 #endif
 				const double error = _transform ? _transform->getError() : 0;
 				const double time = testTime + validTime + proofTime;

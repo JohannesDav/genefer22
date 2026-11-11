@@ -174,8 +174,8 @@ private:
 #endif
 		ss << "  -f <filename>               main filename (without extension) of input and output files" << std::endl;
 #if defined(GENEFER_AUTOMATIC_OPENCL)
-        ss << "  --check-certificate         verify the generated proof with original arithmetic" << std::endl;
-        ss << "  --check-tail                recompute the final segment with original arithmetic" << std::endl;
+		ss << "  --check-certificate         verify the generated proof with original arithmetic" << std::endl;
+		ss << "  --check-tail                recompute the final segment with original arithmetic" << std::endl;
 #endif
 		ss << "  -v or -V                    print the startup banner and exit" << std::endl;
 #if defined(BOINC)
@@ -237,7 +237,7 @@ public:
 		bool ext_device = false;
 #endif
 #if defined(GENEFER_AUTOMATIC_OPENCL)
-        bool check_certificate=false,check_tail=false;
+		bool check_certificate=false,check_tail=false;
 #endif
 		std::string mainFilename = "", impl = "";
 		const int depth = 7;
@@ -247,8 +247,8 @@ public:
 		{
 			const std::string & arg = args[i];
 #if defined(GENEFER_AUTOMATIC_OPENCL)
-            if(arg=="--check-certificate") check_certificate=true;
-            if(arg=="--check-tail") check_tail=true;
+			if(arg=="--check-certificate") check_certificate=true;
+			if(arg=="--check-tail") check_tail=true;
 #endif
 
 			if ((arg.substr(0, 2) == "-b") && (arg.substr(0, 3) != "-bo"))
@@ -367,9 +367,9 @@ public:
 #endif
 		g.setFilename(mainFilename);
 #if defined(GENEFER_AUTOMATIC_OPENCL)
-        if((check_certificate || check_tail) && mode!=genefer::EMode::Proof)
-            throw std::runtime_error("Extra checks require proof generation (-p)");
-        g.setExtraChecks(check_certificate,check_tail);
+		if((check_certificate || check_tail) && mode!=genefer::EMode::Proof)
+			throw std::runtime_error("Extra checks require proof generation (-p)");
+		g.setExtraChecks(check_certificate,check_tail);
 #endif
 
 		if ((mode == genefer::EMode::Bench) || (mode == genefer::EMode::Limit))
@@ -468,8 +468,8 @@ public:
 			return;
 		}
 
-        genefer::EReturn ret;
-        ret = g.check(b, n, mode, device, nthreads, impl, depth);
+		genefer::EReturn ret;
+		ret = g.check(b, n, mode, device, nthreads, impl, depth);
 
 		if (bBoinc)
 		{
@@ -478,8 +478,8 @@ public:
 		}
 
 #if defined(GENEFER_AUTOMATIC_OPENCL)
-        if(!bBoinc && ret==genefer::EReturn::Failed)
-            throw std::runtime_error("Candidate calculation or verification failed");
+		if(!bBoinc && ret==genefer::EReturn::Failed)
+			throw std::runtime_error("Candidate calculation or verification failed");
 #endif
 
 		if (ret == genefer::EReturn::Aborted)

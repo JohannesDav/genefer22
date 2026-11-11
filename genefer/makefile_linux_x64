@@ -105,7 +105,7 @@ $(EXEC_CPU): $(OBJS_CPU)
 .PHONY: gpu
 GPU_BUILD_ARGS = --without-boinc
 ifdef BOINC
-GPU_BUILD_ARGS = --sdk $(BOINC_DIR)
+GPU_BUILD_ARGS = --boinc $(BOINC_DIR)
 endif
 
 gpu:

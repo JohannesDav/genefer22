@@ -33,10 +33,10 @@ make -C api
 Then, from this repository’s root:
 
 ```sh
-python3 build.py --sdk /path/to/boinc
+python3 build.py --boinc /path/to/boinc
 ```
 
-`--sdk` is the BOINC source or installation directory.
+`--boinc` is the BOINC source or installation directory. `--sdk` is also accepted as an alias.
 
 To run tests from the command line only, you can leave out BOINC:
 
