@@ -261,10 +261,10 @@ public:
 		: execution_device(platform, d, verbose), _n(size_t(1) << ln), _ln(ln), _isBoinc(isBoinc), _num_regs(num_regs),
 		_lnormWGsize(std::min(std::max(5, ln / 2 - 3), ilog2_32(uint32_t(getMaxWorkGroupSize())))) {}
 	virtual ~engines() {
-        try { releaseKernels(); } catch (...) {}
-        try { releaseMemory(); } catch (...) {}
-        try { clearProgram(); } catch (...) {}
-    }
+		try { releaseKernels(); } catch (...) {}
+		try { releaseMemory(); } catch (...) {}
+		try { clearProgram(); } catch (...) {}
+	}
 
 ///////////////////////////////
 
@@ -1048,7 +1048,7 @@ public:
 		src << "#define MAX_WG_SZ\t" << _pEngine->getMaxWorkGroupSize() << std::endl << std::endl;
 
 #if defined(GENEFER_GENERAL_CUDA)
-        src << src_ocl_kernel;
+		src << src_ocl_kernel;
 #else
 		if (isBoinc || !_pEngine->readOpenCL("ocl/kernel.cl", "src/ocl/kernel.h", "src_ocl_kernel", src)) src << src_ocl_kernel;
 #endif
@@ -1100,7 +1100,7 @@ public:
 
 	size_t getMemSize() const override { return _mem_size; }
 	size_t getCacheSize() const override { return _cache_size; }
-    void synchronizeForCalibration() const override { _pEngine->synchronizeForCalibration(); }
+	void synchronizeForCalibration() const override { _pEngine->synchronizeForCalibration(); }
 
 protected:
 	void getZi(int32_t * const zi) const override
@@ -1142,23 +1142,23 @@ public:
 		if (num_regs > _num_regs) return false;
 		if (!cFile.read(reinterpret_cast<char *>(_z.get()), RNS_SIZE * size * num_regs * sizeof(ZP))) return false;
 #if defined(GENEFER_AUTOMATIC_CUDA)
-        // EKind records the channel count, not the primes. Reject old fork
-        // checkpoints with another prime family instead of interpreting their
-        // residues as original arithmetic. Ordinary upstream digits agree in
-        // every channel; unused registers are zero-initialized.
-        constexpr uint32_t first_prime=is32 ? P1U : P1S;
-        for(size_t reg=0;reg<num_regs;++reg) {
-            const ZP *z=_z.get()+reg*RNS_SIZE*size;
-            for(size_t j=0;j<size;++j) {
-                const uint32_t first=z[j].get();
-                if(first>=first_prime) return false;
-                const int64_t digit=first>first_prime/2 ? int64_t(first)-first_prime : int64_t(first);
-                if(z[j].get()!=ZP1().set_int(int32_t(digit)).get()
-                   || z[size+j].get()!=ZP2().set_int(int32_t(digit)).get()) return false;
-                if constexpr(RNS_SIZE==3)
-                    if(z[2*size+j].get()!=ZP3().set_int(int32_t(digit)).get()) return false;
-            }
-        }
+		// EKind records the channel count, not the primes. Reject old fork
+		// checkpoints with another prime family instead of interpreting their
+		// residues as original arithmetic. Ordinary upstream digits agree in
+		// every channel; unused registers are zero-initialized.
+		constexpr uint32_t first_prime=is32 ? P1U : P1S;
+		for(size_t reg=0;reg<num_regs;++reg) {
+			const ZP *z=_z.get()+reg*RNS_SIZE*size;
+			for(size_t j=0;j<size;++j) {
+				const uint32_t first=z[j].get();
+				if(first>=first_prime) return false;
+				const int64_t digit=first>first_prime/2 ? int64_t(first)-first_prime : int64_t(first);
+				if(z[j].get()!=ZP1().set_int(int32_t(digit)).get()
+				   || z[size+j].get()!=ZP2().set_int(int32_t(digit)).get()) return false;
+				if constexpr(RNS_SIZE==3)
+					if(z[2*size+j].get()!=ZP3().set_int(int32_t(digit)).get()) return false;
+			}
+		}
 #endif
 		_pEngine->writeMemory_z(_z.get(), num_regs);
 
@@ -1184,7 +1184,7 @@ public:
 	void squareDup(const bool dup) override
 	{
 #if defined(GENEFER_GENERAL_CUDA)
-        _pEngine->runSquareGraph(dup,[&] { _pEngine->square(); _pEngine->baseMod(dup); });
+		_pEngine->runSquareGraph(dup,[&] { _pEngine->square(); _pEngine->baseMod(dup); });
 #else
 		_pEngine->square();
 		_pEngine->baseMod(dup);

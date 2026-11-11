@@ -34,10 +34,10 @@ make -C api
 Then, from this repository’s root:
 
 ```sh
-python3 build.py --cuda /usr/local/cuda --sdk /path/to/boinc
+python3 build.py --cuda /usr/local/cuda --boinc /path/to/boinc
 ```
 
-`--cuda` is the CUDA toolkit directory containing `include/cuda.h`. It defaults to `$CUDA_PATH`, or `/usr/local/cuda` if that is not set. `--sdk` is the BOINC source or installation directory.
+`--cuda` is the CUDA toolkit directory containing `include/cuda.h`. It defaults to `$CUDA_PATH`, or `/usr/local/cuda` if that is not set. `--boinc` is the BOINC source or installation directory. `--sdk` is also accepted as an alias.
 
 To run tests from the command line only, you can leave out BOINC:
 

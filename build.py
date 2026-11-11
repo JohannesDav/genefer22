@@ -41,7 +41,9 @@ def main():
         help="CUDA SDK prefix, needed only for its headers",
     )
     parser.add_argument(
+        "--boinc",
         "--sdk",
+        dest="boinc",
         type=Path,
         default=Path("/usr"),
         help="BOINC installation or source prefix",
@@ -93,30 +95,30 @@ def main():
     gmp = locate([Path(gmp_name)], "static GMP library")
     libraries = [str(gmp)]
     if not args.without_boinc:
-        sdk = args.sdk.resolve()
+        boinc = args.boinc.resolve()
         locate(
             [
-                sdk / "include/boinc/api/boinc_api.h",
-                sdk / "include/boinc/boinc_api.h",
-                sdk / "api/boinc_api.h",
+                boinc / "include/boinc/api/boinc_api.h",
+                boinc / "include/boinc/boinc_api.h",
+                boinc / "api/boinc_api.h",
             ],
             "BOINC API headers",
         )
         common += ["-DBOINC"]
         for directory in [
-            sdk / "include/boinc",
-            sdk / "include/boinc/api",
-            sdk / "include/boinc/lib",
-            sdk,
-            sdk / "api",
-            sdk / "lib",
+            boinc / "include/boinc",
+            boinc / "include/boinc/api",
+            boinc / "include/boinc/lib",
+            boinc,
+            boinc / "api",
+            boinc / "lib",
         ]:
             common.append("-I" + str(directory))
         directories = [
-            sdk / "lib/x86_64-linux-gnu",
-            sdk / "lib64",
-            sdk / "lib",
-            sdk / "api",
+            boinc / "lib/x86_64-linux-gnu",
+            boinc / "lib64",
+            boinc / "lib",
+            boinc / "api",
         ]
         libraries += [
             str(
