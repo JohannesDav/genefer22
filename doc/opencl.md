@@ -58,7 +58,7 @@ This tests 28000000<sup>2<sup>19</sup></sup> + 1 and writes the proof to `candid
 
 Run `./build/geneferg` with no arguments to list all options. They are the same as in Gallot’s GPU version, plus the two checks below.
 
-At the start of each test, the program generates GPU kernels for that candidate, compiles them with the OpenCL compiler built into the NVIDIA driver, and runs them through OpenCL command queues.
+At the start of each test, the program generates GPU kernels for that candidate and compiles them with the OpenCL compiler built into the NVIDIA driver.
 
 A BOINC build uses the same BOINC interface as Gallot’s version. PrimeGrid does not distribute this executable, so to use it for PrimeGrid work you have to configure BOINC to run it in place of the official application, for example through BOINC’s anonymous platform (`app_info.xml`).
 
@@ -82,10 +82,10 @@ A *profile* is a set of GPU kernel settings for one GFN size, chosen by timing t
 
 When a test starts:
 
-1. The program runs Gallot’s original OpenCL code, unchanged, if the GPU is not an NVIDIA card, the GFN size is outside 16–22, the optimized OpenCL backend cannot be initialized, or the GPU lacks a required feature (32-thread warps, 1024-thread blocks and 48 KB of shared memory). Setting the environment variable `GENEFER_FORCE_OPENCL=1` also forces this.
+1. The program runs Gallot’s original OpenCL code, unchanged, if the GPU is not an NVIDIA card, the GFN size is outside 16–22, the optimized code cannot be initialized, or the GPU lacks a required feature (32-thread warps, 1024-thread blocks and 48 KB of shared memory). Setting the environment variable `GENEFER_FORCE_OPENCL=1` also forces this.
 2. Otherwise, it considers up to three profiles in order: one for this exact GPU model and memory size, one for its architecture, and the default for the GFN size.
 3. It uses the first profile that passes two checks: the worst-case arithmetic bounds for this base, and the GPU’s memory and resource limits.
-4. If no profile passes, it runs Gallot’s arithmetic with his original kernels, launched through OpenCL command queues.
+4. If no profile passes, it runs Gallot’s arithmetic with his original kernels.
 
 The program prints the profile it selected.
 

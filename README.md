@@ -4,14 +4,19 @@
 
 This is a fork of [Yves Gallot’s genefer22](https://github.com/galloty/genefer22), the program PrimeGrid uses to test numbers of the form b<sup>2<sup>n</sup></sup> + 1 (generalized Fermat numbers) for primality. It changes only the GPU version, and only on NVIDIA cards. It targets PrimeGrid’s GFN-16 to GFN-22 subprojects, where n is 16 to 22. The test itself, the proofs and the error checks are all Gallot’s work. This fork only changes how the arithmetic runs on the GPU (see [exactness and fallbacks](#exactness-and-fallbacks)).
 
-The table shows the speedup for one complete test, including proof generation. A dash means the comparison was not run. The [benchmark results](doc/benchmarks.md) give the times in seconds and the bases used.
+On the NVIDIA cards we tested, complete tests ran **1.1 to 2.1 times as fast** with this fork.
 
 | GPU | GFN-16 | GFN-17 | GFN-18 | GFN-19 | GFN-20 | GFN-21 | GFN-22 |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | RTX 2080 Ti | 1.2× | 1.3× | 1.5× | 1.8× | — | — | — |
+| RTX 3090 | 1.3× | 1.4× | 1.4× | 1.7× | 2.0× | — | — |
 | RTX 4060 Ti | 1.2× | 1.3× | 1.5× | 1.7× | 1.9× | — | — |
 | RTX 5070 | 1.3× | 1.3× | 1.4× | 1.7× | 1.9× | — | — |
-| RTX 5090 | — | — | — | — | 1.6× | 2.1× | 1.9× |
+| RTX 5090 | 1.1× | 1.2× | 1.2× | 1.5× | 1.6× | 2.1× | 1.9× |
+
+Speedup for one complete test, including proof generation. A dash means that comparison was not run. The [benchmark results](doc/benchmarks.md) give the times in seconds and the bases used.
+
+The same optimizations are also available as a [CUDA version](https://github.com/JohannesDav/genefer22). On many of the GPUs and GFN sizes we tested, this OpenCL version is nearly as fast. On others, the CUDA version is faster ([comparison](doc/benchmarks.md#comparison-with-cuda)).
 
 ## What changed
 
@@ -21,16 +26,16 @@ This fork changes how that squaring runs on NVIDIA GPUs:
 
 - **Packed squaring.** Several consecutive base-b digits (up to 16) are combined into each transform element, so the transform is that many times shorter. The elements are larger, so more primes are needed to recover the exact result. The number of primes is chosen for each candidate from a worst-case bound.
 - **Alternative three-prime arithmetic.** On some GPUs, mostly for GFN-16 and GFN-17, it is faster to keep Gallot’s transform but use three primes just below 2<sup>30</sup>. These leave room in 32-bit words to postpone modular reductions.
-- **Settings for each GPU.** The GPU code has several possible layouts. The program contains [settings for many GPU models](doc/calibrated-gpus.md) and picks them automatically, so one executable serves every supported card.
-- **Asynchronous execution.** Work is submitted through OpenCL command queues.
+- **Settings for each GPU.** The GPU code has several possible layouts. The program contains settings measured on [many GPU models](doc/calibrated-gpus.md) and picks them automatically, so one executable serves every supported card.
+- **Regular queue flushes.** The program sends queued work to the GPU every eight squarings, instead of leaving that to the driver.
 
 ## Exactness and fallbacks
 
 None of these changes trade accuracy for speed. Before using an optimization for a candidate, the program checks worst-case bounds showing that every intermediate value stays within the range the arithmetic can represent exactly. Two-prime arithmetic is only used below Gallot’s own limit for it.
 
-The optimizations are designed to preserve exact arithmetic and produce the same results and proof files as the original version. The proof files matched in all 17 benchmark comparisons.
+The arithmetic stays exact, so each test gives the same result and writes the same proof file as the original version. The proof files also matched in every benchmark comparison.
 
-If a check fails, the program uses Gallot’s arithmetic instead. It also runs Gallot’s original code, unchanged, on non-NVIDIA GPUs, for GFN sizes outside 16–22, or if an optimized kernel cannot be initialized.
+If a check fails, the program uses Gallot’s arithmetic instead. It also runs Gallot’s original code, unchanged, on non-NVIDIA GPUs, for GFN sizes outside 16–22, or if the optimized code cannot start.
 
 Every test still runs Gallot’s Gerbicz–Li error check. Two [optional checks](doc/opencl.md#optional-extra-checks) can also verify the finished result with his original code.
 
@@ -44,4 +49,4 @@ See [building and running the OpenCL version](doc/opencl.md). The executable, `g
 
 Only Linux x86-64 has been tested. PrimeGrid does not distribute this version, so using it for PrimeGrid work means setting up BOINC to run it yourself.
 
-Contributions from people with AMD GPUs or Macs who want to port and test the optimizations are very welcome. These devices currently use Gallot’s original OpenCL implementation.
+AMD, Intel and Apple GPUs still run Gallot’s original code. If you have one and would like to port and test the optimizations, contributions are very welcome.
