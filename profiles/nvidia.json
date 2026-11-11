@@ -7762,13 +7762,13 @@
         "root_bits": 64
       },
       "19": {
-        "chunk": 4,
+        "chunk": 8,
         "digit_ratio": 3,
         "implementation": "packed",
         "inline_converter": false,
         "inner_blocks": 1,
         "length": 65536,
-        "matrix_mad": false,
+        "matrix_mad": true,
         "outer": 64,
         "root_bits": 32
       },
@@ -7875,12 +7875,12 @@
       },
       "22": {
         "chunk": 8,
-        "digit_ratio": 4,
+        "digit_ratio": 3,
         "implementation": "packed",
         "inline_converter": false,
         "inner_blocks": 1,
         "length": 262144,
-        "matrix_mad": false,
+        "matrix_mad": true,
         "outer": 64,
         "root_bits": 32
       }
@@ -7942,15 +7942,15 @@
         "root_bits": 64
       },
       "21": {
-        "chunk": 16,
-        "digit_ratio": 2,
+        "chunk": 8,
+        "digit_ratio": 3,
         "implementation": "packed",
-        "inline_converter": true,
+        "inline_converter": false,
         "inner_blocks": 1,
-        "length": 262144,
+        "length": 131072,
         "matrix_mad": true,
         "outer": 64,
-        "root_bits": 64
+        "root_bits": 32
       },
       "22": {
         "chunk": 16,
@@ -8050,46 +8050,46 @@
         "root_bits": 32
       },
       "19": {
-        "chunk": 8,
-        "digit_ratio": 3,
+        "chunk": 2,
+        "digit_ratio": 2,
         "implementation": "packed",
         "inline_converter": false,
         "inner_blocks": 1,
         "length": 131072,
-        "matrix_mad": false,
-        "outer": 64,
+        "matrix_mad": true,
+        "outer": 256,
         "root_bits": 32
       },
       "20": {
-        "chunk": 8,
+        "chunk": 2,
         "digit_ratio": 2,
         "implementation": "packed",
         "inline_converter": false,
         "inner_blocks": 1,
-        "length": 262144,
-        "matrix_mad": false,
+        "length": 131072,
+        "matrix_mad": true,
         "outer": 256,
         "root_bits": 32
       },
       "21": {
-        "chunk": 8,
+        "chunk": 2,
         "digit_ratio": 2,
         "implementation": "packed",
         "inline_converter": false,
         "inner_blocks": 1,
-        "length": 262144,
-        "matrix_mad": false,
+        "length": 524288,
+        "matrix_mad": true,
         "outer": 256,
         "root_bits": 32
       },
       "22": {
-        "chunk": 8,
+        "chunk": 2,
         "digit_ratio": 2,
         "implementation": "packed",
         "inline_converter": false,
         "inner_blocks": 1,
         "length": 1048576,
-        "matrix_mad": false,
+        "matrix_mad": true,
         "outer": 256,
         "root_bits": 32
       }
@@ -8107,12 +8107,12 @@
         "root_bits": 32
       },
       "17": {
-        "chunk": 4,
+        "chunk": 8,
         "digit_ratio": 2,
         "implementation": "packed",
         "inline_converter": false,
         "inner_blocks": 1,
-        "length": 65536,
+        "length": 32768,
         "matrix_mad": false,
         "outer": 64,
         "root_bits": 32
@@ -8129,15 +8129,15 @@
         "root_bits": 32
       },
       "19": {
-        "chunk": 4,
+        "chunk": 8,
         "digit_ratio": 3,
         "implementation": "packed",
         "inline_converter": false,
-        "inner_blocks": 2,
+        "inner_blocks": 1,
         "length": 65536,
-        "matrix_mad": false,
+        "matrix_mad": true,
         "outer": 64,
-        "root_bits": 64
+        "root_bits": 32
       },
       "20": {
         "chunk": 16,
@@ -8273,12 +8273,14 @@
       },
       "18": {
         "implementation": "packed",
-        "length": 262144,
+        "length": 65536,
         "outer": 64,
-        "chunk": 2,
+        "chunk": 4,
         "root_bits": 32,
         "inner_blocks": 1,
-        "digit_ratio": 2
+        "digit_ratio": 2,
+        "matrix_mad": false,
+        "inline_converter": false
       },
       "19": {
         "implementation": "packed",
@@ -8431,7 +8433,7 @@
       "inline_converter": false,
       "inner_blocks": 1,
       "length": 65536,
-      "matrix_mad": false,
+      "matrix_mad": true,
       "outer": 64,
       "root_bits": 32
     },

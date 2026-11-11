@@ -47,6 +47,29 @@ int main() {
         known.arch = architecture::blackwell;
         choices = profiles_for(known, 21);
         expect(choices.front()->memory_gib == 16, "Reserved VRAM must retain the nominal 16GB profile");
+        known.name = "NVIDIA GeForce RTX 4060 Ti";
+        known.arch = architecture::ada;
+        known.memory_bytes = 24 * gib;
+        choices = profiles_for(known, 19);
+        expect(choices.size() == 3 && choices.front()->memory_gib == 16,
+               "Untested capacity must use the nearest capacity of the same model");
+        known.memory_bytes = 12 * gib;
+        choices = profiles_for(known, 19);
+        expect(choices.front()->memory_gib == 8,
+               "Equal memory distances must prefer the smaller calibrated capacity");
+        known.memory_bytes = 4 * gib;
+        choices = profiles_for(known, 19);
+        expect(choices.front()->memory_gib == 8,
+               "A smaller untested capacity must retain a same-model candidate");
+        known.arch = architecture::pascal;
+        choices = profiles_for(known, 19);
+        expect(choices.size() == 2 && choices.front()->memory_gib == 0,
+               "A same-name substitute must not cross architectures");
+        known.arch = architecture::ada;
+        known.memory_bytes = 0;
+        choices = profiles_for(known, 19);
+        expect(choices.size() == 2 && choices.front()->memory_gib == 0,
+               "Missing memory information must not select a substitute capacity");
         known.name = "Future GPU";
         known.arch = architecture::unknown;
         choices = profiles_for(known, 19);
@@ -86,6 +109,11 @@ int main() {
                     for (const auto *choice : profiles_for(device, n, base))
                         expect(choice->kind != implementation::three_prime,
                                "Two-prime admission must apply to every model and GFN size");
+                    device.memory_bytes = 256 * gib;
+                    for (const auto *choice : profiles_for(device, n, base))
+                        expect(choice->kind != implementation::three_prime,
+                               "Same-model substitutes must respect two-prime admission");
+                    device.memory_bytes = uint64_t(profile.memory_gib) * gib;
                 }
             }
         }

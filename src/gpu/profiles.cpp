@@ -45,6 +45,28 @@ std::vector<const profile_entry *> profiles_for(const device_properties &device,
             out.push_back(&p);
             break;
         }
+    // An uncalibrated memory capacity can reuse the same model's settings.
+    // Keep exact capacity matches first; use the nearest nominal capacity as
+    // the substitute, preferring the smaller one when distances are equal.
+    if (out.empty() && device.memory_bytes) {
+        const profile_entry *nearest = nullptr;
+        uint64_t nearest_distance = 0;
+        for (const auto &p : embedded::device_profiles) {
+            if (!eligible(p) || p.exponent != exponent || p.arch != device.arch ||
+                model_name(device.name) != model_name(p.name))
+                continue;
+            const uint64_t memory = uint64_t(p.memory_gib) * gib;
+            const uint64_t distance = memory > device.memory_bytes
+                ? memory - device.memory_bytes : device.memory_bytes - memory;
+            if (!nearest || distance < nearest_distance ||
+                (distance == nearest_distance && p.memory_gib < nearest->memory_gib)) {
+                nearest = &p;
+                nearest_distance = distance;
+            }
+        }
+        if (nearest)
+            out.push_back(nearest);
+    }
     for (const auto &p : embedded::architecture_profiles)
         if (eligible(p) && p.exponent == exponent && p.arch == device.arch) {
             out.push_back(&p);
