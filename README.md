@@ -19,6 +19,8 @@ On the NVIDIA cards we tested, complete tests ran **1.3 to 2.6 times as fast** w
 
 Speedup for one complete test, including proof generation. A dash means that comparison was not run. The [benchmark results](doc/benchmarks.md) give the times in seconds, the bases used and seven more GPUs.
 
+An [OpenCL-only version](https://github.com/JohannesDav/genefer22/tree/opencl) is also available. In current measurements, it retains most of CUDA's time savings for GFN-19–22, with a larger gap on GFN-16–17. See the [OpenCL and CUDA comparison](https://github.com/JohannesDav/genefer22/blob/opencl/doc/benchmarks.md#comparison-with-cuda).
+
 ## What changed
 
 Most of a test is spent squaring a very large number millions of times. Genefer stores the number as a list of base-b digits and squares it with number-theoretic transforms (an exact, integer counterpart of the FFT) computed modulo two or three primes. It then combines those results into the exact answer with the Chinese remainder theorem.
