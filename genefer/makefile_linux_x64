@@ -101,5 +101,14 @@ transform_ocl.o: $(SRC_DIR)/transform_ocl.cpp $(DEPS_TRANSFORM_GPU)
 $(EXEC_CPU): $(OBJS_CPU)
 	$(CC) $(FLAGS_CPU) -static $^ -lgmp $(BOINC_LIB) -o $@
 
-$(EXEC_GPU): $(OBJS_GPU)
-	$(CC) $(FLAGS_GPU) -static-libgcc -static-libstdc++ $^ /usr/lib/x86_64-linux-gnu/libgmp.a $(BOINC_LIB) $(BOINC_LIB_OCL) $(OCL_LIB) -o $@
+# GPU source embedding and automatic profiles use the common build entry point.
+.PHONY: gpu
+GPU_BUILD_ARGS = --without-boinc
+ifdef BOINC
+GPU_BUILD_ARGS = --sdk $(BOINC_DIR)
+endif
+
+gpu:
+	CXX="$(firstword $(CC))" python3 $(ROOT_DIR)/build.py $(GPU_BUILD_ARGS) --output $(EXEC_GPU)
+
+$(EXEC_GPU): gpu

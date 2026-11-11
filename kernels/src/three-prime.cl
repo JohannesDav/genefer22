@@ -1,5 +1,5 @@
 // Three-prime GFN-19 arithmetic. Based on Yves Gallot's OpenCL kernels.
-#if GFN19_ROOT_BITS == 64
+#if GFN_ROOT_BITS == 64
 typedef ulong root_word_t;
 typedef ulong2 root_pair_t;
 typedef ulong4 root_quad_t;
@@ -194,7 +194,7 @@ INLINE uint4_32 lmul4(uint4_32 a,uint4_32 b,uint2_32 pq){return (uint4_32)(lmul(
 INLINE uint4_32 lscalar4(uint4_32 a,uint_32 b,uint2_32 pq){return (uint4_32)(lscalar(a.s0,b,pq),lscalar(a.s1,b,pq),lscalar(a.s2,b,pq),lscalar(a.s3,b,pq));}
 
 INLINE uint_32 shoup_root(uint_32 a, ulong root, uint2_32 pq) {
- #if GFN19_ROOT_BITS == 64
+ #if GFN_ROOT_BITS == 64
  uint_32 w=(uint_32)root, q=mul_hi(a,(uint_32)(root>>32));
 #else
  uint_32 rq=(uint_32)root, w=mul_hi(rq,pq.s0)+1u, q=mul_hi(a,rq);
@@ -1181,7 +1181,7 @@ INLINE uint4_32 quartic_dot(const uint2_32 pq,const uint4_32 input,const uint_32
 }
 
 INLINE void quartic_square8(const uint2_32 pq,uint4_32 z[2],const ulong w1,const ulong win1){
- #if GFN19_ROOT_BITS == 64
+ #if GFN_ROOT_BITS == 64
  const uint_32 q=(uint_32)(w1>>32),gamma=(uint_32)w1;
 #else
  const uint_32 q=(uint_32)w1,gamma=mul_hi(q,pq.s0)+1u;
@@ -1200,7 +1200,7 @@ INLINE void square_8x2(const uint2_32 pq, __local uint4_32 * restrict const Z,
 	barrier(CLK_LOCAL_MEM_FENCE);
 	uint4_32 zl[4]; _loadl4(4, zl, Z, 1);
 	const ulong root=w[sj];
-#if GFN19_ROOT_BITS == 64
+#if GFN_ROOT_BITS == 64
  const uint q=(uint)(root>>32),gamma=(uint)root;
 #else
  const uint q=(uint)root,gamma=mul_hi(q,pq.s0)+1u;
@@ -2001,9 +2001,7 @@ void square1024(__global VTYPE * restrict const zg, __global const root_word_t *
 	backward_4o(pq, L1024S / 4, zk, L1024S / 4, Zi256, wi, sji / (L1024S / 4));
 }
 
-#if N_SZ != 524288u || VSIZE != 4 || RNS_SZ != 3
-#error Warp endpoint is restricted to the tested GFN19 vector layout
-#endif
+#if N_SZ == 524288u && VSIZE == 4 && RNS_SZ == 3
 INLINE uint4_32 tail_xor1(const uint4_32 v){
  uint_32 x0,x1,x2,x3;
  asm volatile("shfl.sync.bfly.b32 %0, %1, 1, 31, -1;" : "=r"(x0) : "r"(v.s0));
@@ -2057,7 +2055,7 @@ INLINE void warp_tail(const uint2_32 pq,__local uint4_32 *Z,__global const root_
  tail_to_leaf(a,lane);
  {DECLARE_W1_2(sj);DECLARE_WIN1_2(sji);
   const ulong root=w[sj];
-#if GFN19_ROOT_BITS == 64
+#if GFN_ROOT_BITS == 64
  const uint q=(uint)(root>>32),gamma=(uint)root;
 #else
  const uint q=(uint)root,gamma=mul_hi(q,pq.s0)+1u;
@@ -2068,6 +2066,8 @@ octic_dot(pq,&a[0],gamma,q);octic_dot(pq,&a[2],pq.s0-gamma,~q);
  {DECLARE_WIN12(sji/2);_backward4(pq,a,win1,win2);}
  _storel4(4,&Z[base],2,a);
 }
+
+#endif
 
 #define L2048S	(2048 / VSIZE)
 
@@ -2098,6 +2098,8 @@ __kernel
 #endif
 void square2048(__global VTYPE * restrict const zg, __global const root_word_t * restrict const wg)
 {
+#if N_SZ == 524288u && VSIZE == 4 && RNS_SZ == 3
+
 	DECLARE_VAR_2048();
 
 	forward_4i(pq, L2048S / 4, Zi512, L2048S / 4, zk, w, sj / (L2048S / 4));
@@ -2107,6 +2109,28 @@ void square2048(__global VTYPE * restrict const zg, __global const root_word_t *
 	backward_4(pq, L2048S / 64, Zi32, wi, sji / (L2048S / 64));
 	backward_4(pq, L2048S / 16, Zi128, wi, sji / (L2048S / 16));
 	backward_4o(pq, L2048S / 4, zk, L2048S / 4, Zi512, wi, sji / (L2048S / 4));
+
+#else
+
+	DECLARE_VAR_2048();
+
+	forward_4i(pq, L2048S / 4, Zi512, L2048S / 4, zk, w, sj / (L2048S / 4));
+	forward_4(pq, L2048S / 16, Zi128, w, sj / (L2048S / 16));
+	forward_4(pq, L2048S / 64, Zi32, w, sj / (L2048S / 64));
+	forward_4(pq, L2048S / 256, Zi8, w, sj / (L2048S / 256));
+#if VSIZE == 1
+	forward_4(pq, 2, Zi2, w, sj / 2);
+	square_2x2(pq, Z4, w[sj]);
+	backward_4(pq, 2, Zi2, wi, sji / 2);
+#else
+	square_8(pq, Z4, w, wi, sj, sji);
+#endif
+	backward_4(pq, L2048S / 256, Zi8, wi, sji / (L2048S / 256));
+	backward_4(pq, L2048S / 64, Zi32, wi, sji / (L2048S / 64));
+	backward_4(pq, L2048S / 16, Zi128, wi, sji / (L2048S / 16));
+	backward_4o(pq, L2048S / 4, zk, L2048S / 4, Zi512, wi, sji / (L2048S / 4));
+
+#endif
 }
 
 #define L4096S	(4096 / VSIZE)
@@ -2534,10 +2558,19 @@ INLINE int_64 garner2(const uint_32 r1, const uint_32 r2)
 	return (int_64)(n - (b ? P1P2 : 0));
 }
 
+#if GFN_PAIRED_DIGITS
+// For |d| < min(P1,P2), positive digits have equal residues, while negative
+// digits differ by P1-P2. This concerns normalized digits, not convolution CRT.
+#define GFN_SECOND(x) x
+INLINE int_64 normalized_digit(const uint_32 r1, const uint_32 r2) {
+    return (int_64)r1 - (r1 == r2 ? 0l : (int_64)P1);
+}
+#else
 #define GFN_SECOND(x) 0u
 INLINE int_64 normalized_digit(const uint_32 r1, const uint_32 unused) { return get_int(r1,P1); }
+#endif
 
-#if GFN19_CRT_SHOUP
+#if GFN_CRT_SHOUP
 #define GFN_CRT_SELECT(a,b) a
 #else
 #define GFN_CRT_SELECT(a,b) b
@@ -2549,9 +2582,9 @@ INLINE uint_32 crt_shoup(const uint_32 a,const uint_32 w,const uint_32 q,const u
 // Centered Garner digits with an unsigned final residue. The host bounds
 // their products and the residual passed to the signed64 division below.
 INLINE int3 crt_digits(uint r1, uint r2, uint r3) {
-    const uint u13 = crt_shoup(submod(r1, r3, P1), 939058287u, 3817749617u, P1);
-    const uint u23 = crt_shoup(submod(r2, r3, P2), 526909943u, 2147485695u, P2);
-    const uint u123 = crt_shoup(submod(u13, u23, P1), 403u, 1638u, P1);
+    const uint u13 = crt_shoup(submod(r1, r3, P1), CRT_INV13, CRT_INV13_Q, P1);
+    const uint u23 = crt_shoup(submod(r2, r3, P2), CRT_INV23, CRT_INV23_Q, P2);
+    const uint u123 = crt_shoup(submod(u13, u23, P1), CRT_INV12, CRT_INV12_Q, P1);
     const int c = (int)r3;
 
     const uint adjusted = u23;
@@ -2579,9 +2612,9 @@ INLINE int crt_divide(uint r1, uint r2, uint r3, const uint b, const uint invers
 }
 INLINE int96 garner3(const uint_32 r1, const uint_32 r2, const uint_32 r3)
 {
-	const uint_32 u13 = GFN_CRT_SELECT(crt_shoup(submod(r1,r3,P1),939058287u,3817749617u,P1), mulmod(submod(r1, r3, P1), INVP3_P1, PQ1));
-	const uint_32 u23 = GFN_CRT_SELECT(crt_shoup(submod(r2,r3,P2),526909943u,2147485695u,P2), mulmod(submod(r2, r3, P2), INVP3_P2, PQ2));
-	const uint_32 u123 = GFN_CRT_SELECT(crt_shoup(submod(u13,u23,P1),403u,1638u,P1), mulmod(submod(u13, u23, P1), INVP2_P1, PQ1));
+	const uint_32 u13 = GFN_CRT_SELECT(crt_shoup(submod(r1,r3,P1),CRT_INV13,CRT_INV13_Q,P1), mulmod(submod(r1, r3, P1), INVP3_P1, PQ1));
+	const uint_32 u23 = GFN_CRT_SELECT(crt_shoup(submod(r2,r3,P2),CRT_INV23,CRT_INV23_Q,P2), mulmod(submod(r2, r3, P2), INVP3_P2, PQ2));
+	const uint_32 u123 = GFN_CRT_SELECT(crt_shoup(submod(u13,u23,P1),CRT_INV12,CRT_INV12_Q,P1), mulmod(submod(u13, u23, P1), INVP2_P1, PQ1));
 	const uint96 n = uint96_add_64(uint96_mul_64_32(P2 * (uint_64)(P3), u123), u23 * (uint_64)(P3) + r3);
 	const bool b = uint96_is_greater(n, uint96_set(P1P2P3_2L, P1P2P3_2H));
 	return uint96_i(b ? uint96_sub(n, uint96_set(P1P2P3L, P1P2P3H)) : n);
@@ -2673,8 +2706,8 @@ __kernel __attribute__((reqd_work_group_size(NORM_WG_SZ, 1, 1)))
 void normalize1dup0(__global uint4_32 * restrict const z, __global int_64 * restrict const c,
 	const uint_32 b_param, const uint_32 b_inv_param, const int b_s_param, const int_32 dup_param)
 {
-#if defined(GFN19_FIXED_B)
- const uint_32 b=GFN19_FIXED_B,b_inv=GFN19_FIXED_INV;const int b_s=GFN19_FIXED_SHIFT;
+#if defined(GFN_FIXED_B)
+ const uint_32 b=GFN_FIXED_B,b_inv=GFN_FIXED_INV;const int b_s=GFN_FIXED_SHIFT;
 #else
  const uint_32 b=b_param,b_inv=b_inv_param;const int b_s=b_s_param;
 #endif
@@ -2694,8 +2727,8 @@ __kernel __attribute__((reqd_work_group_size(NORM_WG_SZ, 1, 1)))
 void normalize1dup1(__global uint4_32 * restrict const z, __global int_64 * restrict const c,
 	const uint_32 b_param, const uint_32 b_inv_param, const int b_s_param, const int_32 dup_param)
 {
-#if defined(GFN19_FIXED_B)
- const uint_32 b=GFN19_FIXED_B,b_inv=GFN19_FIXED_INV;const int b_s=GFN19_FIXED_SHIFT;
+#if defined(GFN_FIXED_B)
+ const uint_32 b=GFN_FIXED_B,b_inv=GFN_FIXED_INV;const int b_s=GFN_FIXED_SHIFT;
 #else
  const uint_32 b=b_param,b_inv=b_inv_param;const int b_s=b_s_param;
 #endif
@@ -2716,8 +2749,8 @@ __kernel
 void normalize2(__global uint4_32 * restrict const z, __global const int_64 * restrict const c, 
 	const uint_32 b_param, const uint_32 b_inv_param, const int b_s_param)
 {
-#if defined(GFN19_FIXED_B)
- const uint_32 b=GFN19_FIXED_B,b_inv=GFN19_FIXED_INV;const int b_s=GFN19_FIXED_SHIFT;
+#if defined(GFN_FIXED_B)
+ const uint_32 b=GFN_FIXED_B,b_inv=GFN_FIXED_INV;const int b_s=GFN_FIXED_SHIFT;
 #else
  const uint_32 b=b_param,b_inv=b_inv_param;const int b_s=b_s_param;
 #endif
@@ -2726,6 +2759,9 @@ void normalize2(__global uint4_32 * restrict const z, __global const int_64 * re
 	__global uint4_32 * restrict const zi = &z[NORM_WG_SZ * gid];
 
 	const uint4_32 u1 = zi[0 * N_SZ / 4];
+#if GFN_PAIRED_DIGITS
+    const uint4_32 u2 = zi[1 * N_SZ / 4];
+#endif
 	int4_32 r;
 
 	int_64 f = c[gid] + normalized_digit(u1.s0, GFN_SECOND(u2.s0));
@@ -2744,8 +2780,8 @@ __kernel __attribute__((reqd_work_group_size(NORM_WG_SZ, 1, 1)))
 void mulscalar(__global uint4_32 * restrict const z, __global int_64 * restrict const c,
 	const uint_32 b_param, const uint_32 b_inv_param, const int b_s_param, const int_32 a)
 {
-#if defined(GFN19_FIXED_B)
- const uint_32 b=GFN19_FIXED_B,b_inv=GFN19_FIXED_INV;const int b_s=GFN19_FIXED_SHIFT;
+#if defined(GFN_FIXED_B)
+ const uint_32 b=GFN_FIXED_B,b_inv=GFN_FIXED_INV;const int b_s=GFN_FIXED_SHIFT;
 #else
  const uint_32 b=b_param,b_inv=b_inv_param;const int b_s=b_s_param;
 #endif
@@ -2755,6 +2791,9 @@ void mulscalar(__global uint4_32 * restrict const z, __global int_64 * restrict 
 	__local int_64 cl[NORM_WG_SZ];
 
 	const uint4_32 u1 = zi[0 * N_SZ / 4];
+#if GFN_PAIRED_DIGITS
+    const uint4_32 u2 = zi[1 * N_SZ / 4];
+#endif
 	int4_32 r;
 
 	int_64 f = normalized_digit(u1.s0, GFN_SECOND(u2.s0)) * (int_64)(a);

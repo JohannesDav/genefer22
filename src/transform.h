@@ -72,6 +72,7 @@ public:
 	virtual bool readContext(file & cFile, const size_t num_regs) = 0;
 	virtual void saveContext(file & cFile, const size_t num_regs) const = 0;
 
+	virtual void synchronizeForCalibration() const {}
 	virtual double getError() const { return 0; }
 	virtual void info() const {}
 	// Proof generation uses short powers interleaved with multiplications.
@@ -116,6 +117,9 @@ protected:
 
 public:
 #if defined(GPU)
+    // Packed squaring can use additional channels; this describes the
+    // ordinary arithmetic and checkpoint representation.
+    unsigned getOrdinaryPrimeCount() const { return _kind == EKind::NTT2 ? 2 : 3; }
 	static transform * create_gpu(const uint32_t b, const uint32_t n, const bool isBoinc, const size_t device, const size_t num_regs,
 								  const cl_platform_id boinc_platform_id, const cl_device_id boinc_device_id, const bool verbose)
 	{
@@ -123,6 +127,10 @@ public:
 		if (pTransform == nullptr) throw std::runtime_error("OpenCL device not found");
 		return pTransform;
 	}
+#if defined(GENEFER_AUTOMATIC_OPENCL)
+    static transform *create_original_gpu(uint32_t,uint32_t,bool,size_t,size_t,
+                                          cl_platform_id,cl_device_id,bool);
+#endif
 #else
 	static transform * create_cpu(const uint32_t b, const uint32_t n, const size_t num_threads, const std::string & impl, const size_t num_regs,
 								  const bool checkError, std::string & ttype)

@@ -1,8 +1,8 @@
-// OpenCL execution for the three-prime transform.
+// OpenCL execution for optimized ordinary and small-prime transforms.
 #pragma once
 #include <cstring>
 #include "device_selection.h"
-class three_device : oclObject
+class optimized_device : protected oclObject
 {
 private:
 	enum class EVendor { Unknown, NVIDIA, AMD, INTEL };
@@ -19,6 +19,7 @@ private:
 	bool _isSync = false;
 #endif
 	size_t _syncCount = 0;
+    unsigned submittedSquares_ = 0;
 	cl_ulong _localMemSize = 0;
 	size_t _maxWorkGroupSize = 0;
 	cl_ulong _timerResolution = 0;
@@ -41,7 +42,7 @@ private:
 	std::map<cl_kernel, profile> _profileMap;
 
 public:
-	three_device(const platform & parent, const size_t d, const bool verbose) : _platform((three_prime_device(parent,d),parent.getPlatform(d))), _device(parent.getDevice(d))
+	optimized_device(const platform & parent, const size_t d, const bool verbose) : _platform((nvidia_device(parent,d),parent.getPlatform(d))), _device(parent.getDevice(d))
 #if defined(ocl_debug)
 		, _d(d)
 #endif
@@ -80,29 +81,39 @@ public:
 			pio::print(ssd.str());
 		}
 
+		try {
 		const cl_context_properties contextProperties[3] = { CL_CONTEXT_PLATFORM, (cl_context_properties)_platform, 0 };
 		cl_int err_cc;
 		_context = clCreateContext(contextProperties, 1, &_device, nullptr, nullptr, &err_cc);
 		oclFatal(err_cc);
 		cl_int err_ccq;
 		_queueF = clCreateCommandQueue(_context, _device, 0, &err_ccq);
+		oclFatal(err_ccq);
 		_queueP = clCreateCommandQueue(_context, _device, CL_QUEUE_PROFILING_ENABLE, &err_ccq);
 		_queue = _queueF;	// default queue is fast
 		oclFatal(err_ccq);
 
 		if (_vendor != EVendor::NVIDIA) _isSync = true;
+        } catch (...) {
+            if (_queueP) clReleaseCommandQueue(_queueP);
+            if (_queueF) clReleaseCommandQueue(_queueF);
+            if (_context) clReleaseContext(_context);
+            throw;
+        }
 	}
 
 public:
-	virtual ~three_device()
+	virtual ~optimized_device()
 	{
 #if defined(ocl_debug)
 		std::ostringstream ss; ss << "Delete ocl device " << _d << "." << std::endl;
 		pio::display(ss.str());
 #endif
-		oclFatal(clReleaseCommandQueue(_queueP));
-		oclFatal(clReleaseCommandQueue(_queueF));
-		oclFatal(clReleaseContext(_context));
+        if (_queue) clFinish(_queue);
+        if (_program) clReleaseProgram(_program);
+        if (_queueP) clReleaseCommandQueue(_queueP);
+        if (_queueF) clReleaseCommandQueue(_queueF);
+        if (_context) clReleaseContext(_context);
 	}
 
 public:
@@ -110,6 +121,15 @@ public:
 	size_t getLocalMemSize() const { return _localMemSize; }
 	size_t getTimerResolution() const { return _timerResolution; }
 	bool isIntel() const { return (_vendor == EVendor::INTEL); }
+
+    void synchronizeForCalibration() { _sync(); }
+    template<class F> void runSquare(bool, F launch) {
+        launch();
+        if (++submittedSquares_ == 8) {
+            oclFatal(clFlush(_queue));
+            submittedSquares_ = 0;
+        }
+    }
 
 private:
 	static EVendor getVendor(const std::string & vendorString)
@@ -278,7 +298,7 @@ public:
 		std::ostringstream ss; ss << "Clear ocl program." << std::endl;
 		pio::display(ss.str());
 #endif
-		oclFatal(clReleaseProgram(_program));
+		if (_program) oclFatal(clReleaseProgram(_program));
 		_program = nullptr;
 		_profileMap.clear();
 	}
@@ -355,13 +375,9 @@ protected:
 protected:
 	static void _setKernelArg(cl_kernel kernel, const cl_uint arg_index, const size_t arg_size, const void * const arg_value)
 	{
-#if !defined(ocl_fast_exec) || defined(ocl_debug)
 		cl_int err =
-#endif
 		clSetKernelArg(kernel, arg_index, arg_size, arg_value);
-#if !defined(ocl_fast_exec) || defined(ocl_debug)
 		oclFatal(err);
-#endif
 	}
 
 protected:
@@ -369,13 +385,9 @@ protected:
 	{
 		if (!_profile)
 		{
-#if !defined(ocl_fast_exec) || defined(ocl_debug)
 			cl_int err =
-#endif
 			clEnqueueNDRangeKernel(_queue, kernel, 1, nullptr, &globalWorkSize, (localWorkSize == 0) ? nullptr : &localWorkSize, 0, nullptr, nullptr);
-#if !defined(ocl_fast_exec) || defined(ocl_debug)
 			oclFatal(err);
-#endif
 			if (_isSync)
 			{
 				++_syncCount;

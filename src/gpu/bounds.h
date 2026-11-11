@@ -1,19 +1,20 @@
 #pragma once
 #include <cstdint>
 
-// GFN-19, three small-prime channels, normalized digit-domain storage.
+// Three small-prime channels with normalized digit-domain storage.
 // This bounds coefficient reconstruction and carry arithmetic. It does not
 // assert that a GPU compiler or the complete implementation is bug-free.
-namespace gfn19_guaranteed {
+namespace small_prime_bounds {
 using wide = unsigned __int128;
-constexpr uint32_t size = 1u << 19;
-constexpr uint32_t prime1 = 1056440321u;
-constexpr uint32_t prime2 = 1053818881u;
-constexpr uint32_t prime3 = 1051721729u;
+// Use the largest admitted transform for a deliberately conservative common bound.
+constexpr uint32_t size = 1u << 22;
+constexpr uint32_t prime1 = 998244353u, prime2 = 985661441u, prime3 = 943718401u;
 constexpr wide modulus = wide(prime1) * prime2 * prime3;
+static_assert(prime1 > prime2 && prime2 > prime3, "normalized digit decoding requires ordered primes");
 constexpr uint32_t minimum_base = 1024;
-// |digit| <= b+2, strictly below prime1/2 for get_int's signed decoding.
-constexpr uint32_t maximum_base = ((prime1 / 2 - 3) & ~uint32_t(1));
+// Normalized digits must have unambiguous signed decoding.
+// Two normalized residue channels distinguish the sign below the smallest prime.
+constexpr uint32_t maximum_base = ((prime3 - 3) & ~uint32_t(1));
 constexpr wide ceil_div(wide x, wide y) { return x / y + (x % y != 0); }
 constexpr wide digit_bound(uint32_t base) { return wide(base) + 2; }
 constexpr wide coefficient_bound(uint32_t base) {
@@ -29,7 +30,8 @@ constexpr bool supported(uint32_t base) {
     const wide carry = carry_bound(base), cube = wide(base) * base * base;
     const wide scalar_product = digits * 2147483647u;
     const wide scalar_carry = ceil_div(scalar_product, base - 1);
-    return digits < prime1 / 2 && digits < prime3
+    return
+        digits < prime3
         && coefficients + carry < modulus / 2
         && coefficients + carry < (wide(1) << 93)
         && carry + digits < (wide(1) << 63)
@@ -43,6 +45,6 @@ constexpr bool supported(uint32_t base) {
 static_assert(4 * uint64_t(prime1) < (uint64_t(1) << 32), "lazy arithmetic range");
 static_assert(4 * uint64_t(prime2) < (uint64_t(1) << 32), "lazy arithmetic range");
 static_assert(4 * uint64_t(prime3) < (uint64_t(1) << 32), "lazy arithmetic range");
-static_assert(supported(1026) && supported(28000000) && supported(maximum_base), "bounds");
+static_assert(supported(660000) && supported(maximum_base), "general small-prime bounds");
 static_assert(!supported(maximum_base+2), "signed digit decoding boundary");
 }

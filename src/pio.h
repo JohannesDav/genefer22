@@ -38,10 +38,6 @@ public:
 
 private:
 	bool _isBoinc = false;
-#if defined(GENEFER_BOINC_GUARD)
-	mutable bool _quarantine_results = false;
-	mutable std::string _quarantined_result;
-#endif
 
 private:
 	// print: console: stdout, boinc: stderr
@@ -83,9 +79,6 @@ private:
 	// result: normal: 'results.txt' file
 	bool _result(const std::string & str) const
 	{
-#if defined(GENEFER_BOINC_GUARD)
-		if (_quarantine_results) { _quarantined_result += str; return true; }
-#endif
 		FILE * const out_file = _open("results.txt", "a");
 		if (out_file == nullptr)
 		{
@@ -98,13 +91,13 @@ private:
 	}
 
 private:
-	FILE * _open(const char * const filename, const char * const mode) const
+	std::string _resolve(const char * const filename) const
 	{
 		if (_isBoinc)
 		{
 			char path[512];
 			boinc_resolve_filename(filename, path, sizeof(path));
-			return boinc_fopen(path, mode);
+			return path;
 		}
 
 		// resolve filename as Boinc does
@@ -122,7 +115,13 @@ private:
 			}
 		}
 
-		return std::fopen(path.c_str(), mode);
+		return path;
+	}
+
+	FILE * _open(const char * const filename, const char * const mode) const
+	{
+		const std::string path = _resolve(filename);
+		return _isBoinc ? boinc_fopen(path.c_str(), mode) : std::fopen(path.c_str(), mode);
 	}
 
 public:
@@ -131,16 +130,7 @@ public:
 	static void error(const std::string & str, const bool fatal = false) { getInstance()._error(str, fatal); }
 	static bool result(const std::string & str) { return getInstance()._result(str); }
 
-#if defined(GENEFER_BOINC_GUARD)
-    static void quarantineResults()
-    {
-        auto& self = getInstance();
-        self._quarantined_result.clear();
-        self._quarantine_results = true;
-    }
-    static std::string quarantinedResult() { return getInstance()._quarantined_result; }
-#endif
-
+	static std::string resolve(const std::string &filename) { return getInstance()._resolve(filename.c_str()); }
 
 	static FILE * open(const char * const filename, const char * const mode) { return getInstance()._open(filename, mode); }
 };

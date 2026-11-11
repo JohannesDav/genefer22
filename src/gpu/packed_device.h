@@ -1,9 +1,5 @@
 #pragma once
-#if defined(GENEFER_EXACT_TWO)
 #include "../transformGPU.h"
-#else
-#include "transform.h"
-#endif
 #include <array>
 #include <fstream>
 #include <initializer_list>
@@ -14,7 +10,7 @@
 // The packed and ordinary transforms own independent OpenCL contexts. The
 // adapter exchanges ordinary digits through host memory at representation changes.
 class packed_device {
-    static constexpr unsigned n = 65536;
+    unsigned n = 65536, packed_digits_ = 8;
     unsigned outer_threads_ = 256, inner_threads_ = 64;
     unsigned fields_ = 0, root_bits_ = 32, root_words_ = 32768, current_ = 0, queued_ = 0;
     cl_context context_{};
@@ -92,10 +88,21 @@ class packed_device {
     }
 
   public:
-    packed_device(unsigned base, cl_device_id device, const std::string &path, bool verbose) {
-        std::ifstream file(path);
-        if (!file) throw std::runtime_error("Cannot read packed kernel source");
-        const std::string source(std::istreambuf_iterator<char>(file), {});
+    packed_device(unsigned base, cl_device_id device, const std::string &path, bool verbose,
+                  size_t expected_digits, bool embedded_source) {
+        std::string source;
+        if (embedded_source) source = path;
+        else {
+            std::ifstream file(path);
+            if (!file) throw std::runtime_error("Cannot read packed kernel source");
+            source.assign(std::istreambuf_iterator<char>(file), {});
+        }
+        n = literal(source, "PG_N");
+        packed_digits_ = literal(source, "PG_PACK");
+        if (n < 16384 || n > 4194304 || (n & (n-1)) || !packed_digits_ ||
+            packed_digits_ > 64 || (packed_digits_ & (packed_digits_-1)) ||
+            size_t(packed_digits_) * n != expected_digits)
+            throw std::runtime_error("Packed kernel does not match the GFN size");
         fields_ = literal(source, "PG_K");
         root_bits_ = literal(source, "PG_ROOT_BITS");
         root_words_ = literal(source, "PG_ROOT_WORDS");
@@ -103,7 +110,7 @@ class packed_device {
             outer_threads_ = literal(source, "PG_OUTER_THREADS");
         if (source.find("#define PG_INNER_THREADS") != std::string::npos)
             inner_threads_ = literal(source, "PG_INNER_THREADS");
-        if (base != literal(source, "PG_BASE") || fields_ < 7 || fields_ > 17 ||
+        if (base != literal(source, "PG_BASE") || fields_ < 2 || fields_ > 32 ||
             (root_bits_ != 32 && root_bits_ != 64) || root_words_ != n / 2)
             throw std::runtime_error("Packed kernel does not match the candidate base");
         for (unsigned threads : {outer_threads_, inner_threads_})
@@ -134,9 +141,23 @@ class packed_device {
             encode_ = kernel("packed_encode");
             decode_ = kernel("packed_decode");
             repair_ = kernel("packed_repair");
+            cl_ulong local_memory = 0;
+            check(clGetDeviceInfo(device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(local_memory), &local_memory, nullptr), "local memory");
+            auto validate = [&](cl_kernel fn, size_t threads) {
+                size_t maximum = 0; cl_ulong shared = 0;
+                check(clGetKernelWorkGroupInfo(fn, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(maximum), &maximum, nullptr), "kernel group limit");
+                check(clGetKernelWorkGroupInfo(fn, device, CL_KERNEL_LOCAL_MEM_SIZE, sizeof(shared), &shared, nullptr), "kernel memory limit");
+                if (threads > maximum || shared > local_memory)
+                    throw std::runtime_error("Compiled kernel exceeds device resources");
+            };
+            validate(transforms_[0], outer_threads_);
+            validate(transforms_[1], inner_threads_);
+            validate(transforms_[2], outer_threads_);
+            for (auto fn : converters_) validate(fn, 128);
+            for (auto fn : {encode_, decode_, repair_}) validate(fn, 128);
             for (auto &value : state_) value = buffer(size_t(fields_) * n * 4);
             roots_ = buffer(size_t(fields_) * root_words_ * (root_bits_ / 8));
-            digits_ = buffer(8 * n * 4);
+            digits_ = buffer(size_t(packed_digits_) * n * 4);
             carries_ = buffer(n * 4);
             error_ = buffer(4);
             std::vector<uint32_t> roots32(root_bits_ == 32 ? size_t(fields_) * root_words_ : 0);
@@ -144,7 +165,7 @@ class packed_device {
             for (unsigned field = 0; field < fields_; ++field) {
                 uint32_t p = literal(source, "PG_PRIME" + std::to_string(field)),
                          generator = literal(source, "PG_GENERATOR" + std::to_string(field));
-                if (uint64_t(p) * 4 >= (uint64_t(1) << 32) || (p - 1) % (2 * n) ||
+                if (uint64_t(p) * 4 >= (uint64_t(1) << 32) || (p - 1) % n ||
                     power(generator, (p - 1) / 2, p) == 1)
                     throw std::runtime_error("Invalid packed transform field");
                 for (unsigned s = 1; s < n / 2; s *= 2) {
@@ -163,7 +184,28 @@ class packed_device {
             }
             if (root_bits_ == 32) write(roots_, roots32.data(), roots32.size() * 4);
             else write(roots_, roots64.data(), roots64.size() * 8);
-            if (verbose) pio::print("GFN-19 exact packed-digit OpenCL square (" +
+            if (std::getenv("GENEFER_PACKED_WRAP_CHECK")) {
+                // Independent ring-boundary stimulus: x^N = -1. Carries
+                // shift right once, with the final carry changing sign.
+                std::vector<int32_t> zero(size_t(packed_digits_) * n, 0), carry(n), actual(zero.size());
+                for (unsigned j = 0; j < n; ++j)
+                    carry[j] = int((uint64_t(j) * 17 + 3) % 9) - 4;
+                write(digits_, zero.data(), zero.size() * sizeof(int32_t));
+                write(carries_, carry.data(), carry.size() * sizeof(int32_t));
+                const uint32_t clear = 0;
+                write(error_, &clear, sizeof(clear));
+                launch(repair_, {digits_, carries_, error_}, n, 128);
+                checkFlags();
+                check(clEnqueueReadBuffer(queue_, digits_, CL_TRUE, 0,
+                      actual.size() * sizeof(int32_t), actual.data(), 0, nullptr, nullptr), "read carry-wrap test");
+                for (unsigned j = 0; j < n; ++j)
+                    for (unsigned k = 0; k < packed_digits_; ++k) {
+                        const int expected = k ? 0 : (j ? carry[j - 1] : -carry[n - 1]);
+                        if (actual[size_t(j) * packed_digits_ + k] != expected)
+                            throw std::runtime_error("Packed negacyclic carry-wrap regression failed");
+                    }
+            }
+            if (verbose) pio::print("Exact packed-digit OpenCL square (" +
                                     std::to_string(fields_) + " prime channels)\n");
         } catch (...) { release(); throw; }
     }
@@ -176,7 +218,7 @@ class packed_device {
     }
     void setDigits(const int32_t *input) {
         synchronize();
-        write(digits_, input, 8 * n * 4);
+        write(digits_, input, size_t(packed_digits_) * n * 4);
         const uint32_t zero = 0;
         write(error_, &zero, sizeof(zero));
         current_ = 0;
@@ -190,7 +232,7 @@ class packed_device {
         launch(decode_, {state_[current_], digits_, carries_, error_}, n, 128);
         launch(repair_, {digits_, carries_, error_}, n, 128);
         checkFlags();
-        check(clEnqueueReadBuffer(queue_, digits_, CL_TRUE, 0, 8 * n * 4, output, 0,
+        check(clEnqueueReadBuffer(queue_, digits_, CL_TRUE, 0, size_t(packed_digits_) * n * 4, output, 0,
                                   nullptr, nullptr), "read digits");
     }
     void square(bool doubled) {
@@ -209,6 +251,6 @@ class packed_device {
     }
     size_t memory() const {
         return size_t(fields_) * n * 8 + size_t(fields_) * root_words_ * (root_bits_ / 8) +
-               (9 * n + 1) * 4;
+               ((size_t(packed_digits_) + 1) * n + 1) * 4;
     }
 };

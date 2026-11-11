@@ -10,6 +10,7 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #include <cstdint>
 #include <cmath>
 #include <fstream>
+#include <memory>
 #include <cstdlib>
 #include <type_traits>
 #include <iterator>
@@ -17,17 +18,27 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #include "../ocl.h"
 #include "../transform.h"
 #include "bounds.h"
+#if defined(GENEFER_AUTOMATIC_OPENCL)
+#include "checkpoint.h"
+#endif
+
+namespace gpu_small_prime {
 
 
 
 // #define USE_WI	1
 // #define	TUNE	1
 
-#if defined(GENEFER_GUARD_4060)
-using root_word = uint64_t;
-#else
-using root_word = uint32_t;
-#endif
+
+inline size_t configured_root_word_bytes()
+{
+    if (const char *value=std::getenv("GENEFER_ROOT_BITS")) {
+        if (std::string(value)=="32") return 4;
+        if (std::string(value)=="64") return 8;
+        throw std::runtime_error("Root table format must be 32 or 64 bits");
+    }
+    return 4;
+}
 
 #define VSIZE	4
 
@@ -126,6 +137,13 @@ typedef cl_long		int64;
 
 #include "primes.h"
 
+inline int64_t decode_normalized_digit(uint32_t first, uint32_t second)
+{
+    // The host admission requires |digit| < the smallest of all three primes.
+    return int64_t(first) - (first == second ? int64_t(0) : int64_t(P1S));
+}
+
+
 class ZP
 {
 protected:
@@ -220,12 +238,14 @@ public:
 	void forward##u##p_##v() { setTransformArgs(_forward##u##_##v, false); forward##u##_##v(); setTransformArgs(_forward##u##_##v);	}
 
 template<size_t RNS_SIZE, bool is32>
-class engines : public three_device
+class engines : public optimized_device
 {
+    const size_t root_bytes_;
+    size_t root_word_bytes() const { return root_bytes_; }
 	using ZP1 = ZPT<is32 ? P1U : P1S, is32 ? Q1U : Q1S, is32 ? R1U : R1S, is32 ? H1U : H1S>;
 	using ZP2 = ZPT<is32 ? P2U : P2S, is32 ? Q2U : Q2S, is32 ? R2U : R2S, is32 ? H2U : H2S>;
 	using ZP3 = ZPT<is32 ? P3U : P3S, is32 ? Q3U : Q3S, is32 ? R3U : R3S, is32 ? H3U : H3S>;
-	
+
 private:
 	const size_t _n;
 	const int _ln;
@@ -263,10 +283,14 @@ private:
 	static constexpr int ilog2_32(const uint32_t n) { return 31 - __builtin_clz(n); }
 
 public:
-	engines(const platform & platform, const size_t d, const int ln, const bool isBoinc, const size_t num_regs, const bool verbose)
-		: three_device(platform, d, verbose), _n(size_t(1) << ln), _ln(ln), _isBoinc(isBoinc), _num_regs(num_regs),
+	engines(const platform & platform, const size_t d, const int ln, const bool isBoinc, const size_t num_regs, const bool verbose, unsigned root_bits = 0)
+		: optimized_device(platform, d, verbose), root_bytes_(root_bits ? root_bits/8 : configured_root_word_bytes()), _n(size_t(1) << ln), _ln(ln), _isBoinc(isBoinc), _num_regs(num_regs),
 		_lnormWGsize(std::min(std::max(5, ln / 2 - 3), ilog2_32(uint32_t(getMaxWorkGroupSize())))) {}
-	virtual ~engines() {}
+	virtual ~engines() {
+        try { releaseKernels(); } catch (...) {}
+        try { releaseMemory(); } catch (...) {}
+        try { clearProgram(); } catch (...) {}
+    }
 
 ///////////////////////////////
 
@@ -284,7 +308,7 @@ public:
 		{
 			_z = _createBuffer(CL_MEM_READ_WRITE, RNS_SIZE * n * _num_regs * sizeof(ZP));
 			_zp = _createBuffer(CL_MEM_READ_WRITE, RNS_SIZE * n * sizeof(ZP));
-			_w = _createBuffer(CL_MEM_READ_ONLY, RNS_SIZE * n * sizeof(root_word));
+			_w = _createBuffer(CL_MEM_READ_ONLY, RNS_SIZE * n * root_word_bytes());
 			_c = _createBuffer(CL_MEM_READ_WRITE, n / 4 * sizeof(int64));
 		}
 	}
@@ -477,9 +501,18 @@ public:
 	void writeMemory_w(const ZP * const wPtr, const size_t offset) {
  const uint64 p=(offset==0?P1S:(offset==1?P2S:P3S)),q=(offset==0?Q1S:(offset==1?Q2S:Q3S));
  const uint64 ri=p-((p*q)>>32);
- std::vector<root_word> roots(_n);
- for(size_t i=0;i<_n;++i){uint64 w=(uint64(wPtr[i].get())*ri)%p;roots[i]=sizeof(root_word)==8 ? root_word(w|(((w<<32)/p)<<32)) : root_word((w<<32)/p);}
- _writeBuffer(_w,roots.data(),_n*sizeof(root_word),offset*_n*sizeof(root_word));
+ auto write=[&](auto word) {
+     using Word=decltype(word);
+     std::vector<Word> roots(_n);
+     for(size_t i=0;i<_n;++i) {
+         uint64 w=(uint64(wPtr[i].get())*ri)%p;
+         if constexpr(sizeof(Word)==8) roots[i]=Word(w|(((w<<32)/p)<<32));
+         else roots[i]=Word((w<<32)/p);
+     }
+     _writeBuffer(_w,roots.data(),_n*sizeof(Word),offset*_n*sizeof(Word));
+ };
+ if(root_word_bytes()==8) write(uint64_t(0));
+ else write(uint32_t(0));
 }
 
 ///////////////////////////////
@@ -510,7 +543,7 @@ private:
 	void square4() { ek(_square4, 0, 4 * VSIZE); }
 	void fwd4p() { ek(_fwd4p, 0, 4 * VSIZE); }
 	void mul4() { ek(_mul4, 0, 4 * VSIZE); }
-	
+
 #if VSIZE == 1
 	void square8() { forward4(1); ek(_square2x2, 0, 4); backward4(1); }
 	void fwd8p() { forward4p(1); }
@@ -951,37 +984,44 @@ public:
 template<size_t RNS_SIZE, bool is32>
 class transformGPUs : public transform
 {
+    const size_t root_bytes_;
+    size_t root_word_bytes() const { return root_bytes_; }
     static_assert(RNS_SIZE == 3 && !is32, "This implementation requires three small primes");
-    static_assert(P1S == gfn19_guaranteed::prime1 && P2S == gfn19_guaranteed::prime2 && P3S == gfn19_guaranteed::prime3, "Arithmetic bounds must match kernel primes");
+    static_assert(P1S == small_prime_bounds::prime1 && P2S == small_prime_bounds::prime2 && P3S == small_prime_bounds::prime3, "Arithmetic bounds must match kernel primes");
 	using ZP1 = ZPT<is32 ? P1U : P1S, is32 ? Q1U : Q1S, is32 ? R1U : R1S, is32 ? H1U : H1S>;
 	using ZP2 = ZPT<is32 ? P2U : P2S, is32 ? Q2U : Q2S, is32 ? R2U : R2S, is32 ? H2U : H2S>;
 	using ZP3 = ZPT<is32 ? P3U : P3S, is32 ? Q3U : Q3S, is32 ? R3U : R3S, is32 ? H3U : H3S>;
 
 private:
+
 	const size_t _mem_size, _cache_size;
 	const size_t _num_regs;
-	ZP * const _z;
-	engines<RNS_SIZE, is32> * _pEngine = nullptr;
+	std::unique_ptr<ZP[]> _z;
+	std::unique_ptr<engines<RNS_SIZE, is32>> _pEngine;
 
 public:
 	transformGPUs(const uint32_t b, const uint32_t n, const bool isBoinc, const size_t device, const size_t num_regs,
-				 const cl_platform_id boinc_platform_id, const cl_device_id boinc_device_id, const bool verbose)
+				 const cl_platform_id boinc_platform_id, const cl_device_id boinc_device_id, const bool verbose,
+                     unsigned root_bits = 0, const std::string &embedded_kernel = {})
 		: transform(size_t(1) << n, n, b, (RNS_SIZE == 2) ? EKind::NTT2 : EKind::NTT3),
-        _mem_size(RNS_SIZE * (size_t(1) << n) * ((num_regs + 1) * sizeof(ZP) + sizeof(root_word)) + (size_t(1) << n) / 4 * sizeof(int64)),
-        _cache_size(RNS_SIZE * (size_t(1) << n) * sizeof(root_word)),
+        root_bytes_(root_bits ? root_bits/8 : configured_root_word_bytes()),
+        _mem_size(RNS_SIZE * (size_t(1) << n) * ((num_regs + 1) * sizeof(ZP) + root_word_bytes()) + (size_t(1) << n) / 4 * sizeof(int64)),
+        _cache_size(RNS_SIZE * (size_t(1) << n) * root_word_bytes()),
 		_num_regs(num_regs), _z(new ZP[RNS_SIZE * (size_t(1) << n) * num_regs])
 	{
-		if (n != 19 || !gfn19_guaranteed::supported(b))
-            throw std::runtime_error("Outside the bounded GFN-19 arithmetic range");
+		if (
+            (n < 16 || n > 22) ||
+            !small_prime_bounds::supported(b))
+            throw std::runtime_error("Outside the bounded small-prime arithmetic range");
 
 		const size_t size = getSize();
 
 		const bool is_boinc_platform = isBoinc && (boinc_device_id != 0) && (boinc_platform_id != 0);
 		const platform eng_platform = is_boinc_platform ? platform(boinc_platform_id, boinc_device_id) : platform();
 
-		_pEngine = new engines<RNS_SIZE, is32>(eng_platform, is_boinc_platform ? 0 : device, static_cast<int>(n), isBoinc, num_regs, verbose);
+		_pEngine.reset(new engines<RNS_SIZE, is32>(eng_platform, is_boinc_platform ? 0 : device, static_cast<int>(n), isBoinc, num_regs, verbose, unsigned(root_bytes_*8)));
 
-		std::ostringstream src; src << "#define GFN19_ROOT_BITS " << (sizeof(root_word)*8) << "\n"; src << "#define WARP_TAIL_STAGES 1\n"; src << "#define QUARTIC_LEAF 1\n"; src << "#define LAZY 1\n"; src << "#define SHOUP 3\n";
+		std::ostringstream src; src << "#define GFN_ROOT_BITS " << (root_word_bytes()*8) << "\n"; src << "#define GFN_PAIRED_DIGITS " << (uint64_t(b)+2 >= P1S/2) << "\n"; src << "#define WARP_TAIL_STAGES 1\n"; src << "#define QUARTIC_LEAF 1\n"; src << "#define LAZY 1\n"; src << "#define SHOUP 3\n";
 
 
 		src << "#define N_SZ\t" << (1u << n) << "u" << std::endl;
@@ -1056,20 +1096,36 @@ public:
 
 		src << "#define MAX_WG_SZ\t" << _pEngine->getMaxWorkGroupSize() << std::endl << std::endl;
 
-        src << "#define GFN19_CRT_SHOUP 1\n";
+        src << "#define GFN_CRT_SHOUP 1\n";
+        // Shoup reciprocals belong to the selected prime set, not the transform size.
+        auto inverseMod = [](uint64_t a, uint32_t p) {
+            uint64_t value=1;
+            for (uint32_t exponent=p-2; exponent; exponent>>=1, a=a*a%p)
+                if (exponent&1) value=value*a%p;
+            return uint32_t(value);
+        };
+        const uint32_t moduli[3]={P1S,P2S,P1S};
+        const uint32_t divisors[3]={P3S,P3S,P2S};
+        const char *names[3]={"CRT_INV13","CRT_INV23","CRT_INV12"};
+        for (unsigned i=0;i<3;++i) {
+            const uint32_t value=inverseMod(divisors[i],moduli[i]);
+            src << "#define " << names[i] << " " << value << "u\n";
+            src << "#define " << names[i] << "_Q " << ((uint64_t(value)<<32)/moduli[i]) << "u\n";
+        }
+
         const int shift=31-__builtin_clz(b)-1;
         const uint32_t inverse=uint32_t((uint64_t(1)<<(shift+32))/b);
-        src << "#define GFN19_FIXED_B " << b << "u\n#define GFN19_FIXED_INV " << inverse << "u\n#define GFN19_FIXED_SHIFT " << shift << "\n";
+        src << "#define GFN_FIXED_B " << b << "u\n#define GFN_FIXED_INV " << inverse << "u\n#define GFN_FIXED_SHIFT " << shift << "\n";
         // Reconstruct C = k*(p2*p3) + t*p3 + r3, and divide using bounded
         // signed64 residuals. Check the entire supported coefficient interval.
         const int64_t pair = int64_t(P2S) * P3S;
         const int64_t qpair = (pair + b/2) / b, rpair = pair - qpair*b;
         const int64_t qthird = (int64_t(P3S) + b/2) / b, rthird = int64_t(P3S) - qthird*b;
-        using wide = gfn19_guaranteed::wide;
-        const wide coefficient = gfn19_guaranteed::coefficient_bound(b);
-        const wide kmax = gfn19_guaranteed::ceil_div(coefficient, wide(pair)) + 2;
+        using wide = small_prime_bounds::wide;
+        const wide coefficient = small_prime_bounds::coefficient_bound(b);
+        const wide kmax = small_prime_bounds::ceil_div(coefficient, wide(pair)) + 2;
         const wide tmax = uint64_t(P2S)/2 + 1, rmax = uint64_t(P3S)-1;
-        const wide carry = gfn19_guaranteed::carry_bound(b);
+        const wide carry = small_prime_bounds::carry_bound(b);
         auto magnitude = [](int64_t x) { return uint64_t(x < 0 ? -x : x); };
         if (2*(kmax*magnitude(rpair) + tmax*magnitude(rthird) + rmax) + carry >= wide(b)*(wide(1)<<29)
             || 2*(kmax*uint64_t(qpair) + tmax*uint64_t(qthird)) + (wide(1)<<29) >= (wide(1)<<63)
@@ -1077,17 +1133,20 @@ public:
             throw std::runtime_error("Three-prime CRT division range check failed");
         src << "#define CRT_QPAIR " << qpair << "l\n#define CRT_RPAIR " << rpair << "l\n";
         src << "#define CRT_QTHIRD " << qthird << "l\n#define CRT_RTHIRD " << rthird << "l\n";
-        const char *path = std::getenv("GENEFER_KERNEL");
-        if (!path) throw std::runtime_error("GENEFER_KERNEL must point to the three-prime kernel source");
-        std::ifstream kernel(path, std::ios::binary);
-        if (!kernel) throw std::runtime_error("Cannot open the three-prime kernel source");
-        src << std::string(std::istreambuf_iterator<char>(kernel), {});
+        if (!embedded_kernel.empty()) src << embedded_kernel;
+        else {
+            const char *path = std::getenv("GENEFER_KERNEL");
+            if (!path) throw std::runtime_error("Three-prime kernel source unavailable");
+            std::ifstream kernel(path, std::ios::binary);
+            if (!kernel) throw std::runtime_error("Cannot open the three-prime kernel source");
+            src << std::string(std::istreambuf_iterator<char>(kernel), {});
+        }
         _pEngine->loadProgram(src.str());
 		_pEngine->allocMemory();
 		_pEngine->createKernels(b);
 
-		ZP1 * const wr1 = new ZP1[size]{};
-		ZP2 * const wr2 = new ZP2[size]{};
+		std::unique_ptr<ZP1[]> wr1(new ZP1[size]{});
+		std::unique_ptr<ZP2[]> wr2(new ZP2[size]{});
         wr1[0]=wr1[size/2]=ZP1(0);
         wr2[0]=wr2[size/2]=ZP2(0);
 		for (size_t s = 1; s < size / 2; s *= 2)
@@ -1102,14 +1161,14 @@ public:
 				wr2[size / 2 + sji] = wr2[sj] = r_s2.pow(e);
 			}
 		}
-		_pEngine->writeMemory_w(wr1, 0);
-		_pEngine->writeMemory_w(wr2, 1);
-		delete[] wr1;
-		delete[] wr2;
+		_pEngine->writeMemory_w(wr1.get(), 0);
+		_pEngine->writeMemory_w(wr2.get(), 1);
+
+
 
 		if (RNS_SIZE == 3)
 		{
-			ZP3 * const wr3 = new ZP3[size]{};
+			std::unique_ptr<ZP3[]> wr3(new ZP3[size]{});
             wr3[0]=wr3[size/2]=ZP3(0);
 			for (size_t s = 1; s < size / 2; s *= 2)
 			{
@@ -1119,8 +1178,8 @@ public:
 					wr3[size / 2 + s + (s - j - 1)] = wr3[s + j] = r_s3.pow(bitRev(j, 2 * s) + 1);
 				}
 			}
-			_pEngine->writeMemory_w(wr3, 2);
-			delete[] wr3;
+			_pEngine->writeMemory_w(wr3.get(), 2);
+
 		}
 
 #if defined(TUNE)
@@ -1128,36 +1187,29 @@ public:
 #endif
 	}
 
-	virtual ~transformGPUs()
-	{
-		_pEngine->releaseKernels();
-		_pEngine->releaseMemory();
-		_pEngine->clearProgram();
-		delete _pEngine;
-
-		delete[] _z;
-	}
+	virtual ~transformGPUs() = default;
 
 	size_t getMemSize() const override { return _mem_size; }
 	size_t getCacheSize() const override { return _cache_size; }
+    void synchronizeForCalibration() const override { _pEngine->synchronizeForCalibration(); }
 
 protected:
 	void getZi(int32_t * const zi) const override
 	{
-		_pEngine->readMemory_z(_z);
+		_pEngine->readMemory_z(_z.get());
 
 		const size_t size = getSize();
 
-		const ZP * const z = _z;
+		const ZP * const z = _z.get();
 		for (size_t i = 0; i < size; ++i)
 		{
-            const int32_t digit = ZP1(z[i].get()).get_int();
-            if (std::abs(int64_t(digit)) > int64_t(gfn19_guaranteed::digit_bound(getB()))
-                || z[i].get() != ZP1().set_int(digit).get()
-                || z[size+i].get() != ZP2().set_int(digit).get()
-                || z[2*size+i].get() != ZP3().set_int(digit).get())
+            const int64_t digit = decode_normalized_digit(z[i].get(),z[size+i].get());
+            if (std::abs(int64_t(digit)) > int64_t(small_prime_bounds::digit_bound(getB()))
+                || z[i].get() != ZP1().set_int(static_cast<int32_t>(digit)).get()
+                || z[size+i].get() != ZP2().set_int(static_cast<int32_t>(digit)).get()
+                || z[2*size+i].get() != ZP3().set_int(static_cast<int32_t>(digit)).get())
                 throw std::runtime_error("Output residues violate the normalized digit invariant");
-            zi[i] = digit;
+            zi[i] = static_cast<int32_t>(digit);
 		}
 	}
 
@@ -1165,10 +1217,10 @@ protected:
 	{
 		const size_t size = getSize();
 
-		ZP * const z = _z;
+		ZP * const z = _z.get();
 		for (size_t i = 0; i < size; ++i)
 		{
-			if (std::abs(int64_t(zi[i])) > int64_t(gfn19_guaranteed::digit_bound(getB())))
+			if (std::abs(int64_t(zi[i])) > int64_t(small_prime_bounds::digit_bound(getB())))
                 throw std::runtime_error("Input digit exceeds the arithmetic bound");
             z[0 * size + i] = ZP1().set_int(zi[i]);
 			if (RNS_SIZE >= 2) z[1 * size + i] = ZP2().set_int(zi[i]);
@@ -1180,6 +1232,33 @@ protected:
 public:
 	bool readContext(file & cFile, const size_t nregs) override
 	{
+#if defined(GENEFER_AUTOMATIC_OPENCL)
+        const auto representation=gpu_gfn::upstream_checkpoint(getB(),gpu_gfn::checkpoint_exponent(uint32_t(getSize())));
+        int kind=0;
+        const int expected_kind=static_cast<int>(representation.fields==2 ? EKind::NTT2 : EKind::NTT3);
+        if(!cFile.read(reinterpret_cast<char *>(&kind),sizeof(kind)) || kind!=expected_kind) return false;
+        const size_t size=getSize(),registers=nregs ? nregs : _num_regs;
+        if(registers>_num_regs) return false;
+        std::vector<uint32_t> buffer(representation.fields*size);
+        for(size_t reg=0;reg<registers;++reg) {
+            if(!cFile.read(reinterpret_cast<char *>(buffer.data()),buffer.size()*sizeof(uint32_t))) return false;
+            ZP *z=_z.get()+reg*RNS_SIZE*size;
+            for(size_t i=0;i<size;++i) {
+                int64_t digit;
+                try {
+                    digit=gpu_gfn::checkpoint_digit(buffer[i],representation.primes[0]);
+                    if(std::abs(digit)>int64_t(small_prime_bounds::digit_bound(getB()))) return false;
+                    for(unsigned f=0;f<representation.fields;++f)
+                        if(buffer[f*size+i]!=gpu_gfn::digit_residue(digit,representation.primes[f])) return false;
+                } catch(const std::invalid_argument &) { return false; }
+                z[i]=ZP1().set_int(int32_t(digit));
+                z[size+i]=ZP2().set_int(int32_t(digit));
+                z[2*size+i]=ZP3().set_int(int32_t(digit));
+            }
+        }
+        _pEngine->writeMemory_z(_z.get(),registers);
+        return true;
+#else
 		int kind = 0;
 		if (!cFile.read(reinterpret_cast<char *>(&kind), sizeof(kind))) return false;
 		if (kind != static_cast<int>(getKind())) return false;
@@ -1187,47 +1266,72 @@ public:
 		const size_t size = getSize(), num_regs = (nregs != 0) ? nregs : _num_regs;
 
         if (num_regs > _num_regs) return false;
-		if (!cFile.read(reinterpret_cast<char *>(_z), RNS_SIZE * size * num_regs * sizeof(ZP))) return false;
+		if (!cFile.read(reinterpret_cast<char *>(_z.get()), RNS_SIZE * size * num_regs * sizeof(ZP))) return false;
         // Checkpoint register encoding must match all three small primes.
         // Do not accept another implementation's NTT3 file based only on EKind.
         for (size_t reg = 0; reg < num_regs; ++reg)
         {
-            const ZP *z = _z + reg * RNS_SIZE * size;
+            const ZP *z = _z.get() + reg * RNS_SIZE * size;
             for (size_t i = 0; i < size; ++i)
             {
-                const int32_t digit = ZP1(z[i].get()).get_int();
-                if (std::abs(int64_t(digit)) > int64_t(gfn19_guaranteed::digit_bound(getB()))
-                    || z[i].get() != ZP1().set_int(digit).get()
-                    || z[size+i].get() != ZP2().set_int(digit).get()
-                    || z[2*size+i].get() != ZP3().set_int(digit).get()) return false;
+                const int64_t digit = decode_normalized_digit(z[i].get(),z[size+i].get());
+                if (std::abs(int64_t(digit)) > int64_t(small_prime_bounds::digit_bound(getB()))
+                    || z[i].get() != ZP1().set_int(static_cast<int32_t>(digit)).get()
+                    || z[size+i].get() != ZP2().set_int(static_cast<int32_t>(digit)).get()
+                    || z[2*size+i].get() != ZP3().set_int(static_cast<int32_t>(digit)).get()) return false;
             }
         }
-		_pEngine->writeMemory_z(_z, num_regs);
+		_pEngine->writeMemory_z(_z.get(), num_regs);
 
 		return true;
+#endif
 	}
 
 	void saveContext(file & cFile, const size_t nregs) const override
 	{
+#if defined(GENEFER_AUTOMATIC_OPENCL)
+        const auto representation=gpu_gfn::upstream_checkpoint(getB(),gpu_gfn::checkpoint_exponent(uint32_t(getSize())));
+        const int kind=static_cast<int>(representation.fields==2 ? EKind::NTT2 : EKind::NTT3);
+        if(!cFile.write(reinterpret_cast<const char *>(&kind),sizeof(kind))) return;
+        const size_t size=getSize(),registers=nregs ? nregs : _num_regs;
+        if(registers>_num_regs) throw std::runtime_error("Checkpoint register count");
+        _pEngine->readMemory_z(_z.get(),registers);
+        std::vector<uint32_t> buffer(representation.fields*size);
+        for(size_t reg=0;reg<registers;++reg) {
+            const ZP *z=_z.get()+reg*RNS_SIZE*size;
+            for(size_t i=0;i<size;++i) {
+                const int64_t digit=decode_normalized_digit(z[i].get(),z[size+i].get());
+                if(std::abs(digit)>int64_t(small_prime_bounds::digit_bound(getB()))
+                   || z[i].get()!=ZP1().set_int(int32_t(digit)).get()
+                   || z[size+i].get()!=ZP2().set_int(int32_t(digit)).get()
+                   || z[2*size+i].get()!=ZP3().set_int(int32_t(digit)).get())
+                    throw std::runtime_error("Checkpoint digit invariant");
+                for(unsigned f=0;f<representation.fields;++f)
+                    buffer[f*size+i]=gpu_gfn::digit_residue(digit,representation.primes[f]);
+            }
+            if(!cFile.write(reinterpret_cast<const char *>(buffer.data()),buffer.size()*sizeof(uint32_t))) return;
+        }
+#else
 		const int kind = static_cast<int>(getKind());
 		if (!cFile.write(reinterpret_cast<const char *>(&kind), sizeof(kind))) return;
 
 		const size_t size = getSize(), num_regs = (nregs != 0) ? nregs : _num_regs;
 
-		_pEngine->readMemory_z(_z, num_regs);
-		if (!cFile.write(reinterpret_cast<const char *>(_z), RNS_SIZE * size * num_regs * sizeof(ZP))) return;
+		_pEngine->readMemory_z(_z.get(), num_regs);
+		if (!cFile.write(reinterpret_cast<const char *>(_z.get()), RNS_SIZE * size * num_regs * sizeof(ZP))) return;
+#endif
 	}
 
 	void set(const uint32_t a) override
 	{
-		if (a > gfn19_guaranteed::digit_bound(getB()))
+		if (a > small_prime_bounds::digit_bound(getB()))
             throw std::runtime_error("Initial value exceeds the arithmetic bound");
         _pEngine->set(a);
 	}
 
 	void squareDup(const bool dup) override
     {
-        _pEngine->square(); _pEngine->baseMod(dup);
+        _pEngine->runSquare(dup, [&] { _pEngine->square(); _pEngine->baseMod(dup); });
     }
 
 	void squareMul(const int32_t a) override
@@ -1264,3 +1368,5 @@ public:
 #endif
 	}
 };
+
+} // namespace gpu_small_prime

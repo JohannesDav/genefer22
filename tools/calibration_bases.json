@@ -1,0 +1,32 @@
+{
+  "projects": [
+    {
+      "n": 16,
+      "benchmark_base": 620000000
+    },
+    {
+      "n": 17,
+      "benchmark_base": 520000000
+    },
+    {
+      "n": 18,
+      "benchmark_base": 100000000
+    },
+    {
+      "n": 19,
+      "benchmark_base": 30000000
+    },
+    {
+      "n": 20,
+      "benchmark_base": 8000000
+    },
+    {
+      "n": 21,
+      "benchmark_base": 2800000
+    },
+    {
+      "n": 22,
+      "benchmark_base": 660000
+    }
+  ]
+}

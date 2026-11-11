@@ -10,17 +10,16 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #include <cstdint>
 #include <cmath>
 #include <fstream>
-#include <cstdlib>
+#include <memory>
 
 #include "ocl.h"
 #include "transform.h"
 
 #include "ocl/kernel.h"
-#if defined(GENEFER_EXACT_TWO)
-#include "gfn19_three/device.h"
-using execution_device = three_device;
+#if defined(GENEFER_GENERAL_OPENCL)
+using execution_device=optimized_device;
 #else
-using execution_device = device;
+using execution_device=device;
 #endif
 
 // #define USE_WI	1
@@ -220,7 +219,7 @@ class engines : public execution_device
 	using ZP1 = ZPT<is32 ? P1U : P1S, is32 ? Q1U : Q1S, is32 ? R1U : R1S, is32 ? H1U : H1S>;
 	using ZP2 = ZPT<is32 ? P2U : P2S, is32 ? Q2U : Q2S, is32 ? R2U : R2S, is32 ? H2U : H2S>;
 	using ZP3 = ZPT<is32 ? P3U : P3S, is32 ? Q3U : Q3S, is32 ? R3U : R3S, is32 ? H3U : H3S>;
-	
+
 private:
 	const size_t _n;
 	const int _ln;
@@ -261,7 +260,11 @@ public:
 	engines(const platform & platform, const size_t d, const int ln, const bool isBoinc, const size_t num_regs, const bool verbose)
 		: execution_device(platform, d, verbose), _n(size_t(1) << ln), _ln(ln), _isBoinc(isBoinc), _num_regs(num_regs),
 		_lnormWGsize(std::min(std::max(5, ln / 2 - 3), ilog2_32(uint32_t(getMaxWorkGroupSize())))) {}
-	virtual ~engines() {}
+	virtual ~engines() {
+        try { releaseKernels(); } catch (...) {}
+        try { releaseMemory(); } catch (...) {}
+        try { clearProgram(); } catch (...) {}
+    }
 
 ///////////////////////////////
 
@@ -498,7 +501,7 @@ private:
 	void square4() { ek(_square4, 0, 4 * VSIZE); }
 	void fwd4p() { ek(_fwd4p, 0, 4 * VSIZE); }
 	void mul4() { ek(_mul4, 0, 4 * VSIZE); }
-	
+
 #if VSIZE == 1
 	void square8() { forward4(1); ek(_square2x2, 0, 4); backward4(1); }
 	void fwd8p() { forward4p(1); }
@@ -945,8 +948,8 @@ class transformGPUs : public transform
 private:
 	const size_t _mem_size, _cache_size;
 	const size_t _num_regs;
-	ZP * const _z;
-	engines<RNS_SIZE, is32> * _pEngine = nullptr;
+	std::unique_ptr<ZP[]> _z;
+	std::unique_ptr<engines<RNS_SIZE, is32>> _pEngine;
 
 public:
 	transformGPUs(const uint32_t b, const uint32_t n, const bool isBoinc, const size_t device, const size_t num_regs,
@@ -968,7 +971,7 @@ public:
 		const bool is_boinc_platform = isBoinc && (boinc_device_id != 0) && (boinc_platform_id != 0);
 		const platform eng_platform = is_boinc_platform ? platform(boinc_platform_id, boinc_device_id) : platform();
 
-		_pEngine = new engines<RNS_SIZE, is32>(eng_platform, is_boinc_platform ? 0 : device, static_cast<int>(n), isBoinc, num_regs, verbose);
+		_pEngine.reset(new engines<RNS_SIZE, is32>(eng_platform, is_boinc_platform ? 0 : device, static_cast<int>(n), isBoinc, num_regs, verbose));
 
 		std::ostringstream src;
 
@@ -1044,22 +1047,18 @@ public:
 
 		src << "#define MAX_WG_SZ\t" << _pEngine->getMaxWorkGroupSize() << std::endl << std::endl;
 
-#if defined(GENEFER_EXACT_TWO)
-        const char *path = std::getenv("GENEFER_KERNEL");
-        if (!path) throw std::runtime_error("GENEFER_KERNEL must point to the two-prime source");
-        std::ifstream kernel(path);
-        if (!kernel) throw std::runtime_error("Cannot read two-prime kernel source");
-        src << kernel.rdbuf();
+#if defined(GENEFER_GENERAL_OPENCL)
+        src << src_ocl_kernel;
 #else
-        if (isBoinc || !_pEngine->readOpenCL("ocl/kernel.cl", "src/ocl/kernel.h", "src_ocl_kernel", src)) src << src_ocl_kernel;
+		if (isBoinc || !_pEngine->readOpenCL("ocl/kernel.cl", "src/ocl/kernel.h", "src_ocl_kernel", src)) src << src_ocl_kernel;
 #endif
 
 		_pEngine->loadProgram(src.str());
 		_pEngine->allocMemory();
 		_pEngine->createKernels(b);
 
-		ZP1 * const wr1 = new ZP1[size];
-		ZP2 * const wr2 = new ZP2[size];
+		std::unique_ptr<ZP1[]> wr1(new ZP1[size]);
+		std::unique_ptr<ZP2[]> wr2(new ZP2[size]);
 		for (size_t s = 1; s < size / 2; s *= 2)
 		{
 			const ZP1 r_s1 = ZP1::primroot_n(4 * s);
@@ -1072,14 +1071,14 @@ public:
 				wr2[size / 2 + sji] = wr2[sj] = r_s2.pow(e);
 			}
 		}
-		_pEngine->writeMemory_w(wr1, 0);
-		_pEngine->writeMemory_w(wr2, 1);
-		delete[] wr1;
-		delete[] wr2;
+		_pEngine->writeMemory_w(wr1.get(), 0);
+		_pEngine->writeMemory_w(wr2.get(), 1);
+
+
 
 		if (RNS_SIZE == 3)
 		{
-			ZP3 * const wr3 = new ZP3[size];
+			std::unique_ptr<ZP3[]> wr3(new ZP3[size]);
 			for (size_t s = 1; s < size / 2; s *= 2)
 			{
 				const ZP3 r_s3 = ZP3::primroot_n(4 * s);
@@ -1088,8 +1087,8 @@ public:
 					wr3[size / 2 + s + (s - j - 1)] = wr3[s + j] = r_s3.pow(bitRev(j, 2 * s) + 1);
 				}
 			}
-			_pEngine->writeMemory_w(wr3, 2);
-			delete[] wr3;
+			_pEngine->writeMemory_w(wr3.get(), 2);
+
 		}
 
 #if defined(TUNE)
@@ -1097,27 +1096,20 @@ public:
 #endif
 	}
 
-	virtual ~transformGPUs()
-	{
-		_pEngine->releaseKernels();
-		_pEngine->releaseMemory();
-		_pEngine->clearProgram();
-		delete _pEngine;
-
-		delete[] _z;
-	}
+	virtual ~transformGPUs() = default;
 
 	size_t getMemSize() const override { return _mem_size; }
 	size_t getCacheSize() const override { return _cache_size; }
+    void synchronizeForCalibration() const override { _pEngine->synchronizeForCalibration(); }
 
 protected:
 	void getZi(int32_t * const zi) const override
 	{
-		_pEngine->readMemory_z(_z);
+		_pEngine->readMemory_z(_z.get());
 
 		const size_t size = getSize();
 
-		const ZP * const z = _z;
+		const ZP * const z = _z.get();
 		for (size_t i = 0; i < size; ++i)
 		{
 			zi[i] = ZP1(z[i].get()).get_int();
@@ -1128,7 +1120,7 @@ protected:
 	{
 		const size_t size = getSize();
 
-		ZP * const z = _z;
+		ZP * const z = _z.get();
 		for (size_t i = 0; i < size; ++i)
 		{
 			z[0 * size + i] = ZP1().set_int(zi[i]);
@@ -1147,8 +1139,28 @@ public:
 
 		const size_t size = getSize(), num_regs = (nregs != 0) ? nregs : _num_regs;
 
-		if (!cFile.read(reinterpret_cast<char *>(_z), RNS_SIZE * size * num_regs * sizeof(ZP))) return false;
-		_pEngine->writeMemory_z(_z, num_regs);
+		if (num_regs > _num_regs) return false;
+		if (!cFile.read(reinterpret_cast<char *>(_z.get()), RNS_SIZE * size * num_regs * sizeof(ZP))) return false;
+#if defined(GENEFER_AUTOMATIC_OPENCL)
+        // EKind records the channel count, not the primes. Reject old fork
+        // checkpoints with another prime family instead of interpreting their
+        // residues as original arithmetic. Ordinary upstream digits agree in
+        // every channel; unused registers are zero-initialized.
+        constexpr uint32_t first_prime=is32 ? P1U : P1S;
+        for(size_t reg=0;reg<num_regs;++reg) {
+            const ZP *z=_z.get()+reg*RNS_SIZE*size;
+            for(size_t j=0;j<size;++j) {
+                const uint32_t first=z[j].get();
+                if(first>=first_prime) return false;
+                const int64_t digit=first>first_prime/2 ? int64_t(first)-first_prime : int64_t(first);
+                if(z[j].get()!=ZP1().set_int(int32_t(digit)).get()
+                   || z[size+j].get()!=ZP2().set_int(int32_t(digit)).get()) return false;
+                if constexpr(RNS_SIZE==3)
+                    if(z[2*size+j].get()!=ZP3().set_int(int32_t(digit)).get()) return false;
+            }
+        }
+#endif
+		_pEngine->writeMemory_z(_z.get(), num_regs);
 
 		return true;
 	}
@@ -1160,8 +1172,8 @@ public:
 
 		const size_t size = getSize(), num_regs = (nregs != 0) ? nregs : _num_regs;
 
-		_pEngine->readMemory_z(_z, num_regs);
-		if (!cFile.write(reinterpret_cast<const char *>(_z), RNS_SIZE * size * num_regs * sizeof(ZP))) return;
+		_pEngine->readMemory_z(_z.get(), num_regs);
+		if (!cFile.write(reinterpret_cast<const char *>(_z.get()), RNS_SIZE * size * num_regs * sizeof(ZP))) return;
 	}
 
 	void set(const uint32_t a) override
@@ -1171,8 +1183,12 @@ public:
 
 	void squareDup(const bool dup) override
 	{
-        _pEngine->square();
-        _pEngine->baseMod(dup);
+#if defined(GENEFER_GENERAL_OPENCL)
+        _pEngine->runSquare(dup,[&] { _pEngine->square(); _pEngine->baseMod(dup); });
+#else
+		_pEngine->square();
+		_pEngine->baseMod(dup);
+#endif
 	}
 
 	void squareMul(const int32_t a) override
