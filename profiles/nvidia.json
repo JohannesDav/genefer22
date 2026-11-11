@@ -8168,12 +8168,12 @@
       },
       "22": {
         "chunk": 8,
-        "digit_ratio": 4,
+        "digit_ratio": 3,
         "implementation": "packed",
         "inline_converter": false,
         "inner_blocks": 1,
         "length": 262144,
-        "matrix_mad": false,
+        "matrix_mad": true,
         "outer": 64,
         "root_bits": 32,
         "shared_memory_preference": 50
@@ -8241,12 +8241,12 @@
         "shared_memory_preference": 50
       },
       "21": {
-        "chunk": 16,
-        "digit_ratio": 2,
+        "chunk": 4,
+        "digit_ratio": 3,
         "implementation": "packed",
-        "inline_converter": true,
+        "inline_converter": false,
         "inner_blocks": 1,
-        "length": 262144,
+        "length": 131072,
         "matrix_mad": true,
         "outer": 64,
         "root_bits": 64,
@@ -8424,7 +8424,7 @@
         "implementation": "packed",
         "inline_converter": false,
         "inner_blocks": 1,
-        "length": 65536,
+        "length": 32768,
         "matrix_mad": false,
         "outer": 64,
         "root_bits": 32,
@@ -8443,15 +8443,15 @@
         "shared_memory_preference": 50
       },
       "19": {
-        "chunk": 4,
+        "chunk": 8,
         "digit_ratio": 3,
         "implementation": "packed",
         "inline_converter": false,
-        "inner_blocks": 2,
+        "inner_blocks": 1,
         "length": 65536,
-        "matrix_mad": false,
+        "matrix_mad": true,
         "outer": 64,
-        "root_bits": 64,
+        "root_bits": 32,
         "shared_memory_preference": 50
       },
       "20": {
@@ -8598,12 +8598,15 @@
       },
       "18": {
         "implementation": "packed",
-        "length": 262144,
+        "length": 65536,
         "outer": 64,
-        "chunk": 2,
+        "chunk": 4,
         "root_bits": 32,
         "inner_blocks": 1,
-        "digit_ratio": 2
+        "digit_ratio": 2,
+        "matrix_mad": false,
+        "inline_converter": false,
+        "shared_memory_preference": 50
       },
       "19": {
         "implementation": "packed",
@@ -8759,7 +8762,7 @@
       "inline_converter": false,
       "inner_blocks": 1,
       "length": 65536,
-      "matrix_mad": false,
+      "matrix_mad": true,
       "outer": 64,
       "root_bits": 32,
       "shared_memory_preference": 50
