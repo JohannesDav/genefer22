@@ -10,16 +10,16 @@ On the NVIDIA cards we tested, complete tests ran **1.3 to 2.6 times as fast** w
 |---|---:|---:|---:|---:|---:|---:|---:|
 | GTX 1080 Ti | 1.3× | 1.3× | 1.5× | 1.4× | 1.6× | — | — |
 | RTX 2080 Ti | 1.5× | 1.3× | 1.5× | 1.9× | 2.0× | — | — |
-| RTX 3060 12GB | 1.4× | 1.5× | 1.8× | 1.8× | 1.9× | — | — |
+| RTX 3060 | 1.4× | 1.5× | 1.8× | 1.8× | 1.9× | — | — |
 | RTX 3090 | 1.6× | 1.6× | 1.7× | 2.0× | 2.1× | 2.6× | — |
-| RTX 4060 Ti 16GB | 1.5× | 1.5× | 1.6× | 1.7× | 2.0× | 2.5× | — |
+| RTX 4060 Ti | 1.5× | 1.5× | 1.6× | 1.7× | 2.0× | 2.5× | — |
 | RTX 4090 | 2.3× | 2.0× | 1.8× | 1.7× | 1.8× | 2.0× | 2.3× |
 | RTX 5070 | 1.8× | 1.4× | 1.5× | 1.7× | 1.9× | 2.3× | — |
 | RTX 5090 | 2.5× | 2.2× | 1.8× | 1.5× | 1.7× | 2.3× | 2.1× |
 
-Speedup for one complete test, including proof generation. A dash means that comparison was not run. The [benchmark results](doc/benchmarks.md) give the times in seconds, the bases used and seven more GPUs.
+Speedup for one complete test, including proof generation. A dash means that comparison was not run. The [benchmark results](doc/benchmarks.md) give the times in seconds, the bases used and results for more GPUs.
 
-An [OpenCL-only version](https://github.com/JohannesDav/genefer22/tree/opencl) is also available. In current measurements, it retains most of CUDA's time savings for GFN-19–22, with a larger gap on GFN-16–17. See the [OpenCL and CUDA comparison](https://github.com/JohannesDav/genefer22/blob/opencl/doc/benchmarks.md#comparison-with-cuda).
+The same optimizations are also available as an [OpenCL version](https://github.com/JohannesDav/genefer22/tree/opencl). On many of the GPUs and GFN sizes we tested, it is nearly as fast as this CUDA version. On others, the gap is larger ([comparison](https://github.com/JohannesDav/genefer22/blob/opencl/doc/benchmarks.md#comparison-with-cuda)).
 
 ## What changed
 
@@ -29,16 +29,16 @@ This fork changes how that squaring runs on NVIDIA GPUs:
 
 - **Packed squaring.** Several consecutive base-b digits (up to 16) are combined into each transform element, so the transform is that many times shorter. The elements are larger, so more primes are needed to recover the exact result. The number of primes is chosen for each candidate from a worst-case bound.
 - **Alternative three-prime arithmetic.** On some GPUs, mostly for GFN-16 and GFN-17, it is faster to keep Gallot’s transform but use three primes just below 2<sup>30</sup>. These leave room in 32-bit words to postpone modular reductions.
-- **Settings for each GPU.** The GPU code has several possible layouts. The program contains the fastest settings measured on [37 GPU models](doc/calibrated-gpus.md) and picks them automatically, so one executable serves every supported card.
+- **Settings for each GPU.** The GPU code has several possible layouts. The program contains settings measured on [many GPU models](doc/calibrated-gpus.md) and picks them automatically, so one executable serves every supported card.
 - **Less launch overhead.** Work is submitted to the GPU in batches using CUDA graphs, instead of one kernel launch at a time.
 
 ## Exactness and fallbacks
 
 None of these changes trade accuracy for speed. Before using an optimization for a candidate, the program checks worst-case bounds showing that every intermediate value stays within the range the arithmetic can represent exactly. Two-prime arithmetic is only used below Gallot’s own limit for it.
 
-The optimizations are designed to preserve exact arithmetic and produce the same results and proof files as the original version. The proof files matched in all 65 benchmark comparisons.
+The arithmetic stays exact, so each test gives the same result and writes the same proof file as the original version. The proof files also matched in every benchmark comparison.
 
-If a check fails, the program uses Gallot’s arithmetic instead. It also runs Gallot’s original code, unchanged, on non-NVIDIA GPUs, for GFN sizes outside 16–22, or if CUDA cannot start.
+If a check fails, the program uses Gallot’s arithmetic instead. It also runs Gallot’s original code, unchanged, on non-NVIDIA GPUs, for GFN sizes outside 16–22, or if the optimized code cannot start.
 
 Every test still runs Gallot’s Gerbicz–Li error check. Two [optional checks](doc/cuda.md#optional-extra-checks) can also verify the finished result with his original code.
 
