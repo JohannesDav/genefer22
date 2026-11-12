@@ -1,66 +1,111 @@
-# Building and running the OpenCL version
+# Building and installing the OpenCL version
 
-This page explains how to build `geneferg`, the GPU executable in this fork, how to run it, and how it chooses its arithmetic for each GPU and candidate. One build covers every supported NVIDIA GPU. Only Linux x86-64 has been tested.
+This guide explains how to build the OpenCL version of `geneferg`, this fork’s GPU executable, and how to run it on PrimeGrid through BOINC. Only Linux x86-64 has been tested.
+
+For a quick setup on Ubuntu, see the [step-by-step guide](#step-by-step-on-ubuntu).
 
 ## Requirements
 
-To build, you need:
+To build `geneferg`, you need the following. The Ubuntu package names are in brackets.
 
-- Python 3.8 or newer and a C++17 compiler.
-- GMP development files.
-- OpenCL headers and an OpenCL loader.
-- The BOINC API libraries, unless you build without BOINC support.
+- Git, Python 3.8 or newer and a C++17 compiler (`git`, `python3`, `g++`).
+- GMP development files, including the static library `libgmp.a` (`libgmp-dev`).
+- An OpenCL loader with its development files (`ocl-icd-opencl-dev`). The OpenCL headers are included in this repository.
+- The BOINC development files (`libboinc-app-dev`), unless you build without BOINC support. You can also build them from the [BOINC source](https://github.com/BOINC/boinc).
 
-On Debian or Ubuntu, this installs everything except BOINC:
-
-```sh
-sudo apt install g++ python3 libgmp-dev ocl-icd-opencl-dev
-```
-
-The computer that runs `geneferg` only needs an OpenCL driver for its GPU and an OpenCL loader. It does not need Python.
+To run it, the computer only needs an NVIDIA driver and an OpenCL loader.
 
 ## Building
 
-For a BOINC build, first build the BOINC libraries (`libboinc_api.a`, `libboinc_opencl.a` and `libboinc.a`). From a BOINC source checkout:
+From a copy of this repository’s `opencl` branch:
 
 ```sh
-./_autosetup
-./configure --disable-server --disable-client --disable-manager
-make -C lib
-make -C api
+python3 build.py --boinc /usr
 ```
 
-Then, from this repository’s root:
+`--boinc` is the directory where the BOINC development files are installed (`/usr` for Ubuntu’s package) or a BOINC source checkout.
 
-```sh
-python3 build.py --boinc /path/to/boinc
-```
+This writes `build/geneferg`. The GPU code and settings are built into it, so it’s the only file you need.
 
-`--boinc` is the BOINC source or installation directory.
-
-To run tests from the command line only, you can leave out BOINC:
-
-```sh
-python3 build.py --without-boinc
-```
-
-Either command writes `build/geneferg`. The GPU kernel sources in `kernels/src/` and the GPU settings in `profiles/nvidia.json` are built into the executable, so rebuild after changing them.
-
-The GPU target of `genefer/makefile_linux_x64` calls this build script. Its CPU target still builds Gallot’s unchanged CPU version.
-
-## Running a test
-
-This tests 28000000<sup>2<sup>19</sup></sup> + 1 and writes the proof to `candidate.proof`:
+To use `geneferg` from the command line only, build with `--without-boinc` instead of `--boinc /usr`. This tests 28000000<sup>2<sup>19</sup></sup> + 1 and writes the proof to `candidate.proof`:
 
 ```sh
 ./build/geneferg -n 19 -b 28000000 -p -f candidate
 ```
 
-Run `./build/geneferg` with no arguments to list all options. They are the same as in Gallot’s GPU version, plus the two checks below.
+Run `./build/geneferg` with no arguments to list all options.
 
-At the start of each test, the program generates GPU kernels for that candidate and compiles them with the OpenCL compiler built into the NVIDIA driver.
+## Using it with BOINC
 
-A BOINC build uses the same BOINC interface as Gallot’s version. PrimeGrid does not distribute this executable, so to use it for PrimeGrid work you have to configure BOINC to run it in place of the official application, for example through BOINC’s anonymous platform (`app_info.xml`).
+PrimeGrid doesn’t distribute this version, so BOINC has to be told to use your own executable instead of the official one. This is done with BOINC’s [anonymous platform](https://github.com/BOINC/boinc/wiki/Anonymous-platform) feature:
+
+1. Attach your BOINC client to PrimeGrid as usual.
+2. Stop the client.
+3. Copy `build/geneferg` and this repository’s [app_info.xml](boinc-app_info.xml) into the client’s PrimeGrid project directory. Both must be readable by the account BOINC runs as, and `geneferg` must be executable.
+4. Start the client again.
+
+The supplied `app_info.xml` covers all the GFN subprojects this version supports, and you still choose which ones to run in your PrimeGrid preferences. While it’s installed, BOINC only runs those applications, so other PrimeGrid subprojects stop on that computer.
+
+Where the project directory is, and how to stop and start the client, depends on how BOINC is installed. The [Ubuntu steps](#step-by-step-on-ubuntu) below give the exact commands for Ubuntu’s `boinc-client` package.
+
+## Step-by-step on Ubuntu
+
+These steps are written for Ubuntu 24.04 and should also work on other versions such as 22.04 or 26.04, and on distributions based on Ubuntu. They assume you already run BOINC from Ubuntu’s `boinc-client` package, attached to PrimeGrid, on a computer with an NVIDIA GPU and its driver.
+
+### 1. Install the build dependencies
+
+```bash
+sudo apt install git g++ python3 libgmp-dev ocl-icd-opencl-dev libboinc-app-dev
+```
+
+### 2. Download and build
+
+```bash
+git clone --branch opencl https://github.com/JohannesDav/genefer22.git ~/genefer22-opencl
+cd ~/genefer22-opencl
+python3 build.py --boinc /usr
+```
+
+This downloads the `opencl` branch into its own `genefer22-opencl` directory. Without `--branch opencl`, you would get the CUDA version.
+
+### 3. Install it in BOINC
+
+> [!IMPORTANT]
+> With this `app_info.xml`, BOINC only runs the GFN applications it lists. Other PrimeGrid subprojects, such as CPU work, stop on this computer until you remove it. Tasks already in progress may also be lost when you switch.
+
+From the `genefer22-opencl` directory, stop BOINC, copy the two files into its PrimeGrid directory, and start it again:
+
+```bash
+sudo systemctl stop boinc-client
+sudo install -o boinc -g boinc -m 755 build/geneferg /var/lib/boinc/projects/www.primegrid.com/
+sudo install -o boinc -g boinc -m 644 doc/boinc-app_info.xml /var/lib/boinc/projects/www.primegrid.com/app_info.xml
+sudo systemctl start boinc-client
+```
+
+If you already had an `app_info.xml` for PrimeGrid, this replaces it.
+
+BOINC’s event log (in BOINC Manager, Tools > Event Log) should now show `Found app_info.xml; using anonymous platform` for PrimeGrid. New GFN tasks then run with this version.
+
+### Updating
+
+```bash
+cd ~/genefer22-opencl
+git pull
+python3 build.py --boinc /usr
+sudo systemctl stop boinc-client
+sudo install -o boinc -g boinc -m 755 build/geneferg /var/lib/boinc/projects/www.primegrid.com/
+sudo systemctl start boinc-client
+```
+
+### Going back to the official version
+
+```bash
+sudo systemctl stop boinc-client
+sudo rm /var/lib/boinc/projects/www.primegrid.com/app_info.xml
+sudo systemctl start boinc-client
+```
+
+Then reset PrimeGrid in BOINC Manager (select it in the Projects tab and click Reset project) so BOINC downloads the official applications again. Resetting the project discards its current tasks.
 
 ## Optional extra checks
 
