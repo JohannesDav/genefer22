@@ -57,4 +57,4 @@ Only Linux x86-64 has been tested. PrimeGrid does not distribute this version, s
 Contributions are very welcome, for example:
 
 - **Settings for more NVIDIA GPUs.** If your card isn’t in the [list of calibrated GPUs](doc/calibrated-gpus.md), you can [calibrate it](doc/cuda.md#calibrating-another-gpu) and submit the resulting profile.
-- **Support for other GPUs.** AMD, Intel and Apple GPUs still run Gallot’s original code, so porting the optimizations to them would be a great next step, probably starting from the [OpenCL version](https://github.com/JohannesDav/genefer22/tree/opencl). Pull requests are much appreciated.
+- **Support for other GPUs.** AMD, Intel and Apple GPUs still run Gallot’s original code. The [OpenCL version](https://github.com/JohannesDav/genefer22/tree/opencl) is probably the easier place to start porting and testing the optimizations on them.
