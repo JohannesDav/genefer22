@@ -49,4 +49,9 @@ See [building and running the OpenCL version](doc/opencl.md). The executable, `g
 
 Only Linux x86-64 has been tested. PrimeGrid does not distribute this version, so using it for PrimeGrid work means setting up BOINC to run it yourself.
 
-AMD, Intel and Apple GPUs still run Gallot’s original code. If you have one and would like to port and test the optimizations, contributions are very welcome.
+## Contributing
+
+Contributions are very welcome, for example:
+
+- **Settings for more NVIDIA GPUs.** If your card isn’t in the [list of calibrated GPUs](doc/calibrated-gpus.md), you can [calibrate it](doc/opencl.md#calibrating-another-gpu) and submit the resulting profile.
+- **Support for other GPUs.** AMD, Intel and Apple GPUs still run Gallot’s original code, so porting the optimizations to them would be a great next step. Pull requests are much appreciated.
