@@ -67,7 +67,7 @@ This downloads the `opencl` branch into its own `genefer22-opencl` directory. Wi
 ### 3. Install it in BOINC
 
 > [!IMPORTANT]
-> With this `app_info.xml`, BOINC only runs the GFN applications it lists. Other PrimeGrid subprojects, such as CPU work, stop on this computer until you remove it. Tasks already in progress may also be lost when you switch.
+> With this `app_info.xml`, BOINC only runs the GFN applications it lists. Other PrimeGrid subprojects, such as CPU work, stop on this computer until you remove it. Any unfinished PrimeGrid tasks on this computer may also be lost when you switch.
 
 From the `genefer22-opencl` directory, stop BOINC, copy the two files into its PrimeGrid directory, and start it again:
 
@@ -148,7 +148,7 @@ The last command lists the options and the OpenCL devices it finds. Check that y
 ### 3. Install it in BOINC
 
 > [!IMPORTANT]
-> With this `app_info.xml`, BOINC only runs the GFN applications it lists. Other PrimeGrid subprojects, such as CPU work, stop on this computer until you remove it. Tasks already in progress may also be lost when you switch.
+> With this `app_info.xml`, BOINC only runs the GFN applications it lists. Other PrimeGrid subprojects, such as CPU work, stop on this computer until you remove it. Any unfinished PrimeGrid tasks on this computer may also be lost when you switch.
 
 In BOINC Manager’s Advanced View, choose **File > Shut down connected client**, then close BOINC Manager. From the `genefer22-opencl` directory, copy the two files into BOINC’s PrimeGrid directory:
 
