@@ -44,7 +44,7 @@ Every test still runs Gallot’s Gerbicz–Li error check. Two [optional checks]
 
 ## Building and running
 
-See [building and installing](doc/cuda.md) for build instructions and how to use this version with BOINC, including step-by-step instructions for [Ubuntu](doc/cuda.md#step-by-step-on-ubuntu) and [Windows 11 x64](doc/cuda.md#step-by-step-on-windows-11-x64).
+See [building and installing](doc/cuda.md) for build instructions and how to use this version with BOINC, including step-by-step instructions for [Ubuntu](doc/cuda.md#step-by-step-on-ubuntu) and [Windows 11](doc/cuda.md#step-by-step-on-windows-11).
 
 The executable, `geneferg`, takes the same options as Gallot’s GPU version, plus two optional check flags. For example, this tests 28000000<sup>2<sup>19</sup></sup> + 1 and writes the proof to `candidate.proof`:
 
