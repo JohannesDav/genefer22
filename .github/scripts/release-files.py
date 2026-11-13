@@ -88,21 +88,13 @@ def release_notes():
     guide = "opencl" if os.environ["GENEFER_VARIANT"] == "opencl" else "cuda"
     root = "https://github.com/" + repo
     Path("release-notes.md").write_text(
-        "Experimental binaries of an AI-written fork of Yves Gallot’s genefer22. "
-        "They are unsigned; Windows SmartScreen may warn.\n\n"
-        "Built by [GitHub Actions](" + root + "/actions/runs/" + os.environ["GITHUB_RUN_ID"] + ") "
-        "from tagged commit [`" + sha + "`](" + root + "/tree/" + sha + ") (" + tag + "). "
-        "Linux requires glibc 2.31 or newer and an OpenCL driver.\n\n"
-        "While BOINC is stopped, extract the ZIP’s two files (`geneferg` or `geneferg.exe`, "
-        "and `app_info.xml`) into its PrimeGrid project directory. This configuration "
-        "replaces any existing `app_info.xml` and enables only the listed GFN applications. "
-        "See the [build and installation guide](" + root + "/blob/" + sha + "/doc/" + guide + ".md) for details.\n\n"
-        "The full genefer22 source and build instructions are in the [tagged repository](" + root + "/tree/" + sha + "). "
-        "The build logs record dependency versions. Statically linked LGPL libraries come from "
-        "[GMP](https://gmplib.org/) (MSYS2 or Ubuntu source packages) and "
-        "[BOINC](https://github.com/BOINC/boinc) (8.2.9 on Windows; Ubuntu’s package or 8.2.9 on Linux). "
-        "The workflow records their build steps. SHA256SUMS covers both ZIPs; "
-        "provenance.sigstore.json contains GitHub’s build provenance attestation.\n",
+        "Experimental build of this genefer22 fork for NVIDIA GPUs. All changes were written by AI "
+        "and haven’t been independently reviewed. Install at your own risk.\n\n"
+        "See the [installation guide](" + root + "/blob/main/doc/" + guide +
+        ".md#installing-a-prebuilt-release) for how to set it up with BOINC.\n\n"
+        "Built from [" + tag + "](" + root + "/tree/" + tag + ") "
+        "([`" + sha[:7] + "`](" + root + "/commit/" + sha + ")) by "
+        "[GitHub Actions](" + root + "/actions/runs/" + os.environ["GITHUB_RUN_ID"] + ").\n",
         encoding="utf-8",
     )
 

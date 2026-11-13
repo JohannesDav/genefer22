@@ -1,6 +1,29 @@
 # Building and installing
 
-This guide explains how to build `geneferg`, the GPU executable in this fork, and how to run it on PrimeGrid through BOINC. It has been tested on Linux and Windows 11, both on x86-64. For a quick setup, see the step-by-step guides for [Ubuntu](#step-by-step-on-ubuntu) and [Windows 11](#step-by-step-on-windows-11).
+This guide explains how to install `geneferg`, the GPU executable in this fork, and run it on PrimeGrid through BOINC. The easiest way is to [install a prebuilt release](#installing-a-prebuilt-release). To build it yourself, see the requirements below, or the step-by-step guides for [Ubuntu](#step-by-step-on-ubuntu) and [Windows 11](#step-by-step-on-windows-11).
+
+## Installing a prebuilt release
+
+Each [release](https://github.com/JohannesDav/genefer22/releases/latest) has a zip for Linux and one for Windows, both for x86-64. Each contains the executable and its `app_info.xml`, ready to copy into BOINC. The Linux build runs on distributions with glibc 2.31 or newer, such as Ubuntu 20.04 or Debian 11 and later. The Windows build was tested on Windows 11 and should also run on 64-bit Windows 10. Both need an NVIDIA GPU with its driver, and BOINC attached to PrimeGrid.
+
+> [!IMPORTANT]
+> With this `app_info.xml`, BOINC only runs the GFN applications it lists. Other PrimeGrid subprojects, such as CPU work, stop on this computer until you remove it. Tasks already in progress may also be lost when you switch.
+
+**On Ubuntu**, with Ubuntu’s `boinc-client` package, run this from the directory containing the downloaded zip:
+
+```bash
+unzip genefer22-johannesdav-*-linux-x64.zip
+sudo systemctl stop boinc-client
+sudo install -o boinc -g boinc -m 755 geneferg /var/lib/boinc/projects/www.primegrid.com/
+sudo install -o boinc -g boinc -m 644 app_info.xml /var/lib/boinc/projects/www.primegrid.com/
+sudo systemctl start boinc-client
+```
+
+**On Windows**, in BOINC Manager’s Advanced View, choose **File > Shut down connected client**, then close BOINC Manager. Extract both files from the zip into `C:\ProgramData\BOINC\projects\www.primegrid.com`, approving the prompt if Windows asks for permission. Then reopen BOINC Manager.
+
+BOINC’s event log (**Tools > Event Log**) should now show `Found app_info.xml; using anonymous platform` for PrimeGrid. New GFN tasks then run with this version.
+
+To update, install the executable from a newer release the same way. To go back to the official version, follow the steps for [Ubuntu](#going-back-to-the-official-version) or [Windows](#going-back-to-the-official-version-1).
 
 ## Requirements
 
