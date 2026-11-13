@@ -27,7 +27,7 @@ int main() {
         expect(choices.front()->memory_gib == 8, "8GB device must use its own tested settings");
         known.name = "NVIDIA GeForce GTX 1080 Ti";
         known.memory_bytes = 11 * gib;
-        known.arch = architecture::pascal;
+        known.arch = architecture::nvidia_pascal;
         choices = profiles_for(known, 16, 620000000);
         expect(choices.front()->kind == implementation::three_prime,
                "Frontier calibration must retain the selected three-prime profile");
@@ -56,7 +56,7 @@ int main() {
         choices = profiles_for(known, 19);
         expect(choices.front()->memory_gib == 8,
                "A smaller untested capacity must retain a same-model candidate");
-        known.arch = architecture::pascal;
+        known.arch = architecture::nvidia_pascal;
         choices = profiles_for(known, 19);
         expect(choices.size() == 2 && choices.front()->memory_gib == 0,
                "A same-name substitute must not cross architectures");

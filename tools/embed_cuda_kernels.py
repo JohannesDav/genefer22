@@ -95,7 +95,7 @@ def profile(name, memory, arch, n, p):
         + ","
         + n
         + ",architecture::"
-        + arch
+        + ("nvidia_pascal" if arch == "pascal" else arch)
         + ",implementation::"
         + kind
         + ",{"

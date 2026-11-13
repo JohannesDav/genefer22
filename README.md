@@ -44,7 +44,7 @@ Every test still runs Gallot’s Gerbicz–Li error check. Two [optional checks]
 
 ## Building and running
 
-See [building and installing](doc/cuda.md) for build instructions and how to use this version with BOINC, including [step-by-step instructions for Ubuntu](doc/cuda.md#step-by-step-on-ubuntu).
+See [building and installing](doc/cuda.md) for build instructions and how to use this version with BOINC, including step-by-step instructions for [Ubuntu](doc/cuda.md#step-by-step-on-ubuntu) and [Windows 11 x64](doc/cuda.md#step-by-step-on-windows-11-x64).
 
 The executable, `geneferg`, takes the same options as Gallot’s GPU version, plus two optional check flags. For example, this tests 28000000<sup>2<sup>19</sup></sup> + 1 and writes the proof to `candidate.proof`:
 
@@ -52,7 +52,7 @@ The executable, `geneferg`, takes the same options as Gallot’s GPU version, pl
 ./build/geneferg -n 19 -b 28000000 -p -f candidate
 ```
 
-Only Linux x86-64 has been tested. PrimeGrid does not distribute this version, so using it for PrimeGrid work means setting up BOINC to run it yourself.
+PrimeGrid does not distribute this version, so using it for PrimeGrid work means setting up BOINC to run it yourself.
 
 ## Contributing
 
@@ -60,4 +60,3 @@ Contributions are very welcome, for example:
 
 - **Settings for more NVIDIA GPUs.** If your card isn’t in the [list of calibrated GPUs](doc/calibrated-gpus.md), you can [calibrate it](doc/cuda.md#calibrating-another-gpu) and submit the resulting profile.
 - **Support for other GPUs.** AMD, Intel and Apple GPUs still run Gallot’s original code. The [OpenCL version](https://github.com/JohannesDav/genefer22/tree/opencl) is probably the easier place to start porting and testing the optimizations on them.
-- **Windows and prebuilt binaries.** Only Linux has been tested, and the build script is Linux-specific. A Windows build, or prebuilt Linux binaries that also run on older systems would make this version much easier to use.

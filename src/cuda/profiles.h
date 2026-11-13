@@ -4,7 +4,7 @@
 #include <vector>
 
 namespace cuda_gfn {
-enum class architecture { unknown, maxwell, pascal, volta, turing, ampere, ampere_sm80, ada, hopper, blackwell };
+enum class architecture { unknown, maxwell, nvidia_pascal, volta, turing, ampere, ampere_sm80, ada, hopper, blackwell };
 enum class implementation { packed, three_prime, original_cuda, original_opencl };
 struct profile_entry {
     const char *name;

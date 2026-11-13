@@ -1,40 +1,30 @@
 # Building and installing
 
-This guide explains how to build `geneferg`, the GPU executable in this fork, and how to run it on PrimeGrid through BOINC. Only Linux x86-64 has been tested.
-
-For a quick setup on Ubuntu, see the [step-by-step guide](#step-by-step-on-ubuntu).
+This guide explains how to build `geneferg`, the GPU executable in this fork, and how to run it on PrimeGrid through BOINC. Follow the steps for [Ubuntu](#step-by-step-on-ubuntu) or [Windows 11 x64](#step-by-step-on-windows-11-x64).
 
 ## Requirements
 
-To build `geneferg`, you need the following. The Ubuntu package names are in brackets.
+- Git, Python 3.8 or newer and a C++17 compiler. The guides use GCC on Ubuntu and MinGW-w64 GCC from MSYS2 UCRT64 on Windows.
+- GMP development files, including the static library `libgmp.a`.
+- OpenCL loader development files. The genefer22 sources include OpenCL headers. Building the Windows BOINC libraries also requires the OpenCL headers from MSYS2.
+- BOINC application headers and static libraries (`libboinc_api.a`, `libboinc_opencl.a` and `libboinc.a`) for BOINC integration.
+- CUDA 12 or 13 headers. The [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit) includes them, and both platform guides show how to extract just the header package. The build uses `cuda.h` and requires neither `nvcc` nor the CUDA runtime.
 
-- Git, Python 3.8 or newer and a C++17 compiler (`git`, `python3`, `g++`).
-- GMP development files, including the static library `libgmp.a` (`libgmp-dev`).
-- An OpenCL loader with its development files (`ocl-icd-opencl-dev`). The OpenCL headers are included in this repository.
-- Headers from CUDA 12 or 13. Only `cuda.h` is used, so you don’t need `nvcc` or the CUDA runtime. You can get them from the [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit), or download just the header package, as in the [Ubuntu steps](#step-by-step-on-ubuntu).
-- The BOINC development files (`libboinc-app-dev`), unless you build without BOINC support. You can also build them from the [BOINC source](https://github.com/BOINC/boinc).
-
-To run it, the computer only needs an NVIDIA driver and an OpenCL loader.
+The optimized paths and the supplied BOINC configurations require an NVIDIA GPU with a driver that supports OpenCL. For PrimeGrid, BOINC must detect that GPU in its Event Log.
 
 ## Building
 
-From a copy of this repository:
+Run `build.py` as shown in the platform steps below. `--boinc` points to an installed BOINC SDK or a BOINC source checkout with the application libraries already built. `--cuda` points to the directory containing `include/cuda.h`. It defaults to the `CUDA_PATH` environment variable, then `/usr/local/cuda`.
 
-```sh
-python3 build.py --cuda /usr/local/cuda --boinc /usr
-```
+The executable is `build/geneferg` on Linux and `build/geneferg.exe` on Windows. It contains the GPU kernels and profiles. For command-line use alone, you can replace the `--boinc` option and its path with `--without-boinc`.
 
-`--cuda` is the CUDA directory containing `include/cuda.h`. It defaults to `$CUDA_PATH`, or `/usr/local/cuda` if that isn’t set. `--boinc` is the directory where the BOINC development files are installed (`/usr` for Ubuntu’s package) or a BOINC source checkout.
-
-This writes `build/geneferg`. The GPU code and settings are built into it, so it’s the only file you need.
-
-To use `geneferg` from the command line only, build with `--without-boinc` instead of `--boinc /usr`. This tests 28000000<sup>2<sup>19</sup></sup> + 1 and writes the proof to `candidate.proof`:
+For example, run the following from the repository root in the build shell to test 28000000<sup>2<sup>19</sup></sup> + 1 and write `candidate.proof`. On Windows, use `./build/geneferg.exe` in the same command.
 
 ```sh
 ./build/geneferg -n 19 -b 28000000 -p -f candidate
 ```
 
-Run `./build/geneferg` with no arguments to list all options.
+Run the executable with no arguments to list all options.
 
 ## Using it with BOINC
 
@@ -42,12 +32,12 @@ PrimeGrid doesn’t distribute this version, so BOINC has to be told to use your
 
 1. Attach your BOINC client to PrimeGrid as usual.
 2. Stop the client.
-3. Copy `build/geneferg` and this repository’s [app_info.xml](boinc-app_info.xml) into the client’s PrimeGrid project directory. Both must be readable by the account BOINC runs as, and `geneferg` must be executable.
+3. Copy the executable and the matching template into the PrimeGrid project directory. Name the template copy `app_info.xml`. Use the [Linux template](boinc-app_info.xml) for `geneferg` or the [Windows template](boinc-app_info-windows.xml) for `geneferg.exe`. The BOINC account needs permission to read both files and run the executable.
 4. Start the client again.
 
 The supplied `app_info.xml` covers all the GFN subprojects this version supports, and you still choose which ones to run in your PrimeGrid preferences. While it’s installed, BOINC only runs those applications, so other PrimeGrid subprojects stop on that computer.
 
-Where the project directory is, and how to stop and start the client, depends on how BOINC is installed. The [Ubuntu steps](#step-by-step-on-ubuntu) below give the exact commands for Ubuntu’s `boinc-client` package.
+Where the project directory is, and how to stop and start the client, depends on how BOINC is installed. See the [Ubuntu steps](#step-by-step-on-ubuntu) or [Windows steps](#step-by-step-on-windows-11-x64) for the default installation paths.
 
 ## Step-by-step on Ubuntu
 
@@ -112,6 +102,89 @@ sudo systemctl start boinc-client
 ```
 
 Then reset PrimeGrid in BOINC Manager (select it in the Projects tab and click Reset project) so BOINC downloads the official applications again. Resetting the project discards its current tasks.
+
+## Step-by-step on Windows 11 x64
+
+These steps assume BOINC is installed and attached to PrimeGrid, and its Event Log lists an NVIDIA OpenCL GPU. Use a regular desktop installation of BOINC, since a service installation can prevent GPU detection.
+
+### 1. Install the build dependencies
+
+Install [MSYS2](https://www.msys2.org/) and open **MSYS2 UCRT64** from the Start menu. Run:
+
+```bash
+pacman -Syu
+```
+
+If the update closes the window, reopen **MSYS2 UCRT64** and run `pacman -Syu` again. Then install the packages:
+
+```bash
+pacman -S --needed git make curl unzip mingw-w64-ucrt-x86_64-gcc \
+    mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-gmp \
+    mingw-w64-ucrt-x86_64-opencl-headers mingw-w64-ucrt-x86_64-opencl-icd
+```
+
+In the UCRT64 shell, create a build directory and build the application libraries from BOINC 8.2.9. You can skip the BOINC clone and `make` command for a command-line-only build.
+
+```bash
+mkdir -p ~/genefer-build
+cd ~/genefer-build
+git clone --depth 1 --branch client_release/8.2/8.2.9 https://github.com/BOINC/boinc.git
+make -C boinc/lib -f Makefile.mingw -j4 libboinc_api.a libboinc.a libboinc_opencl.a
+```
+
+Download and unpack NVIDIA’s CUDA 12.8 header archive in the same shell. This leaves the installed GPU driver in place.
+
+```bash
+curl -fLO https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-12.8.90-archive.zip
+unzip -q cuda_cudart-windows-x86_64-12.8.90-archive.zip
+```
+
+### 2. Download and build
+
+From the same UCRT64 shell:
+
+```bash
+git clone --branch main https://github.com/JohannesDav/genefer22.git
+cd genefer22
+python build.py --boinc ../boinc --cuda ../cuda_cudart-windows-x86_64-12.8.90-archive
+./build/geneferg.exe
+```
+
+The last command lists the OpenCL devices as well as the command-line options. Check that your NVIDIA GPU appears. The executable can run outside MSYS2 with the installed GPU driver and Windows OpenCL loader.
+
+### 3. Install it in BOINC
+
+> [!IMPORTANT]
+> This configuration enables the listed NVIDIA GFN apps for this host. In BOINC Manager, select PrimeGrid, choose **No new tasks**, and let the existing tasks finish and report before switching. Other PrimeGrid subprojects will be unavailable until you restore the official applications.
+
+In BOINC Manager’s Advanced View, choose **File > Shut down connected client**. Check Task Manager’s **Details** tab to make sure `boinc.exe` has exited, then exit BOINC Manager.
+
+From the repository directory in the UCRT64 shell, copy the executable and configuration. Back up any existing `app_info.xml` before replacing it.
+
+```bash
+project=/c/ProgramData/BOINC/projects/www.primegrid.com
+cp build/geneferg.exe "$project/" &&
+    cp doc/boinc-app_info-windows.xml "$project/app_info.xml"
+```
+
+Use the project directory under the **Data directory** shown in BOINC’s Event Log if you chose a custom location. If Windows denies access, use File Explorer to copy the files and approve the prompt. Rename the copied `boinc-app_info-windows.xml` to `app_info.xml`.
+
+Reopen BOINC Manager. In **Tools > Event Log**, look for PrimeGrid’s `Found app_info.xml; using anonymous platform` message and confirm there are no missing-file errors. Select the desired GFN subprojects in PrimeGrid preferences, choose **Allow new tasks** for PrimeGrid, and confirm a new GFN task starts.
+
+### Updating
+
+From the same repository directory in the UCRT64 shell:
+
+```bash
+git pull
+python build.py --boinc ../boinc --cuda ../cuda_cudart-windows-x86_64-12.8.90-archive
+```
+
+Stop BOINC, copy the rebuilt `geneferg.exe` into the project directory, and reopen BOINC Manager. If the Windows XML template changes, follow the installation steps again after the current tasks finish and report.
+
+### Going back to the official version
+
+Let the current tasks finish and report. Stop BOINC, remove `app_info.xml` from the PrimeGrid project directory, and reopen BOINC Manager. Select PrimeGrid in the **Projects** tab and choose **Reset project** to download the official applications again. Resetting the project discards any remaining tasks. Choose **Allow new tasks** when ready.
 
 ## Optional extra checks
 
