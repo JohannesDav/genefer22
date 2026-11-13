@@ -61,7 +61,7 @@ int main() {
         choices = profiles_for(known, 19);
         expect(choices.front()->memory_gib == 8,
                "A smaller untested capacity must retain a same-model candidate");
-        known.arch = architecture::pascal;
+        known.arch = architecture::nvidia_pascal;
         choices = profiles_for(known, 19);
         expect(choices.size() == 2 && choices.front()->memory_gib == 0,
                "A same-name substitute must not cross architectures");

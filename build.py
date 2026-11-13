@@ -12,6 +12,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parent
+WINDOWS = sys.platform == "win32"
 SOURCES = [
     "main.cpp",
     "transform_ocl.cpp",
@@ -33,7 +34,8 @@ def locate(candidates, description):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=ROOT / "build/geneferg")
+    executable = "geneferg.exe" if WINDOWS else "geneferg"
+    parser.add_argument("--output", type=Path, default=ROOT / "build" / executable)
     parser.add_argument(
         "--boinc",
         "--sdk",
@@ -50,6 +52,8 @@ def main():
     if args.jobs < 1:
         parser.error("--jobs must be positive")
     output = args.output.resolve()
+    if WINDOWS and output.suffix.lower() != ".exe":
+        parser.error("--output must end in .exe on Windows")
     output.parent.mkdir(parents=True, exist_ok=True)
     build = output.parent / (output.name + "-build")
     build.mkdir(exist_ok=True)
@@ -62,12 +66,13 @@ def main():
         ],
         check=True,
     )
-    compiler = shlex.split(os.environ.get("CXX", "g++"))
+    cxx = os.environ.get("CXX", "g++")
+    compiler = [cxx] if WINDOWS else shlex.split(cxx)
     common = [
         "-std=c++17",
         "-O3",
         "-pthread",
-        "-D_GNU_SOURCE",
+        *(["-DNOMINMAX"] if WINDOWS else ["-D_GNU_SOURCE"]),
         "-DGPU",
         "-DGENEFER_GENERAL_OPENCL",
         "-DGENEFER_GENERAL_PACKED",
@@ -100,6 +105,7 @@ def main():
             boinc,
             boinc / "api",
             boinc / "lib",
+            boinc / "win_build",
         ]:
             common.append("-I" + str(directory))
         directories = [
@@ -125,13 +131,14 @@ def main():
                 locate([d / "libboinc.a" for d in directories], "static BOINC library")
             ),
         ]
+    loader_names = ["libOpenCL.dll.a"] if WINDOWS else ["libOpenCL.so", "libOpenCL.so.1"]
     loader_candidates = [
         Path(
             subprocess.check_output(
                 compiler + ["-print-file-name=" + name], text=True
             ).strip()
         )
-        for name in ["libOpenCL.so", "libOpenCL.so.1"]
+        for name in loader_names
     ]
     opencl = locate(loader_candidates, "OpenCL loader")
     libraries = [
@@ -139,9 +146,12 @@ def main():
         *libraries,
         "-Wl,--end-group",
         str(opencl),
-        "-ldl",
-        "-lrt",
     ]
+    if WINDOWS:
+        if not args.without_boinc:
+            libraries += ["-lpsapi"]
+    else:
+        libraries += ["-ldl", "-lrt"]
     stamp = hashlib.sha256()
     for path in sorted((ROOT / "src").rglob("*.h")) + [
         ROOT / "profiles/nvidia.json",
@@ -178,7 +188,7 @@ def main():
         + [
             "-pthread",
             "-static-libgcc",
-            "-static-libstdc++",
+            "-static" if WINDOWS else "-static-libstdc++",
             *map(str, objects),
             *libraries,
             "-o",

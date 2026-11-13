@@ -13,7 +13,7 @@ architecture architecture_for(unsigned major, unsigned minor) {
     if (major == 5)
         return architecture::maxwell;
     if (major == 6)
-        return architecture::pascal;
+        return architecture::nvidia_pascal;
     if (major == 7)
         return minor < 5 ? architecture::volta : architecture::turing;
     if (major == 8) {
