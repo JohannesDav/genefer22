@@ -82,19 +82,14 @@ def package(platform):
 
 
 def release_notes():
-    tag = label()
     repo = os.environ["GITHUB_REPOSITORY"]
-    sha = os.environ["GITHUB_SHA"]
     guide = "opencl" if os.environ["GENEFER_VARIANT"] == "opencl" else "cuda"
     root = "https://github.com/" + repo
     Path("release-notes.md").write_text(
         "Experimental build of this genefer22 fork for NVIDIA GPUs. All changes were written by AI "
         "and haven’t been independently reviewed. Install at your own risk.\n\n"
         "See the [installation guide](" + root + "/blob/main/doc/" + guide +
-        ".md#installing-a-prebuilt-release) for how to set it up with BOINC.\n\n"
-        "Built from [" + tag + "](" + root + "/tree/" + tag + ") "
-        "([`" + sha[:7] + "`](" + root + "/commit/" + sha + ")) by "
-        "[GitHub Actions](" + root + "/actions/runs/" + os.environ["GITHUB_RUN_ID"] + ").\n",
+        ".md#installing-a-prebuilt-release) for how to set it up with BOINC.\n",
         encoding="utf-8",
     )
 
