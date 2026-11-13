@@ -53,7 +53,8 @@ class ReleaseChecks(unittest.TestCase):
                 for name in ["geneferg", "geneferg.exe"]:
                     Path("build", name).write_bytes(b"test executable")
                 for name in ["boinc-app_info.xml", "boinc-app_info-windows.xml"]:
-                    Path("doc", name).write_text("<app_info/>\n")
+                    Path("doc", name).write_bytes(
+                        b"<app_info/>\r\n" if "windows" in name else b"<app_info/>\n")
                 env = dict(GENEFER_VARIANT="opencl", GITHUB_REF="refs/tags/v1.2.3",
                            GITHUB_SHA="a" * 40, GITHUB_REPOSITORY="example/genefer22", GITHUB_RUN_ID="123")
                 with patch.dict(os.environ, env), patch.object(release, "inspect_binary"), contextlib.redirect_stdout(io.StringIO()):
@@ -65,7 +66,8 @@ class ReleaseChecks(unittest.TestCase):
                     with zipfile.ZipFile(path) as archive:
                         self.assertEqual(set(archive.namelist()), {name, "app_info.xml"})
                         self.assertEqual(stat.S_IMODE(archive.getinfo(name).external_attr >> 16), 0o755)
-                        self.assertEqual(archive.read("app_info.xml"), b"<app_info/>\n")
+                        expected_xml = b"<app_info/>\r\n" if platform == "windows" else b"<app_info/>\n"
+                        self.assertEqual(archive.read("app_info.xml"), expected_xml)
                 self.assertEqual(len(Path("dist/SHA256SUMS").read_text().splitlines()), 2)
             finally:
                 os.chdir(original)
