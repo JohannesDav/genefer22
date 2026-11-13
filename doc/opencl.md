@@ -1,29 +1,35 @@
 # Building and installing the OpenCL version
 
-This guide explains how to build the OpenCL version of `geneferg`, this fork’s GPU executable, and how to run it on PrimeGrid through BOINC. Follow the steps for [Ubuntu](#step-by-step-on-ubuntu) or [Windows 11 x64](#step-by-step-on-windows-11-x64).
+This guide explains how to build the OpenCL version of `geneferg`, this fork’s GPU executable, and how to run it on PrimeGrid through BOINC. It has been tested on Linux and Windows 11, both on x86-64. For a quick setup, see the step-by-step guides for [Ubuntu](#step-by-step-on-ubuntu) and [Windows 11](#step-by-step-on-windows-11-x64).
 
 ## Requirements
 
-- Git, Python 3.8 or newer and a C++17 compiler. The guides use GCC on Ubuntu and MinGW-w64 GCC from MSYS2 UCRT64 on Windows.
-- GMP development files, including the static library `libgmp.a`.
-- OpenCL loader development files. The genefer22 sources include OpenCL headers. Building the Windows BOINC libraries also requires the OpenCL headers from MSYS2.
-- BOINC application headers and static libraries (`libboinc_api.a`, `libboinc_opencl.a` and `libboinc.a`) for BOINC integration.
+To build `geneferg`, you need:
 
-The optimized paths and the supplied BOINC configurations require an NVIDIA GPU with a driver that supports OpenCL. For PrimeGrid, BOINC must detect that GPU in its Event Log.
+- Git, Python 3.8 or newer and a C++17 compiler: GCC on Linux, or MinGW-w64 GCC from MSYS2 on Windows.
+- GMP development files, including the static library `libgmp.a`.
+- An OpenCL loader with its development files. The OpenCL headers are included in this repository.
+- The BOINC application libraries (`libboinc_api.a`, `libboinc_opencl.a` and `libboinc.a`), unless you build without BOINC support. Ubuntu’s `libboinc-app-dev` package includes them, or you can build them from the [BOINC source](https://github.com/BOINC/boinc).
+
+To run it, the computer only needs an NVIDIA driver, which provides OpenCL.
 
 ## Building
 
-Run `build.py` as shown in the platform steps below. `--boinc` points to an installed BOINC SDK or a BOINC source checkout with the application libraries already built.
+From a copy of this repository (on the `opencl` branch):
 
-The executable is `build/geneferg` on Linux and `build/geneferg.exe` on Windows. It contains the GPU kernels and profiles. For command-line use alone, you can replace the `--boinc` option and its path with `--without-boinc`.
+```sh
+python3 build.py --boinc /path/to/boinc
+```
 
-For example, run the following from the repository root in the build shell to test 28000000<sup>2<sup>19</sup></sup> + 1 and write `candidate.proof`. On Windows, use `./build/geneferg.exe` in the same command.
+`--boinc` is where the BOINC libraries are installed (`/usr` for Ubuntu’s package), or a BOINC source checkout where they have been built. To use `geneferg` from the command line only, use `--without-boinc` instead.
+
+This writes `build/geneferg`, or `build/geneferg.exe` on Windows. The GPU code and settings are built into it, so it’s the only file you need. This tests 28000000<sup>2<sup>19</sup></sup> + 1 and writes the proof to `candidate.proof`:
 
 ```sh
 ./build/geneferg -n 19 -b 28000000 -p -f candidate
 ```
 
-Run the executable with no arguments to list all options.
+Run it with no arguments to list all options.
 
 ## Using it with BOINC
 
@@ -31,12 +37,12 @@ PrimeGrid doesn’t distribute this version, so BOINC has to be told to use your
 
 1. Attach your BOINC client to PrimeGrid as usual.
 2. Stop the client.
-3. Copy the executable and the matching template into the PrimeGrid project directory. Name the template copy `app_info.xml`. Use the [Linux template](boinc-app_info.xml) for `geneferg` or the [Windows template](boinc-app_info-windows.xml) for `geneferg.exe`. The BOINC account needs permission to read both files and run the executable.
+3. Copy the executable into the client’s PrimeGrid project directory, together with this repository’s template renamed to `app_info.xml`: [boinc-app_info.xml](boinc-app_info.xml) on Linux, or [boinc-app_info-windows.xml](boinc-app_info-windows.xml) on Windows.
 4. Start the client again.
 
 The supplied `app_info.xml` covers all the GFN subprojects this version supports, and you still choose which ones to run in your PrimeGrid preferences. While it’s installed, BOINC only runs those applications, so other PrimeGrid subprojects stop on that computer.
 
-Where the project directory is, and how to stop and start the client, depends on how BOINC is installed. See the [Ubuntu steps](#step-by-step-on-ubuntu) or [Windows steps](#step-by-step-on-windows-11-x64) for the default installation paths.
+Where the project directory is, and how to stop and start the client, depends on how BOINC is installed. The step-by-step guides give the details for [Ubuntu](#step-by-step-on-ubuntu) and [Windows 11](#step-by-step-on-windows-11-x64).
 
 ## Step-by-step on Ubuntu
 
@@ -99,17 +105,17 @@ Then reset PrimeGrid in BOINC Manager (select it in the Projects tab and click R
 
 ## Step-by-step on Windows 11 x64
 
-These steps assume BOINC is installed and attached to PrimeGrid, and its Event Log lists an NVIDIA OpenCL GPU. Use a regular desktop installation of BOINC, since a service installation can prevent GPU detection.
+These steps assume BOINC is installed and attached to PrimeGrid, and that it detects your NVIDIA GPU (BOINC lists it in the event log when it starts). Use a regular installation of BOINC: when it runs as a Windows service, it usually can’t use the GPU.
 
 ### 1. Install the build dependencies
 
-Install [MSYS2](https://www.msys2.org/) and open **MSYS2 UCRT64** from the Start menu. Run:
+Install [MSYS2](https://www.msys2.org/) and open **MSYS2 UCRT64** from the Start menu. Update it first:
 
 ```bash
 pacman -Syu
 ```
 
-If the update closes the window, reopen **MSYS2 UCRT64** and run `pacman -Syu` again. Then install the packages:
+If the window closes during the update, reopen **MSYS2 UCRT64** and run `pacman -Syu` again. Then install the packages:
 
 ```bash
 pacman -S --needed git make mingw-w64-ucrt-x86_64-gcc \
@@ -117,7 +123,7 @@ pacman -S --needed git make mingw-w64-ucrt-x86_64-gcc \
     mingw-w64-ucrt-x86_64-opencl-headers mingw-w64-ucrt-x86_64-opencl-icd
 ```
 
-In the UCRT64 shell, create a build directory and build the application libraries from BOINC 8.2.9. You can skip the BOINC clone and `make` command for a command-line-only build.
+Then build the BOINC libraries, in a new directory:
 
 ```bash
 mkdir -p ~/genefer-build
@@ -128,7 +134,7 @@ make -C boinc/lib -f Makefile.mingw -j4 libboinc_api.a libboinc.a libboinc_openc
 
 ### 2. Download and build
 
-From the same UCRT64 shell:
+In the same window:
 
 ```bash
 git clone --branch opencl https://github.com/JohannesDav/genefer22.git genefer22-opencl
@@ -137,41 +143,38 @@ python build.py --boinc ../boinc
 ./build/geneferg.exe
 ```
 
-The last command lists the OpenCL devices as well as the command-line options. Check that your NVIDIA GPU appears. The executable can run outside MSYS2 with the installed GPU driver and Windows OpenCL loader.
+The last command lists the options and the OpenCL devices it finds. Check that your NVIDIA GPU is among them. The built `geneferg.exe` doesn’t need MSYS2 to run.
 
 ### 3. Install it in BOINC
 
 > [!IMPORTANT]
-> This configuration enables the listed NVIDIA GFN apps for this host. In BOINC Manager, select PrimeGrid, choose **No new tasks**, and let the existing tasks finish and report before switching. Other PrimeGrid subprojects will be unavailable until you restore the official applications.
+> With this `app_info.xml`, BOINC only runs the GFN applications it lists. Other PrimeGrid subprojects, such as CPU work, stop on this computer until you remove it. Tasks already in progress may also be lost when you switch.
 
-In BOINC Manager’s Advanced View, choose **File > Shut down connected client**. Check Task Manager’s **Details** tab to make sure `boinc.exe` has exited, then exit BOINC Manager.
-
-From the repository directory in the UCRT64 shell, copy the executable and configuration. Back up any existing `app_info.xml` before replacing it.
+In BOINC Manager’s Advanced View, choose **File > Shut down connected client**, then close BOINC Manager. From the `genefer22-opencl` directory, copy the two files into BOINC’s PrimeGrid directory:
 
 ```bash
 project=/c/ProgramData/BOINC/projects/www.primegrid.com
-cp build/geneferg.exe "$project/" &&
-    cp doc/boinc-app_info-windows.xml "$project/app_info.xml"
+cp build/geneferg.exe "$project/"
+cp doc/boinc-app_info-windows.xml "$project/app_info.xml"
 ```
 
-Use the project directory under the **Data directory** shown in BOINC’s Event Log if you chose a custom location. If Windows denies access, use File Explorer to copy the files and approve the prompt. Rename the copied `boinc-app_info-windows.xml` to `app_info.xml`.
+If you chose a different BOINC data directory, change the first line accordingly. If you already had an `app_info.xml` for PrimeGrid, this replaces it. If Windows denies access, copy the two files with File Explorer instead, and rename `boinc-app_info-windows.xml` to `app_info.xml`.
 
-Reopen BOINC Manager. In **Tools > Event Log**, look for PrimeGrid’s `Found app_info.xml; using anonymous platform` message and confirm there are no missing-file errors. Select the desired GFN subprojects in PrimeGrid preferences, choose **Allow new tasks** for PrimeGrid, and confirm a new GFN task starts.
+Reopen BOINC Manager. Its event log (**Tools > Event Log**) should now show `Found app_info.xml; using anonymous platform` for PrimeGrid. New GFN tasks then run with this version.
 
 ### Updating
 
-From the same repository directory in the UCRT64 shell:
-
 ```bash
+cd ~/genefer-build/genefer22-opencl
 git pull
 python build.py --boinc ../boinc
 ```
 
-Stop BOINC, copy the rebuilt `geneferg.exe` into the project directory, and reopen BOINC Manager. If the Windows XML template changes, follow the installation steps again after the current tasks finish and report.
+Then shut down BOINC as in step 3, copy `build/geneferg.exe` into the PrimeGrid directory again, and reopen BOINC Manager.
 
 ### Going back to the official version
 
-Let the current tasks finish and report. Stop BOINC, remove `app_info.xml` from the PrimeGrid project directory, and reopen BOINC Manager. Select PrimeGrid in the **Projects** tab and choose **Reset project** to download the official applications again. Resetting the project discards any remaining tasks. Choose **Allow new tasks** when ready.
+Shut down BOINC as in step 3, delete `app_info.xml` from the PrimeGrid directory, and reopen BOINC Manager. Then reset PrimeGrid in BOINC Manager (select it in the Projects tab and click Reset project) so BOINC downloads the official applications again. Resetting the project discards its current tasks.
 
 ## Optional extra checks
 
