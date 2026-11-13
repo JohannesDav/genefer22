@@ -7,7 +7,7 @@ This guide explains how to install `geneferg`, the GPU executable in this fork, 
 Each [release](https://github.com/JohannesDav/genefer22/releases/latest) has a zip for Linux and one for Windows, both for x86-64. Each contains the executable and its `app_info.xml`, ready to copy into BOINC. The Linux build runs on distributions with glibc 2.31 or newer, such as Ubuntu 20.04 or Debian 11 and later. The Windows build was tested on Windows 11 and should also run on 64-bit Windows 10. Both need an NVIDIA GPU with its driver, and BOINC attached to PrimeGrid.
 
 > [!IMPORTANT]
-> With this `app_info.xml`, BOINC only runs the GFN applications it lists. Other PrimeGrid subprojects, such as CPU work, stop on this computer until you remove it. Tasks already in progress may also be lost when you switch.
+> With this `app_info.xml`, BOINC only runs the GFN applications it lists. Other PrimeGrid subprojects, such as CPU work, stop on this computer until you remove it. Any unfinished PrimeGrid tasks on this computer may also be lost when you switch.
 
 **On Ubuntu**, with Ubuntu’s `boinc-client` package, run this from the directory containing the downloaded zip:
 
@@ -96,7 +96,7 @@ python3 build.py --cuda ~/cuda-headers/usr/local/cuda-12.8 --boinc /usr
 ### 3. Install it in BOINC
 
 > [!IMPORTANT]
-> With this `app_info.xml`, BOINC only runs the GFN applications it lists. Other PrimeGrid subprojects, such as CPU work, stop on this computer until you remove it. Tasks already in progress may also be lost when you switch.
+> With this `app_info.xml`, BOINC only runs the GFN applications it lists. Other PrimeGrid subprojects, such as CPU work, stop on this computer until you remove it. Any unfinished PrimeGrid tasks on this computer may also be lost when you switch.
 
 From the `genefer22` directory, stop BOINC, copy the two files into its PrimeGrid directory, and start it again:
 
@@ -181,7 +181,7 @@ The last command lists the options and the OpenCL devices it finds. Check that y
 ### 3. Install it in BOINC
 
 > [!IMPORTANT]
-> With this `app_info.xml`, BOINC only runs the GFN applications it lists. Other PrimeGrid subprojects, such as CPU work, stop on this computer until you remove it. Tasks already in progress may also be lost when you switch.
+> With this `app_info.xml`, BOINC only runs the GFN applications it lists. Other PrimeGrid subprojects, such as CPU work, stop on this computer until you remove it. Any unfinished PrimeGrid tasks on this computer may also be lost when you switch.
 
 In BOINC Manager’s Advanced View, choose **File > Shut down connected client**, then close BOINC Manager. From the `genefer22` directory, copy the two files into BOINC’s PrimeGrid directory:
 
