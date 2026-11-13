@@ -1,6 +1,6 @@
 # Building and installing the OpenCL version
 
-This guide explains how to build the OpenCL version of `geneferg`, this fork’s GPU executable, and how to run it on PrimeGrid through BOINC. It has been tested on Linux and Windows 11, both on x86-64. For a quick setup, see the step-by-step guides for [Ubuntu](#step-by-step-on-ubuntu) and [Windows 11](#step-by-step-on-windows-11-x64).
+This guide explains how to build the OpenCL version of `geneferg`, this fork’s GPU executable, and how to run it on PrimeGrid through BOINC. It has been tested on Linux and Windows 11, both on x86-64. For a quick setup, see the step-by-step guides for [Ubuntu](#step-by-step-on-ubuntu) and [Windows 11](#step-by-step-on-windows-11).
 
 ## Requirements
 
@@ -42,7 +42,7 @@ PrimeGrid doesn’t distribute this version, so BOINC has to be told to use your
 
 The supplied `app_info.xml` covers all the GFN subprojects this version supports, and you still choose which ones to run in your PrimeGrid preferences. While it’s installed, BOINC only runs those applications, so other PrimeGrid subprojects stop on that computer.
 
-Where the project directory is, and how to stop and start the client, depends on how BOINC is installed. The step-by-step guides give the details for [Ubuntu](#step-by-step-on-ubuntu) and [Windows 11](#step-by-step-on-windows-11-x64).
+Where the project directory is, and how to stop and start the client, depends on how BOINC is installed. The step-by-step guides give the details for [Ubuntu](#step-by-step-on-ubuntu) and [Windows 11](#step-by-step-on-windows-11).
 
 ## Step-by-step on Ubuntu
 
@@ -103,7 +103,7 @@ sudo systemctl start boinc-client
 
 Then reset PrimeGrid in BOINC Manager (select it in the Projects tab and click Reset project) so BOINC downloads the official applications again. Resetting the project discards its current tasks.
 
-## Step-by-step on Windows 11 x64
+## Step-by-step on Windows 11
 
 These steps assume BOINC is installed and attached to PrimeGrid, and that it detects your NVIDIA GPU (BOINC lists it in the event log when it starts). Use a regular installation of BOINC: when it runs as a Windows service, it usually can’t use the GPU.
 
