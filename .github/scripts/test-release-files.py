@@ -43,7 +43,7 @@ class ReleaseChecks(unittest.TestCase):
             with self.subTest(platform=platform), self.assertRaises(ValueError):
                 self.inspect("", platform)
 
-    def test_archives_and_checksums(self):
+    def test_archives(self):
         original = Path.cwd()
         with tempfile.TemporaryDirectory() as directory:
             try:
@@ -60,7 +60,6 @@ class ReleaseChecks(unittest.TestCase):
                 with patch.dict(os.environ, env), patch.object(release, "inspect_binary"), contextlib.redirect_stdout(io.StringIO()):
                     for platform in ["windows", "linux"]:
                         release.package(platform)
-                    release.checksums()
                 for platform, name in [("windows", "geneferg.exe"), ("linux", "geneferg")]:
                     path = Path("dist/genefer22-johannesdav-opencl-v1.2.3-" + platform + "-x64.zip")
                     with zipfile.ZipFile(path) as archive:
@@ -68,7 +67,6 @@ class ReleaseChecks(unittest.TestCase):
                         self.assertEqual(stat.S_IMODE(archive.getinfo(name).external_attr >> 16), 0o755)
                         expected_xml = b"<app_info/>\r\n" if platform == "windows" else b"<app_info/>\n"
                         self.assertEqual(archive.read("app_info.xml"), expected_xml)
-                self.assertEqual(len(Path("dist/SHA256SUMS").read_text().splitlines()), 2)
             finally:
                 os.chdir(original)
 

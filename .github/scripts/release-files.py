@@ -2,7 +2,6 @@
 """Validate dependencies and assemble the two-file installation archives."""
 
 import argparse
-import hashlib
 import os
 from pathlib import Path
 import re
@@ -81,50 +80,7 @@ def package(platform):
     print("Packaged", path)
 
 
-def release_notes():
-    tag = label()
-    repo = os.environ["GITHUB_REPOSITORY"]
-    sha = os.environ["GITHUB_SHA"]
-    guide = "opencl" if os.environ["GENEFER_VARIANT"] == "opencl" else "cuda"
-    root = "https://github.com/" + repo
-    Path("release-notes.md").write_text(
-        "Experimental binaries of an AI-written fork of Yves Gallot’s genefer22. "
-        "They are unsigned; Windows SmartScreen may warn.\n\n"
-        "Built by [GitHub Actions](" + root + "/actions/runs/" + os.environ["GITHUB_RUN_ID"] + ") "
-        "from tagged commit [`" + sha + "`](" + root + "/tree/" + sha + ") (" + tag + "). "
-        "Linux requires glibc 2.31 or newer and an OpenCL driver.\n\n"
-        "While BOINC is stopped, extract the ZIP’s two files (`geneferg` or `geneferg.exe`, "
-        "and `app_info.xml`) into its PrimeGrid project directory. This configuration "
-        "replaces any existing `app_info.xml` and enables only the listed GFN applications. "
-        "See the [build and installation guide](" + root + "/blob/" + sha + "/doc/" + guide + ".md) for details.\n\n"
-        "The full genefer22 source and build instructions are in the [tagged repository](" + root + "/tree/" + sha + "). "
-        "The build logs record dependency versions. Statically linked LGPL libraries come from "
-        "[GMP](https://gmplib.org/) (MSYS2 or Ubuntu source packages) and "
-        "[BOINC](https://github.com/BOINC/boinc) (8.2.9 on Windows; Ubuntu’s package or 8.2.9 on Linux). "
-        "The workflow records their build steps. SHA256SUMS covers both ZIPs; "
-        "provenance.sigstore.json contains GitHub’s build provenance attestation.\n",
-        encoding="utf-8",
-    )
-
-
-def checksums():
-    paths = sorted(Path("dist").glob("*.zip"))
-    variant = "-opencl" if os.environ["GENEFER_VARIANT"] == "opencl" else ""
-    expected = {"genefer22-johannesdav" + variant + "-" + label() + "-" + platform + "-x64.zip"
-                for platform in ("windows", "linux")}
-    if {path.name for path in paths} != expected:
-        raise ValueError("Expected exactly the two platform archives")
-    Path("dist/SHA256SUMS").write_text("".join(
-        hashlib.sha256(path.read_bytes()).hexdigest() + "  " + path.name + "\n" for path in paths
-    ), encoding="utf-8")
-    release_notes()
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["windows", "linux", "checksums"])
-    command = parser.parse_args().command
-    if command == "checksums":
-        checksums()
-    else:
-        package(command)
+    parser.add_argument("platform", choices=["windows", "linux"])
+    package(parser.parse_args().platform)
